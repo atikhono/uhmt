@@ -11,7 +11,7 @@ all: $(MAIN).pdf
 
 
 $(MAIN).pdf:  $(MAIN).tex  report.bib $(FIGURES)
-	pdflatex $(MAIN)
+	pdflatex -shell-escape $(MAIN)
 	bibtex   $(MAIN)
 	pdflatex $(MAIN)
 	@while ( grep "Rerun to get cross-references"\
