@@ -10,7 +10,7 @@ FIGURES = $(patsubst %.eps,%.pdf,$(wildcard ./figures/*.eps))
 all: $(MAIN).pdf
 
 
-$(MAIN).pdf:  $(MAIN).tex  report.bib $(FIGURES)
+$(MAIN).pdf:  $(MAIN).tex  $(MAIN).bib $(FIGURES)
 	pdflatex -shell-escape $(MAIN)
 	bibtex   $(MAIN)
 	pdflatex $(MAIN)
