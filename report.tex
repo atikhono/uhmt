@@ -10,9 +10,11 @@
 
 \usepackage{graphicx}
 
+\usepackage[toc,titletoc,title]{appendix}
+
 % Support cyrillic
-\usepackage[utf8]{inputenc}
-\usepackage[russian]{babel}
+%\usepackage[utf8]{inputenc}
+%\usepackage[russian]{babel}
 
 % Inkscape generated tex uses color.sty
 \usepackage{color}
@@ -59,5 +61,10 @@
 
 \bibliographystyle{unsrt}
 \bibliography{report}
+
+
+\begin{appendices}
+\input{chapters/appendices_02.tex}
+\end{appendices}
 
 \end{document}

@@ -107,7 +107,9 @@ Channels act as FIFO-queues. Message arrivals in a channel are independent event
     \end{itemize}
 
 According to the central limit theorem, any distribution could be chosen -- it should not change results significantly. (Explain why?)
-  
+
+TODO Put a graph somewhere with the number of messages in a channel over time (the channel is finite and connected to a synchroniser) Probably appendix with the Brownian motion
+
   \subsection{Modeling artificial load}
 Describe the modeling of a synchroniser with a general case transition diagram (data structures, algorithms, tools, etc)
     \begin{itemize}
@@ -120,39 +122,9 @@ Describe the limitations of this model (only considers choosing a transition by 
 
 
 % Results of the study respective to the strategy.
-\section{Study of the Effects for the zip2 synchroniser}
-  \subsection{One of the channels queues is always empty}
-  \subsection{Brownian motion in unlimited queues}
-Explain why the phenomena is observed for $\langle (n_{a} - n_{b})^{2} \rangle$. Explain the similarity of fluctuations of $n_{a} - n_{b}$ the the Brownian motion.
-
-Brownian motion $\langle (n_{a} - n_{b})^{2} \rangle \sim t$, where $n_{a}$ and $n_{b}$ are the number of messages in the channels $a$ and $b$ respectively, and $t$ is time. The average for $(n_{a} - n_{b})$ is taken for 30 experiments. Dependencies close to the Brownian motion $\bar{\Delta l^2} = 2Dt$ take place with the mass diffusivity $D$ as shown in the table below (Коэффициент определен на глаз. По хорошему надо аппроксимировать до прямой: брать среднее от углов наклона для прямых, проведенных через каждую точку). (Probably need to show that the dependency is linear with some statistical criteria like $\chi^{2}$ ?)
-  \begin{tabular}{c|c|c|c}
-  $m$ & $\sigma$ & $2D$ & $D$\\
-  \hline
-  $1$ & $2$ & $4$ & $2$\\
-  \hline
-  $1$ & $1$ & $2$ & $1$\\
-  \hline
-  $1$ & $0.5$ & $1$ & $0.5$\\
-  \hline
-  $1$ & $0.25$ & $0.5$ & $0.25$\\
-  \hline
-  $1$ & $0.125$ & $0.125$ & $0.125$\\ 
-  \end{tabular}
-
-Нужно пересчитать эксперимент для $m \neq 1$. Получается что-то похожее на $D = \frac{\sigma}{m^{2}}$. See \ref{fig:brownian}.
-
-It would be good to find $D$ analiticaly!
-  \begin{figure}[here]
-  \centering
-  \includegraphics[scale=0.4]{figs/all.png}
-  \caption{The evolution of $(n_{a} - n_{b})^{2}$ over time depending on the variance $\sigma$.}
-  \label{fig:brownian}
-  \end{figure}
-
-  \subsection{Variance and channel length influence on throughput}
+\section{Variance and channel length influence on throughput}
 Define synchroniser throughput.
-    \subsubsection{Modeling results}
+  \subsection{Modeling results}
 $T = T \: (\sigma, l)$, where $\sigma = \sigma_{a} = \sigma_{b}$ - variance in both channels, $l = l_{a} = l_{b}$ - length of both channels. See \ref{fig:t_s}
     \begin{figure}[here]
     \centering
@@ -161,7 +133,7 @@ $T = T \: (\sigma, l)$, where $\sigma = \sigma_{a} = \sigma_{b}$ - variance in b
     \label{fig:t_s}
     \end{figure}
 
-    \subsubsection{Analitycal results}
+  \subsection{Analitycal results}
     \begin{itemize}
     \item A short introduction to discrete and continuous Markov networks.
 Discrete: the states and the transition probability matrix $P$. The transition probabilities do not depend on how the state was reached. The matrix $P$ has the following properties: the sum of all elements in each raw is 1, and $lim_{n - \infty} P = P_{steady}$. The elements in each column of the matrix $P_{steady}$ have the same value and the sum of elements in (each) raw is 1. These probabilities are called steady state probabilities.
@@ -179,7 +151,7 @@ How we chose the set of possible events. We want the most minimal set possible t
 First, we try the most minimalistic set $(n,a,b)$. Let $F_{a}(t) = Gamma(k, \theta, t)$ the distribution of interarrival times in the channels. Then the probability of one message $a$ coming to the channel $A$ in time $t_{t}$ $P_{a} = F_{a}(t_{t}) = Gamma(t_{t})$. The same is for a message $b$ coming to the channel $B$ in time $t_{t}$: $P_{b} = F_{b}(t_{t}) = Gamma(t_{t})$. Note that the discretion time $t_{t}$ must be chosen so that the ptobability os an event $ab$ in time $t_{t}$ is almost zero: $P_{ab}(t_{t}) = convolution! Gamma(t_{t})^2$. The probability to see the event $a$ arrived in $A$, channel $B$ is empty $P_{a} = Gamma(t_{t})(1-Gamma(t_{t})) = Gamma(t_{t}) - Gamma(t_{t})^2 \sim Gamma(t_{t})$. The probability to see the event $n$ (nothing arrived) in the channels over time $t_{t}$ $P_{n} = (1-p)^2 = 1 - 2 Gamma(t_{t}) + Gamma(t_{t})^2 \sim 1 - 2 Gamma(t_{t})$. The total probability of all possible events in the system $P_{n} + P_{a} + P_{b} = 1 - 2 Gamma(t_{t}) + Gamma(t_{t}) + Gamma(t_{t}) = 1$ as it should be. Then we fill the Markov transition probabilities matrix $P$ for the system's states and solve the matrix equation $xP = x$. Then we find that steady-state probabilities do not depend on the parameters of the distribution in the channels which means that we should consider more events.
 
 Then we take the set of events $(n,a,b,ab)$, for which $P_{a} = P_{b} = Gamma(t_{t})(1 - Gamma(t_{t}))$, $P_{ab} = Gamma(t_{t})^2$ and $P_{n} = (1 - Gamma(t_{t}))^2$. For this set we see the dependence of the steady-state probabilities on $Gamma(t_{t})$. If we expect just one message to come to a channel, then we may take the expected mean of the distribution as the discretion time $t_{t} \sim m(Gamma(k,\theta)) = k \theta$.
-      \end{itemize}
+    \end{itemize}
 
-  \subsection{Good-enough channel length?}
+\section{Good-enough channel length?}
 $l \sim \frac{Dk}{\langle k \rangle}$, where $Dk = \sum_{k} (k - \langle k \rangle)^{2} a_{k}$, $\langle k \rangle = \sum_{k} k a_{k}$.
