@@ -27,7 +27,7 @@ $(MAIN).pdf:  $(MAIN).tex  $(MAIN).bib $(FIGURES)
 	epstopdf $<
 
 
-show: $(MAIN).pdf
+show: cclean $(MAIN).pdf
 	open $(MAIN).pdf &
 
 clean:

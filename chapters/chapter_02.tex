@@ -121,10 +121,38 @@ Describe the modeling of a synchroniser with a general case transition diagram (
 Describe the limitations of this model (only considers choosing a transition by choice frequency if more than one channel are ready)
 
 
-% Results of the study respective to the strategy.
-\section{Variance and channel length influence on throughput}
-Define synchroniser throughput.
-  \subsection{Modeling results}
+\section{Application of Markov chains to synchronisers}
+In this section we explain how to find $T'_{i}$ and $j'_{i}, \; i=1,n$ using Markov chains.
+  \subsection{Introduction to Markov chains}
+A short introduction to discrete and continuous Markov networks.
+
+\textbf{Discrete Markov chains}
+Discrete: the states and the transition probability matrix $P$. The transition probabilities do not depend on how the state was reached. The matrix $P$ has the following properties: the sum of all elements in each raw is 1, and $lim_{n - \infty} P = P_{steady}$. The elements in each column of the matrix $P_{steady}$ have the same value and the sum of elements in (each) raw is 1. These probabilities are called steady state probabilities.
+
+\textbf{Continous Markov chains}
+TODO
+
+  \subsection{States of a chain}
+States of channels
+Describe what are the states of the chain ($A_{i} B_{j} L_{k}$). How the number of states depends on the length of the channels. Why number of states is unlimited (because of $L_{k}$).
+
+Example: zip2
+  \subsection{Simplification}
+-discrete time
+-events in channels
+
+Describe the continous case first. Show that why the discretisation is reasonable.
+Describe the discrete case. How $L_{k}$ is cut (by choosing possible events $(n,a,b,ab,...)$)
+
+How we chose the set of possible events. We want the most minimal set possible that shows the dependence of steady-state probabilities on the distribution parametes.
+
+%TODO: Come up with a good name for it
+  \subsection{How to find $T'$ and $j'$}
+TODO
+dT = $\frac{sum of steady-state probabilities where messages are lost)}{t_{t}}$
+
+\section{Example: application of the Markov chain to the zip2 synchroniser}
+  \subsection{Modeling the throughput}
 $T = T \: (\sigma, l)$, where $\sigma = \sigma_{a} = \sigma_{b}$ - variance in both channels, $l = l_{a} = l_{b}$ - length of both channels. See \ref{fig:t_s}
     \begin{figure}[here]
     \centering
@@ -133,25 +161,25 @@ $T = T \: (\sigma, l)$, where $\sigma = \sigma_{a} = \sigma_{b}$ - variance in b
     \label{fig:t_s}
     \end{figure}
 
-  \subsection{Analitycal results}
-    \begin{itemize}
-    \item A short introduction to discrete and continuous Markov networks.
-Discrete: the states and the transition probability matrix $P$. The transition probabilities do not depend on how the state was reached. The matrix $P$ has the following properties: the sum of all elements in each raw is 1, and $lim_{n - \infty} P = P_{steady}$. The elements in each column of the matrix $P_{steady}$ have the same value and the sum of elements in (each) raw is 1. These probabilities are called steady state probabilities.
+Explain the shape of the graph when $\mu \sim \sigma$ or $\mu >> \sigma$.
+Plot a graph for $0 < \sigma < \frac{\mu}{2}$.
 
-Continous: describe.
-    \item Application of Markov networks to the zip2 synchroniser.
-Describe what are the states of the network ($A_{i} B_{j} L_{k}$). Why we do not consider lost messages separately for each channels in the case of zip2. How the number of states depends on the length of the channels. Why number of states is unlimited (because of $L_{k}$).
+  \subsection{Analytical results}
+-States of the chain
+Why we do not consider lost messages separately for each channels in the case of zip2. 
 
-Describe the continous case first. Show that why the discretisation is reasonable.
-
-Describe the discrete case. How $L_{k}$ is cut (by choosing possible events $(n,a,b,ab,...)$)
-
-How we chose the set of possible events. We want the most minimal set possible that shows the dependence of steady-state probabilities on the distribution parametes.
-
+-events in channel (the minimal set for the zip2 synchroniser)
 First, we try the most minimalistic set $(n,a,b)$. Let $F_{a}(t) = Gamma(k, \theta, t)$ the distribution of interarrival times in the channels. Then the probability of one message $a$ coming to the channel $A$ in time $t_{t}$ $P_{a} = F_{a}(t_{t}) = Gamma(t_{t})$. The same is for a message $b$ coming to the channel $B$ in time $t_{t}$: $P_{b} = F_{b}(t_{t}) = Gamma(t_{t})$. Note that the discretion time $t_{t}$ must be chosen so that the ptobability os an event $ab$ in time $t_{t}$ is almost zero: $P_{ab}(t_{t}) = convolution! Gamma(t_{t})^2$. The probability to see the event $a$ arrived in $A$, channel $B$ is empty $P_{a} = Gamma(t_{t})(1-Gamma(t_{t})) = Gamma(t_{t}) - Gamma(t_{t})^2 \sim Gamma(t_{t})$. The probability to see the event $n$ (nothing arrived) in the channels over time $t_{t}$ $P_{n} = (1-p)^2 = 1 - 2 Gamma(t_{t}) + Gamma(t_{t})^2 \sim 1 - 2 Gamma(t_{t})$. The total probability of all possible events in the system $P_{n} + P_{a} + P_{b} = 1 - 2 Gamma(t_{t}) + Gamma(t_{t}) + Gamma(t_{t}) = 1$ as it should be. Then we fill the Markov transition probabilities matrix $P$ for the system's states and solve the matrix equation $xP = x$. Then we find that steady-state probabilities do not depend on the parameters of the distribution in the channels which means that we should consider more events.
 
-Then we take the set of events $(n,a,b,ab)$, for which $P_{a} = P_{b} = Gamma(t_{t})(1 - Gamma(t_{t}))$, $P_{ab} = Gamma(t_{t})^2$ and $P_{n} = (1 - Gamma(t_{t}))^2$. For this set we see the dependence of the steady-state probabilities on $Gamma(t_{t})$. If we expect just one message to come to a channel, then we may take the expected mean of the distribution as the discretion time $t_{t} \sim m(Gamma(k,\theta)) = k \theta$.
-    \end{itemize}
+Then we take the set of events $(n,a,b,ab)$, for which $P_{a} = P_{b} = Gamma(t_{t})(1 - Gamma(t_{t}))$, $P_{ab} = Gamma(t_{t})^2$ and $P_{n} = (1 - Gamma(t_{t}))^2$. For this set we see the dependence of the steady-state probabilities on $Gamma(t_{t})$.
+
+-time $t_t$
+If we expect just one message to come to a channel, then we may take the expected mean of the distribution as the discretion time $t_{t} \sim m(Gamma(k,\theta)) = k \theta$.
+
+
+Build $P_{steady}$, solve $x P_{steady} = x$, dT = $\frac{\sum{x_l}}{t_t}$, $T' = T - dT$.
+
+Expand $T'$ for $\sigma << \mu$. Plot two graphs on the same picture.
 
 \section{Good-enough channel length?}
 $l \sim \frac{Dk}{\langle k \rangle}$, where $Dk = \sum_{k} (k - \langle k \rangle)^{2} a_{k}$, $\langle k \rangle = \sum_{k} k a_{k}$.

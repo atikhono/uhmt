@@ -149,9 +149,14 @@ Some possible transition diagrams of the counter synchroniser are given in Figur
 \end{enumerate}
 
 \section{Plan}
-  \begin{itemize}
+  \begin{enumerate}
   \item The language for synchronisers
   \item The explantion of what language constructs mean
   \item The description of the execution model of synchroniser (algorithm of the execution of synchroniser, in which order transitions execute)
-  \item The implementation of the compiler frontend (with code generation to a python structure)
-  \end{itemize}
+  \item The implementation of the compiler frontend in OCaml \cite{realworldocaml} (with code generation to a python structure)
+    \begin{itemize}
+    \item Type checks
+    \item Dead code (elseon <ch> after on <ch>)
+    \item Synchroniser passport
+    \end{itemize}
+  \end{enumerate}
