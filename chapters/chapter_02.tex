@@ -145,9 +145,18 @@ $\Pi \; (s_{2}, c) = \psi_{\sqcap} \; \{\mu_{0} = b \: | \: \rho_{20}^{c} \; (s_
 
 
 \section{Synchroniser code}
+The full grammar of the \ak\ synchroniser syntax is given in Appendix \ref{sync_syntax}. In this section we provide a detailed explaination of what every language construct mean.
+
+Terminal symbols in the grammar are language keywords, special symbols, user-defined identifiers $\langle$id$\rangle$ and constant integers $\langle$const$\rangle$. The language keywords are \begin{bf}sync\end{bf}, \begin{bf}store\end{bf}, \begin{bf}state\end{bf}, \begin{bf}int\end{bf}, \begin{bf}enum\end{bf}, \begin{bf}on\end{bf}, \begin{bf}elseon\end{bf}, \begin{bf}else\end{bf}, \begin{bf}do\end{bf}, \begin{bf}send\end{bf}, \begin{bf}nil\end{bf}, \begin{bf}this\end{bf} and \begin{bf}goto\end{bf}. The special symbols are curved brackets \begin{bf}\{ \}\end{bf}, square brackets \begin{bf}[ ]\end{bf}, parantheses \begin{bf}( )\end{bf}, comma \begin{bf},\end{bf}, dot \begin{bf}.\end{bf}, semicolon \begin{bf}:\end{bf}, plus \begin{bf}+\end{bf}, minus \begin{bf}-\end{bf}, ampersand \begin{bf}\&\end{bf}, at sign \begin{bf}@\end{bf}, question mark \begin{bf}?\end{bf}, or \begin{bf}$||$\end{bf}, equal sign \begin{bf}=\end{bf} and arrow \begin{bf}$\Rightarrow$\end{bf}. A user-defined identifier is an ASCII string that follows the C conventions. Non-terminal symbol $\langle$int-exp$\rangle$ stands for integer expressions. The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
+
+
+A synchroniser program consists of a heading $\langle$head$\rangle$ followed by the synchroniser's body wrapped in curved brackets.
+
+The heading of a synchroniser program (Fig \ref{sync_syntax:head}) holds the synchroniser's name, optional configuration parameters $\langle$confs$\rangle$ and the communicating channel signature $\langle$params$\rangle$. The name is an ASCII string that follows the C convention. The name is specified after the keyword \begin{bf}sync\end{bf}.
+
+The configuration parameters are integer constants introduced to avoid trivially altered synchroniser programs. They are specified in square brackets before the channel signature. An example of a configurable counter synchroniser can be found in \cite{astrakahn}.
 
 \begin{figure}[h!]
-\begin{framed}
 \small
 \begin{grammar}
 [(colon){$\rightarrow$}]
@@ -156,55 +165,174 @@ $\Pi \; (s_{2}, c) = \psi_{\sqcap} \; \{\mu_{0} = b \: | \: \rho_{20}^{c} \; (s_
 [(period){\\}]
 [(quote){\begin{bf}}{\end{bf}}]
 [(nonterminal){$\langle$}{$\rangle$}]
-<synchroniser>:"synch",<name>,[<confs>],<params>,"\{"<decls>,<trans>"\}".
+<synchroniser>:<head>,"\{"<decls>,<trans>"\}".
+<head>:"sync", <id>, [<confs>],<params>.
 
-<confs>:"{\tt [}",<conf>,[",",<conf>]*,"{\tt ]}".
+<confs>:"{\tt [}",<conf>,[",", <conf>]*,"{\tt ]}".
 <conf>:<id>
-
-<params>: "(",[<inparam>,[",",<inparam>]*],"{\tt |}",[<outparam>,[",",<outparam>]*],")".
-
-<inparam>:<chan>,[":",<indepth>].
-<chan>:<id>.
-<indepth>:<var>;<const>.
-<var>:<id>.
-
-<outparam>:<chan>,[":",<depth-exp>].
-<depth-exp>:<const>;<var>;<var>,"{\tt+}",<shift>;<var>,"{\tt -}",<shift>.
-<shift>:<const>;<conf>.
-
-<decls>:[<store-decl>;<state-decl>]*.
-<store-decl>:"store",<var>,"{\tt :}",<chan-tail>,[<var>,"{\tt :}",<chan-tail>]*.
-<state-decl>:"state",<type>,<var>[",",<var>]*.
-<type>:"int(",<const>,")";"enum(",<id>,[",",<id>]*,")".
-<chan-tail>: <chan>;<tail>.
-
-<trans>:<tran>[",",<tran>]*.
-<tran>:[<label>,":"],[<on-clause>],[<do-clause>],[<send-clause>],[<goto-clause>].
-
-<on-clause>:"on",<chan-cond>;"elseon",<chan-cond>.
-<chan-cond>:<primary>["{\tt \&}"<guard-exp>].
-<primary>:<chan>,[".",<secondary>].
-<secondary>:"{\tt@}",<id>;"{\tt else}";"?",<id>;["?",<id>]<pattern>.
-<pattern>:"(",<id>,[",",<id>]*,["{\tt||}",<tail>, ")".
-<guard-exp>:<int-exp>.
-<tail>:<id>
-
-<do-clause>: "do",<assgn>,[",",<assgn>]*.
-<assgn>:<id>,"{\tt :=}",<int-exp>; <id>,"{\tt :=}",<data-exp>.
-
-<send-clause>: "send", <dispatch>,[",",<dispatch>]*.
-<dispatch>: <msg-exp>,"{\tt =>}", <chan>.
-<msg-exp>: "{\tt @}",<int-exp>; "?",<id>; ["?",<id>],<data-exp>;"nil".
-<data-exp>: <primary-mes>; "(",<primary-mes>, ["," <primary-mes>]*,")".
-<primary-mes>: <var>;<var>=<int-exp>;"this".
-<goto-clause>:"goto",<label>.
-
 \end{grammar}
-\end{framed}
-\caption{The syntax of the \ak\ synchroniser}
+\caption{Heading of the synchroniser and the configuration parameters}
+\label{sync_syntax:head}
 \end{figure}
 
-Explain what every language construct means
+The channel signature $\langle$params$\rangle$ (Fig. \ref{sync_syntax:params}) defines the input channels $\langle$inparam$\rangle$ and the output channels $\langle$outparam$\rangle$ of the synchroniser and their bracketing depths. The input channels are required to have the bracketing depths $\langle$indepth$\rangle$, while the output channels are guaranteed to have the bracketing depths specified with depth expressions $\langle$depth-exp$\rangle$. The depth expressions can be controlled by the configuration parameters. Output channels with the depth $-1$ are not sent any data to them and input channels with the depth $-1$ are ignored in the synchroniser program.
+
+\begin{figure}[h!]
+\small
+\begin{grammar}
+[(colon){$\rightarrow$}]
+[(semicolon)$|$]
+[(comma){}]
+[(period){\\}]
+[(quote){\begin{bf}}{\end{bf}}]
+[(nonterminal){$\langle$}{$\rangle$}]
+<params>:"(",[<inparam>,[",", <inparam>]*],"{\tt |}",[<outparam>,[",", <outparam>]*],")"
+\end{grammar}
+\end{figure}
+
+\begin{figure}[h!]
+\small
+\begin{grammar}
+[(colon){$\rightarrow$}]
+[(semicolon)$|$]
+[(comma){}]
+[(period){\\}]
+[(quote){\begin{bf}}{\end{bf}}]
+[(nonterminal){$\langle$}{$\rangle$}]
+<inparam>:<chan>,[":",<indepth>].
+<chan>:<id>.
+<indepth>:<var> ; <const>.
+
+<outparam>:<chan>,[":",<depth-exp>].
+<depth-exp>:<const> ; <var> ; <var>,"{\tt+}",<shift> ; <var>,"{\tt -}",<shift>.
+<shift>:<const> ; <conf>.
+
+<var>:<id>
+\end{grammar}
+\caption{Channel signature of the synchroniser}
+\label{sync_syntax:params}
+\end{figure}
+
+The synchroniser's body includes store and state variable declarations $\langle$decls$\rangle$ followed by the definitions of transitions between states $\langle$trans$\rangle$.
+
+Store variables are the storage mechanism \ak\ provides to synchronisers. A store variable is capable of storing a data message or a tail of a message from the associated channel $\langle$chan$\rangle$ (Fig. \ref{sync_syntax:decls}). (TODO: what is a tail and how is it used?) State variables are either integers of the size $\langle$const$\rangle$ or enumerations. (TODO: how does enum work?)
+
+(TODO:) Tail names can be used in declaration of store variables in the same manner as channel names. A store variable can be assigned messages from several channels: x : foo,bar, in which case it is assumed that the variable has the least common type that the channels can be coerced up to. (TODO: fix the grammar for it)
+
+\begin{figure}[h!]
+\small
+\begin{grammar}
+[(colon){$\rightarrow$}]
+[(semicolon)$|$]
+[(comma){}]
+[(period){\\}]
+[(quote){\begin{bf}}{\end{bf}}]
+[(nonterminal){$\langle$}{$\rangle$}]
+<decls>:[<store-decl> ; <state-decl>]*.
+
+<store-decl>:"store", <id>,"{\tt :}",<chan-tail>[",", <id>,"{\tt :}",<chan-tail>]*.
+<chan-tail>:<chan> ; <tail>.
+<tail>:<id>.
+
+<state-decl>:"state", <type>,<id>[",", <id>]*.
+<type>:"int(",<const>,")" ; "enum(",<id>,[",", <id>]*,")"
+\end{grammar}
+\caption{Store and state variable declarations.}
+\label{sync_syntax:decls}
+\end{figure}
+
+Transitions of the synchroniser define which channels are read and in what order. The on-clause defines the condition on which the transition takes place. The do-clause is a list of actions that evaluate the functional. The send-clause forms and sends the output messages. The goto-clause defines the state transition (Fig. \ref{sync_syntax:trans}).
+
+\begin{figure}[h!]
+\small
+\begin{grammar}
+[(colon){$\rightarrow$}]
+[(semicolon)$|$]
+[(comma){}]
+[(period){\\}]
+[(quote){\begin{bf}}{\end{bf}}]
+[(nonterminal){$\langle$}{$\rangle$}]
+<trans>:<tran>[",", <tran>]*.
+<tran>:[<label>,":"],[<on-clause>],[<do-clause>],[<send-clause>],[<goto-clause>].
+
+<goto-clause>:"goto", <label>
+\end{grammar}
+\caption{Transitions and goto-clause of the synchroniser}
+\label{sync_syntax:trans}
+\end{figure}
+
+Whether a transition takes place depends on the channel status and optionally the content of the messages (Fig. \ref{sync_syntax:on}). The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one.
+
+The channel name $\langle$chan$\rangle$ on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available.
+
+The condition $\langle$chan$\rangle$\begin{bf}.else\end{bf} is equivalent to $\langle$chan$\rangle$ except it is tested after any other condition involving the channel. Although several different channels can be tested in any given state, once a test has established the readiness of a channel, the synchroniser is committed, hence the set of conditions applied to the message on any input channel $\langle$chan$\rangle$ must be exhaustive. If it is not, the final clause \begin{bf}on\end{bf} $\langle$chan$\rangle$\begin{bf}.else;\end{bf} is assumed. That clause discards the input message and transitions the synchroniser back to its current state.
+
+A channel carries a stream that consists of messages and possibly segmentation marks. The synchroniser detects a segmentation mark of the depth $\langle$id$\rangle$ with the channel condition \begin{bf}on\end{bf} $\langle$chan$\rangle${\tt .@}$\langle$id$\rangle$. 
+
+When a message is received on a channel, it can be matched with a pattern $\langle$pattern$\rangle$ in order to extract parameters needed to select a specific transition. (TODO: what is a tail and how is it used?) To support message formats where several variants of a message are possible, a qualifier \begin{bf}?\end{bf}$\langle$id$\rangle$ is available as an input condition. It qualifies input messages as belonging to the $\langle$id$\rangle$ variant.
+
+(TODO: how does elseon-clause behave?)
+
+\begin{figure}[h!]
+\small
+\begin{grammar}
+[(colon){$\rightarrow$}]
+[(semicolon)$|$]
+[(comma){}]
+[(period){\\}]
+[(quote){\begin{bf}}{\end{bf}}]
+[(nonterminal){$\langle$}{$\rangle$}]
+<on-clause>:"on", <chan-cond> ; "elseon", <chan-cond>.
+<chan-cond>:<chan>,[".else" ; ".","{\tt @}",<id> ; ".?",<id> ; ".",["?",<id>]<pattern>]["{\tt \&}"<guard-exp>].
+<pattern>:"(",<id>,[",", <id>]*,["{\tt ||}",<tail>],")".
+<guard-exp>:<int-exp>
+\end{grammar}
+\caption{On-clause of the synchroniser}
+\label{sync_syntax:on}
+\end{figure}
+
+TODO: data expression (Fig. \ref{sync_syntax:do})
+( ) denotes the concatenation of the messages it is subject to.
+A message received on a channel can be referred to by the keyword 'this'.
+
+
+\begin{figure}[h!]
+\small
+\begin{grammar}
+[(colon){$\rightarrow$}]
+[(semicolon)$|$]
+[(comma){}]
+[(period){\\}]
+[(quote){\begin{bf}}{\end{bf}}]
+[(nonterminal){$\langle$}{$\rangle$}]
+<data-exp>:<primary-mes> ; "(",<primary-mes>,["," <primary-mes>]*,")".
+<primary-mes>:<var> ; <var>=<int-exp> ; "this".
+
+<do-clause>:"do", <assign>,[",", <assign>]*.
+<assign>:<id>,"{\tt :=}",<int-exp> ; <id>,"{\tt :=}",<data-exp>
+\end{grammar}
+\caption{Data expression and do-clause of the synchroniser}
+\label{sync_syntax:do}
+\end{figure}
+
+The send-clause (Fig. \ref{sync_syntax:send})
+
+\begin{figure}[h!]
+\small
+\begin{grammar}
+[(colon){$\rightarrow$}]
+[(semicolon)$|$]
+[(comma){}]
+[(period){\\}]
+[(quote){\begin{bf}}{\end{bf}}]
+[(nonterminal){$\langle$}{$\rangle$}]
+<send-clause>:"send", <dispatch>,[",", <dispatch>]*.
+<dispatch>:<msg-exp>,"{\tt =>}",<chan>.
+<msg-exp>:"{\tt @}",<int-exp> ; "?",<id> ; ["?",<id>],<data-exp> ; "nil"
+\end{grammar}
+\caption{Send-clause of the synchroniser}
+\label{sync_syntax:send}
+\end{figure}
 
 
 \section{Execution order of synchroniser\label{execod}}

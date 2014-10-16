@@ -1,0 +1,65 @@
+%%
+%%  APPENDICES FOR THE CHAPTER 2
+%%
+\chapter{The syntax of the \ak\ syncroniser}
+
+  \section{The full grammar\label{sync_syntax}}
+\begin{figure}[h!]
+\begin{framed}
+\small
+\begin{grammar}
+[(colon){$\rightarrow$}]
+[(semicolon)$|$]
+[(comma){}]
+[(period){\\}]
+[(quote){\begin{bf}}{\end{bf}}]
+[(nonterminal){$\langle$}{$\rangle$}]
+<synchroniser>:"synch",<name>,[<confs>],<params>,"\{"<decls>,<trans>"\}".
+
+<confs>:"{\tt [}",<conf>,[",",<conf>]*,"{\tt ]}".
+<conf>:<id>
+
+<params>: "(",[<inparam>,[",",<inparam>]*],"{\tt |}",[<outparam>,[",",<outparam>]*],")".
+
+<inparam>:<chan>,[":",<indepth>].
+<chan>:<id>.
+<indepth>:<var>;<const>.
+<var>:<id>.
+
+<outparam>:<chan>,[":",<depth-exp>].
+<depth-exp>:<const>;<var>;<var>,"{\tt+}",<shift>;<var>,"{\tt -}",<shift>.
+<shift>:<const>;<conf>.
+
+<decls>:[<store-decl>;<state-decl>]*.
+<store-decl>:"store",<var>,"{\tt :}",<chan-tail>,[<var>,"{\tt :}",<chan-tail>]*.
+<state-decl>:"state",<type>,<var>[",",<var>]*.
+<type>:"int(",<const>,")";"enum(",<id>,[",",<id>]*,")".
+<chan-tail>: <chan>;<tail>.
+
+<trans>:<tran>[",",<tran>]*.
+<tran>:[<label>,":"],[<on-clause>],[<do-clause>],[<send-clause>],[<goto-clause>].
+
+<on-clause>:"on",<chan-cond>;"elseon",<chan-cond>.
+<chan-cond>:<primary>["{\tt \&}"<guard-exp>].
+<primary>:<chan>,[".",<secondary>].
+<secondary>:"{\tt@}",<id>;"{\tt else}";"?",<id>;["?",<id>]<pattern>.
+<pattern>:"(",<id>,[",",<id>]*,["{\tt||}",<tail>, ")".
+<guard-exp>:<int-exp>.
+<tail>:<id>
+
+<do-clause>: "do",<assgn>,[",",<assgn>]*.
+<assgn>:<id>,"{\tt :=}",<int-exp>; <id>,"{\tt :=}",<data-exp>.
+
+<send-clause>: "send", <dispatch>,[",",<dispatch>]*.
+<dispatch>: <msg-exp>,"{\tt =>}", <chan>.
+<msg-exp>: "{\tt @}",<int-exp>; "?",<id>; ["?",<id>],<data-exp>;"nil".
+<data-exp>: <primary-mes>; "(",<primary-mes>, ["," <primary-mes>]*,")".
+<primary-mes>: <var>;<var>=<int-exp>;"this".
+<goto-clause>:"goto",<label>.
+
+\end{grammar}
+\end{framed}
+\caption{The syntax of the \ak\ synchroniser}
+\end{figure}
+
+  \section{The integer expression grammar\label{int_exp_gr}}
