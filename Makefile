@@ -11,13 +11,13 @@ all: $(MAIN).pdf
 
 
 $(MAIN).pdf:  $(MAIN).tex  $(MAIN).bib $(FIGURES)
-	pdflatex -shell-escape $(MAIN)
+	pdflatex -file-line-error -shell-escape $(MAIN)
 	bibtex   $(MAIN)
-	pdflatex $(MAIN)
+	pdflatex -file-line-error $(MAIN)
 	@while ( grep "Rerun to get cross-references"\
 	  $(MAIN).log > /dev/null ); do\
 	    echo '** Re-running LaTeX **';\
-	    pdflatex $(MAIN);\
+	    pdflatex -file-line-error $(MAIN);\
 	  done
 	make clean
 

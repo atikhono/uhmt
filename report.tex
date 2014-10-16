@@ -8,6 +8,10 @@
 %\textwidth 16cm
 %\textheight 21cm
 
+% Make doublespacing for text correction
+%\usepackage{setspace}
+%\doublespacing
+
 \usepackage{graphicx}
 
 \usepackage[toc,titletoc,title]{appendix}
@@ -51,6 +55,13 @@
 % Add Bibliography to the Table of Contents as an unnumbered item
 \usepackage[nottoc,notlot,notlof]{tocbibind}
 
+% framed environment for grammars and listings.
+\usepackage{framed}
+\usepackage{listings}
+\usepackage{packages/bnf}
+
+% Authentic AstraKahn label
+\def\ak{{\textsf{A\kern-1.5pts\kern-1ptt\kern-1ptr\kern-1.8pta}}\kern-2pt{\it K\kern-2ptahn}}
 
 \begin{document}
 \author{Anna Tikhonova}
@@ -68,6 +79,8 @@
 % Chapters.
 \input{chapters/chapter_01.tex}
 \input{chapters/chapter_02.tex}
+\input{chapters/chapter_03.tex}
+\input{chapters/chapter_04.tex}
 
 
 \bibliographystyle{unsrt}
@@ -75,7 +88,7 @@
 
 
 \begin{appendices}
-\input{chapters/appendices_02.tex}
+\input{chapters/appendices_03.tex}
 \end{appendices}
 
 \end{document}
