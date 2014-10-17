@@ -147,7 +147,7 @@ $\Pi \; (s_{2}, c) = \psi_{\sqcap} \; \{\mu_{0} = b \: | \: \rho_{20}^{c} \; (s_
 \section{Synchroniser code}
 The full grammar of the \ak\ synchroniser syntax is given in Appendix \ref{sync_syntax}. In this section we provide a detailed explaination of what every language construct mean.
 
-Terminal symbols in the grammar are language keywords, special symbols, user-defined identifiers $\langle$id$\rangle$ and constant integers $\langle$const$\rangle$. The language keywords are \begin{bf}sync\end{bf}, \begin{bf}store\end{bf}, \begin{bf}state\end{bf}, \begin{bf}int\end{bf}, \begin{bf}enum\end{bf}, \begin{bf}on\end{bf}, \begin{bf}elseon\end{bf}, \begin{bf}else\end{bf}, \begin{bf}do\end{bf}, \begin{bf}send\end{bf}, \begin{bf}nil\end{bf}, \begin{bf}this\end{bf} and \begin{bf}goto\end{bf}. The special symbols are curved brackets \begin{bf}\{ \}\end{bf}, square brackets \begin{bf}[ ]\end{bf}, parantheses \begin{bf}( )\end{bf}, comma \begin{bf},\end{bf}, dot \begin{bf}.\end{bf}, semicolon \begin{bf}:\end{bf}, plus \begin{bf}+\end{bf}, minus \begin{bf}-\end{bf}, ampersand \begin{bf}\&\end{bf}, at sign \begin{bf}@\end{bf}, question mark \begin{bf}?\end{bf}, or \begin{bf}$||$\end{bf}, equal sign \begin{bf}=\end{bf} and arrow \begin{bf}$\Rightarrow$\end{bf}. A user-defined identifier is an ASCII string that follows the C conventions. Non-terminal symbol $\langle$int-exp$\rangle$ stands for integer expressions. The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
+Terminal symbols in the grammar are language keywords, special symbols, user-defined identifiers $\langle$id$\rangle$ and constant integers $\langle$const$\rangle$. The language keywords are \begin{bf}sync\end{bf}, \begin{bf}store\end{bf}, \begin{bf}state\end{bf}, \begin{bf}int\end{bf}, \begin{bf}enum\end{bf}, \begin{bf}on\end{bf}, \begin{bf}elseon\end{bf}, \begin{bf}else\end{bf}, \begin{bf}do\end{bf}, \begin{bf}send\end{bf}, \begin{bf}nil\end{bf}, \begin{bf}this\end{bf} and \begin{bf}goto\end{bf}. The special symbols are curved brackets \begin{bf}\{ \}\end{bf}, square brackets \begin{bf}[ ]\end{bf}, parantheses \begin{bf}( )\end{bf}, comma \begin{bf},\end{bf}, dot \begin{bf}.\end{bf}, semicolon \begin{bf}:\end{bf}, plus \begin{bf}+\end{bf}, minus \begin{bf}-\end{bf}, ampersand \begin{bf}\&\end{bf}, at sign \begin{bf}@\end{bf}, question mark \begin{bf}?\end{bf}, or \begin{bf}$||$\end{bf}, equal sign \begin{bf}=\end{bf} and arrow \begin{bf}$\Rightarrow$\end{bf}. A user-defined identifier is an ASCII string that follows the C conventions.
 
 
 A synchroniser program consists of a heading $\langle$head$\rangle$ followed by the synchroniser's body wrapped in curved brackets.
@@ -218,6 +218,8 @@ The synchroniser's body includes store and state variable declarations $\langle$
 Store variables are the storage mechanism \ak\ provides to synchronisers. A store variable is capable of storing a data message or a tail of a message from the associated channel $\langle$chan$\rangle$ (Fig. \ref{sync_syntax:decls}). (TODO: what is a tail and how is it used?) State variables are either integers of the size $\langle$const$\rangle$ or enumerations. (TODO: how does enum work?)
 
 (TODO:) Tail names can be used in declaration of store variables in the same manner as channel names. A store variable can be assigned messages from several channels: x : foo,bar, in which case it is assumed that the variable has the least common type that the channels can be coerced up to. (TODO: fix the grammar for it)
+
+All the state and store variables are global to all the synchroniser transitions.
 
 \begin{figure}[h!]
 \small
@@ -291,10 +293,15 @@ When a message is received on a channel, it can be matched with a pattern $\lang
 \label{sync_syntax:on}
 \end{figure}
 
-TODO: data expression (Fig. \ref{sync_syntax:do})
-( ) denotes the concatenation of the messages it is subject to.
-A message received on a channel can be referred to by the keyword 'this'.
+The synchroniser functional is evaluated with the action list that is specified within the do-clause (Fig. \ref{sync_syntax:do}).
 
+Non-terminal symbol $\langle$int-exp$\rangle$ stands for integer expressions. The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression. Integer experessions can be assigned to state variables and to undeclared variables that are considered aliases for integer expressions. Such variables are used only within the transition where they were activated.
+
+(TODO: check it) Data expression combine messages, message tails and store variables. Parentheses denote the concatenation of the messages between them.
+
+(TODO: fix) In an array of synchronisers replicas may include an explicit $\langle$id$\rangle$$=$$\langle$integer$\rangle$ pair into an output message. This would result in the output message being inserted in another replica's output sequence non-deterministically.
+
+A message received on a channel is referred to by the keyword 'this' within the active transition.
 
 \begin{figure}[h!]
 \small
@@ -305,17 +312,17 @@ A message received on a channel can be referred to by the keyword 'this'.
 [(period){\\}]
 [(quote){\begin{bf}}{\end{bf}}]
 [(nonterminal){$\langle$}{$\rangle$}]
-<data-exp>:<primary-mes> ; "(",<primary-mes>,["," <primary-mes>]*,")".
-<primary-mes>:<var> ; <var>=<int-exp> ; "this".
+<do-clause>:"do", <action>,[",", <action>]*.
+<action>:<id>,"{\tt :=}",<int-exp> ; <id>,"{\tt :=}",<data-exp>.
 
-<do-clause>:"do", <assign>,[",", <assign>]*.
-<assign>:<id>,"{\tt :=}",<int-exp> ; <id>,"{\tt :=}",<data-exp>
+<data-exp>:<primary-mes> ; "(",<primary-mes>,["," <primary-mes>]*,")".
+<primary-mes>:<id> ; <id>=<int-exp> ; "this"
 \end{grammar}
 \caption{Data expression and do-clause of the synchroniser}
 \label{sync_syntax:do}
 \end{figure}
 
-The send-clause (Fig. \ref{sync_syntax:send})
+Messages are formed and sent to the output channels using the send-clause (Fig. \ref{sync_syntax:send}). Messages are dispatched 
 
 \begin{figure}[h!]
 \small
