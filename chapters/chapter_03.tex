@@ -1,23 +1,22 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                          CHAPTER 3                         %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\chapter{Statistical properties of synchronisers}
+\chapter{Towards statistical properties of synchronisers}
 Brief explanation of the role of synchronisers in learning for proliferation (that initial throughput value estimation is needed as well as initial channel sizes)
 
+Statistical model is needed.
 What is a statistical model in general? (See wiki page) How are they used?
+The practical side of statistical model: The model of the relatioships between various object parameters
+ 
+In absence of environment for experiments and example applications artificial load is used.
 
-The practical side of statistical model:
-  \begin{itemize}
-  \item The model of the relatioships between various object parameters
-  \end{itemize}
 %Практический смысл статистической модели:
 %1) Характеристики $T'_{i}, \; j'_{i}$ являются начальными значениями для алгоритма пролиферации
 %2) Начальные размеры каналов
 
-
 \section{Statistical model}
 %Explaining channels lengths
-Let $m$ be the number of input channels of a synchroniser, $n$ be the total number of the synchroniser channels. Then, the number of output channels of the synchroniser is $n-m$. All channels $c_{i}, \; i = 1,n$ are finite FIFO-queues, having lengths $L_i, \; i = 1,n$ as pictured in Fig. \ref{fig:stat_mod}.
+Let $m$ be the number of input channels of a synchroniser, $n$ the total number of synchroniser channels with the number of output channels being $n-m$. All channels $c_{i}, \; i = 1,n$ are finite FIFO-queues having lengths $L_i, \; i = 1,n$ as shown in Fig. \ref{fig:stat_mod}.
 
 % Inkscape figure
   \begin{figure}[h] %here!
@@ -30,19 +29,20 @@ Let $m$ be the number of input channels of a synchroniser, $n$ be the total numb
 
 
 %Explaining basic structure of channel and input channel producer properties
-Every input channel $c_{i}, \; i = 1,m$ is connected to a producer $C_{i}$, sending to this channel $T_{i}$ messages within a predefined unit of time on average (i.e. with a frequency $T_{i} \; u.o.t^{-1}$) with an independent jitter (standard deviation is meant) $j_{i}$ to this value. $T_{i}$ may as well be interpreted as a throughtput of the producer $C_{i}$. $T_{i}$ and $j_{i}, \; i=1,m$ assume that the channel $c_{i}$ has infinite length.
+Every input channel $c_{i}, \; i = 1,m$ is connected to a producer $C_{i}$ that sends to this channel on average of $T_{i}$ messages per unit of time with an independent jitter $j_{i}$ (i.e. standard deviation). $T_{i}$ may also be interpreted as the $i$-th producer throughtput. $T_{i}$ and $j_{i}, \; i=1,m$ assume that the channel $c_{i}$ has infinite length.
 
 %From statistics point of view - probably should move this part
-This may be understood in a different way: the interarrival time $t_{i}, \; i=1,n$ of messages in a channel $c_{i}$ is distributed according to a two-parameter law (CDF) $F_{i} \: (t < t_{i}) = F_{i} \: (p_{i}, t_{i}, t_{i})$. The interarrival's time expected value is $M[t_{i}] = \frac{1}{T_{i}}$ and its variance is $D[t_{i}] = g \: (j_{i})$ (TODO: find $g(j)$). If a length of a channel where messages are placed by a producer, is finite, then the interarrival time mean should increase.
+The model can be constructed differently: the interarrival time $t_{i}, \; i=1,n$ of messages in a channel $c_{i}$ is distributed according to a two-parameter CDF $F_{i} \: (t < t_{i}) = F_{i} \: (p_{i}, t_{i}, t_{i})$. The interarrival time expectancy is $E[t_{i}] = \frac{1}{T_{i}}$ and its variance is $Var[t_{i}] = g \: (j_{i})$ (TODO: find $g(j)$). If the length of the channel on which messages are communicated by the producer is finite, the expectancy of the interarrival time should be greater.
 
 %Explaining synchroniser consuming characteristics
-When messages are placed in a queue in front of a synchroniser, they wait there until it consumes them. In some states synchroniser may block input channels (not accept messages from them). Let $T'_{i}, \; i=1,m$ be the number of messages accepted by a synchroniser in a u.o.t. on average and $j'_{i}$ be a standard deviation of $T'_{i}$.
+When messages are placed on a synchroniser's input queue they may or may not be consumed immediately. In some states the synchroniser may block the input channel. Let $T'_{i}, \; i=1,m$ be the average number of messages accepted by the synchroniser per unit of time and $j'_{i}$ the standard deviation of $T'_{i}$.
+
 
 %Synchroniser producing characteristics
-A synchroniser is a producer for its output queues $c_{i}, \; i=m+1,n$. Let $T'_{i}, \; i=m+1,n$ be be the number of messages produced by a synchroniser in the output channel $c_{i}$ in a u.o.t on average, and $j'_{i}$ again be a standard deviation of $T'_{i}$.
+A synchroniser is the producer for its output queues $c_{i}, \; i=m+1,n$. Let $T'_{i}, \; i=m+1,n$ be the average number of messages sent by the synchroniser to the output channel $c_{i}$ per unit time and $j'_{i}$, again, the standard deviation of $T'_{i}$.
 
 %Ouptut channels consumers
-Synchroniser's output channels are connected to processes that consume messages from these channels. Let $T_{i}, \; i=m+1,n$ be the number of messages consumed by a consumer process $C_{i}$ in u.o.t on average, and $j'_{i}$ be a standard deviation of $T_{i}$.
+The synchroniser's output channels are connected to processes that consume messages from these channels. Let $T_{i}, \; i=m+1,n$ be the average number of messages consumed by the consumer process $C_{i}$ per unit time and $j'_{i}$ the standard deviation of $T_{i}$.
 
 %problem statement
 \textbf{Problem statement} Find relations between $T_{i}, \; j_{i}, \; T'_{i}$, $j'_{i}$ and $L_{i}, \; i=1,n$.
@@ -57,12 +57,12 @@ Let $l_{i}, \; i = 1,n$ be the actual number of messages stored in any moment of
   \item If $l_{i} = 0$, then $T'_{i} < T_{i}$, $i = m+1,n$.
   \end{itemize}
 
-\section{Relevant work}
-TODO
 
 \section{The plan of study}
 %TODO: These all need better explanation w.r.t (Some obvious properties of the model)
 %Influence of finite input channel lengths on producers
+
+
 $T_{i}$ and $j_{i}, \; i=1,m$ are the characteristics of producers in assumption that the channels $c_{i}, \; i=1,m$ they are connected to, are infinite. A finite channel length affects these values. If a channel is full, messages can't be placed in it anymore, so $T_{i}$ decreases. (TODO: what happens to $j_{i}$, does it decrease as well?)
 
 %Synchroniser input characteristics
@@ -96,6 +96,13 @@ We break down the problem into parts:
     \item Investigate how $T_{i}$ and $j_{i}, \; i=m+1,n$ of consumers are affected.
     \end{itemize}
   \end{enumerate}
+
+
+\section{Relevant work}
+Queueing theory, queueing networks with blocking
+-Poisson
+-Non-poisson
+Production systems perfomance
 
 
 \section{Modeling a system}
