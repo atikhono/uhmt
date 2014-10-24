@@ -15,8 +15,7 @@ In absence of environment for experiments and example applications artificial lo
 %2) Начальные размеры каналов
 
 \section{Statistical model}
-%Explaining channels lengths
-Let $m$ be the number of input channels of a synchroniser, $n$ the total number of synchroniser channels with the number of output channels being $n-m$. All channels $c_{i}, \; i = 1,n$ are finite FIFO-queues having lengths $L_i, \; i = 1,n$ as shown in Fig. \ref{fig:stat_mod}.
+Let $S = (\Phi, \; \Pi)$, where $\Phi = (A \subseteq C \times P, \; S, \; T)$, $\Pi \: : \: S \times \Omega \to V$ be a synchroniser with $|C| = m$ input channels, $|\Omega| = n$ output channels and $T$ transtion matrix. All channels $c_{i}, \: i = 1,m$ and $\omega_{i}, \: i=1,n$ are finite FIFO-queues having lengths $L^{(in)}_{i}, \: i = 1,m$ and $L^{(out)}_{i}, \: i=1,n$ as shown in Fig. \ref{fig:stat_mod}.
 
 % Inkscape figure
   \begin{figure}[h] %here!
@@ -27,25 +26,34 @@ Let $m$ be the number of input channels of a synchroniser, $n$ the total number 
   \label{fig:stat_mod}
   \end{figure}
 
-
 %Explaining basic structure of channel and input channel producer properties
-Every input channel $c_{i}, \; i = 1,m$ is connected to a producer $C_{i}$ that sends to this channel on average of $T_{i}$ messages per unit of time with an independent jitter $j_{i}$ (i.e. standard deviation). $T_{i}$ may also be interpreted as the $i$-th producer throughtput. $T_{i}$ and $j_{i}, \; i=1,m$ assume that the channel $c_{i}$ has infinite length.
-
-%From statistics point of view - probably should move this part
-The model can be constructed differently: the interarrival time $t_{i}, \; i=1,n$ of messages in a channel $c_{i}$ is distributed according to a two-parameter CDF $F_{i} \: (t < t_{i}) = F_{i} \: (p_{i}, t_{i}, t_{i})$. The interarrival time expectancy is $E[t_{i}] = \frac{1}{T_{i}}$ and its variance is $Var[t_{i}] = g \: (j_{i})$ (TODO: find $g(j)$). If the length of the channel on which messages are communicated by the producer is finite, the expectancy of the interarrival time should be greater.
+Every input channel $c_{i}, \; i = 1,m$ is connected to a producer process $P_{i}$ that sends to this channel on average of $T_{i}$ messages per time unit with an independent jitter (i.e. standard deviation) $j_{i}$. $T_{i}$ may also be interpreted as the throughtput of the $i$-th producer. The output parameters of the synchroniser $T_{i}$ and $j_{i}, \; i=1,n$ assume that the channel $c_{i}$ has infinite length.
 
 %Explaining synchroniser consuming characteristics
-When messages are placed on a synchroniser's input queue they may or may not be consumed immediately. In some states the synchroniser may block the input channel. Let $T'_{i}, \; i=1,m$ be the average number of messages accepted by the synchroniser per unit of time and $j'_{i}$ the standard deviation of $T'_{i}$.
-
+When messages are placed on a synchroniser's input queue they may or may not be consumed immediately. In some states the synchroniser may block the input channel. Let $T'_{i}, \: i=1,m$ be the average number of messages accepted by the synchroniser per time unit and $j'_{i}$ the standard deviation of $T'_{i}$.
 
 %Synchroniser producing characteristics
-A synchroniser is the producer for its output queues $c_{i}, \; i=m+1,n$. Let $T'_{i}, \; i=m+1,n$ be the average number of messages sent by the synchroniser to the output channel $c_{i}$ per unit time and $j'_{i}$, again, the standard deviation of $T'_{i}$.
+A synchroniser is the producer for its output queues $\omega_{i}, \: i=1,n$. Let $T'_{i}, \: i=1,n$ be the average number of messages sent by the synchroniser to the output channel $\omega_{i}$ per unit time and $j'_{i}$, again, the standard deviation of $T'_{i}$.
 
 %Ouptut channels consumers
-The synchroniser's output channels are connected to processes that consume messages from these channels. Let $T_{i}, \; i=m+1,n$ be the average number of messages consumed by the consumer process $C_{i}$ per unit time and $j'_{i}$ the standard deviation of $T_{i}$.
+The synchroniser's output channels are connected to processes $C_{i}, \: i=1,n$ that consume messages from these channels. Let $T_{i}, \: i=1,n$ be the average number of messages consumed by the process $C_{i}$ per time unit and $j'_{i}$ the standard deviation of $T_{i}$.
 
 %problem statement
-\textbf{Problem statement} Find relations between $T_{i}, \; j_{i}, \; T'_{i}$, $j'_{i}$ and $L_{i}, \; i=1,n$.
+\begin{problem}Find relations between $(T_{i}, \: j_{i})$, $(T'_{i}, \: j'_{i}), \: i=1,m+n$, $L^{in}_{i}, \: i=1,m$ and $L^{out}_{i}, \: i=1,m$.
+\end{problem}
+
+%From statistics point of view
+The model can be constructed in a different way. We focus on the interarrival time of messages instead of the throughput of the components. The interarrival time $t_{i}, \: i=1,m+n$ of messages in the channel $c_{i} \cup \omega_{i}$ is a random variable distributed according to a continuous two-parameter probability density function $p_{i} \: (t < t_{i}) = p_{i} \: (\mu_{i}, \sigma^2_{i}, t_{i})$, where $\mu_{i} = E[t_{i}]$ is the expectancy and $\sigma^2_{i} = Var[t_{i}]$ is the variance of $t_{i}$.
+
+%%
+%% TODO Draw a picture:
+%%             t_i
+%%        *-----------*
+%%  ------*-----------*--------> t
+%%        i          i+1
+%%
+
+If the interarrival time $t$ has a $p(t)$ distribution then the throughput $T = \frac{1}{t}$ has a distribution inverse to $p(t)$. An inverse distribution is obtained by applying the transformation theorem (TODO: reference) to $p(t)$. The transformation theorem states that for a continuous random variable $X$ with the PDF $p_{X} (x)$ and a function $g$ that is monotonous on its domain of definition the random variable $Y = g(X)$ has the PDF $p_{Y} (x) = |\frac{d}{dx}g^{-1}(x)|\cdot p_{X} (g^{-1}(x))$, where $g^{-1}(x)$ is the inverse function for $g(x)$ and $\frac{d}{dx}g^{-1}(x)$ is its derivative. The expectancy and the variance of $Y$ is obtained from the standard formulae $E[Y] = \int_{\mathbb{R}} x \cdot p_{Y} (x) dx$ and $Var[Y] = \int_{\mathbb{R}} x^2 \cdot p_{Y} (x) dx$.
 
 
 \textbf{Some obvious properties of the model}
