@@ -4,7 +4,7 @@
 \chapter{Towards statistical properties of synchronisers}
 Brief explanation of the role of synchronisers in learning for proliferation (that initial throughput value estimation is needed as well as initial channel sizes)
 
-Statistical model is needed.
+How did we come to the idea of using a statistical model?
 What is a statistical model in general? (See wiki page) How are they used?
 The practical side of statistical model: The model of the relatioships between various object parameters
  
@@ -53,7 +53,38 @@ The model can be constructed in a different way. We focus on the interarrival ti
 %%        i          i+1
 %%
 
-If the interarrival time $t$ has a $p(t)$ distribution then the throughput $T = \frac{1}{t}$ has a distribution inverse to $p(t)$. An inverse distribution is obtained by applying the transformation theorem (TODO: reference) to $p(t)$. The transformation theorem states that for a continuous random variable $X$ with the PDF $p_{X} (x)$ and a function $g$ that is monotonous on its domain of definition the random variable $Y = g(X)$ has the PDF $p_{Y} (x) = |\frac{d}{dx}g^{-1}(x)|\cdot p_{X} (g^{-1}(x))$, where $g^{-1}(x)$ is the inverse function for $g(x)$ and $\frac{d}{dx}g^{-1}(x)$ is its derivative. The expectancy and the variance of $Y$ is obtained from the standard formulae $E[Y] = \int_{\mathbb{R}} x \cdot p_{Y} (x) dx$ and $Var[Y] = \int_{\mathbb{R}} x^2 \cdot p_{Y} (x) dx$.
+If the interarrival time $t$ has the PDF $p_{t}(t)$ then the throughput $T = \frac{1}{t}$ has the PDF $p_{\frac{1}{t}}(t)$ that is inverse to $p_{t}(t)$. An inverse distribution is obtained by applying the transformation theorem (TODO: reference a good book) to $p(t)$. The transformation theorem states that for a continuous random variable $X$ with the PDF $p_{X} (x)$ and a function $g$ that is monotonous on its domain of definition the random variable $Y = g(X)$ has the PDF $p_{Y} (x) = |\frac{d}{dx}g^{-1}(x)|\cdot p_{X} (g^{-1}(x))$, where $g^{-1}(x)$ is the inverse function for $g(x)$ and $\frac{d}{dx}g^{-1}(x)$ is its derivative. Applying the theorem for the interarrival time $t \sim p_{t}(t)$ and the throughtput $T = g(t) = \frac{1}{t} \sim p_{\frac{1}{t}}(t)$ we get
+\begin{IEEEeqnarray}{rCl}
+g^{-1}(t) &=& (\frac{1}{t})^{-1} = \frac{1}{t}\nonumber\\
+p_{\frac{1}{t}}(t) &=& |\frac{d}{dt}(\frac{1}{t})| \cdot p_{t}(\frac{1}{t}) = \frac{1}{t^2} \cdot p_{t}(\frac{1}{t})\nonumber
+\end{IEEEeqnarray}
+Knowing $p_{\frac{1}{t}}(t)$ the expectancy and the variance of the throughtput $T$ are obtained from the standard formulae
+\begin{IEEEeqnarray}{rCl}
+E[T] &=& \int_{0}^{\infty} t \cdot p_{\frac{1}{t}} (t) dt = \int_{0}^{\infty}\frac{1}{t} \cdot p_{t}(\frac{1}{t}) dt\nonumber\\
+Var[T] &=& \int_{0}^{\infty} t^2 \cdot p_{\frac{1}{t}} (t) dt = \int_{0}^{\infty}p_{t}(\frac{1}{t}) dt\nonumber
+\end{IEEEeqnarray}
+
+\section{I don't know how to name it}
+When all the time $T_{i} > T'_{i}$, $i=1,m$ then it doesn't matter what is the length of the input queue $L^{(in)_{i}}$ it will always be full. The same is with the output queues of the synchroniser: when $T'_{i} > T_{i}$, $i=1,n$ the output queue $L^{(out)}_{i}$, $i=1,n$ will always be full. Therefore, we are only interested in cases where $T_{i} = T'_{i}$, $i=1,m+n$. We are seeking for the queue lengths $L_{i} = L_{i} (T_{i}=T'_{i}, j_{i}, j'_{i})$, so that anytime the number of messages in the queue would be $l_{i} < L_{i}$. In other words, we are seeking for the queue length $L_{i}$ that minimizes the probability of messages loss for given jitters $j_{i}$ and $j'_{i}$ and rate $T_{i} = T'_{i}$.
+
+We have 3 parts to analyse in the system:
+\begin{enumerate}
+\item The producer $P_{i}$, $i=1,m$ send out messages into the output channel with the rate $T_{i}$ and the jitter $j_{i}$ in assumption the output channels have infinite length. The synchroniser connected to this channels then consumes the messages with the rate $T'_{i} = T'_{i} (T_{i}, TD)$. When the length of the channel $L_{i}$ is finite and one the jitters $j_{i}$ and $j'_{i}$ is too big the channels may sometimes get full. The producer is suspended when it output channels are full, thus the full channel affects $T_{i}$ and $j_{i}$ of the producer.
+
+\item The influence of $TD$ on the syncroniser's output rates. Messages arrive to the synchroniser's input channels with the rates $T_{i}$ and jitters $j_{i}$, $i=1,m$. Find the output rates $T'_{i} = T'_{i} (T_{i}, TD)$ and jitters $j'_{i} = j'_{i} (j_{i}, TD)$, $i=1,n$ in assumption that the input and the output channels are infinite.
+
+Assume the synchroniser produces one message in the $i$-th output channel immediately when it has $(N_1, N_2, \dots N_m)$ messages in its input channels $(c_1, c_2, \dots c_m)$. The the arrival of the message to the $i$-th output channels happens the most often when $E[N_1 \cdot c_1] = E[N_2 \cdot c_2] = \dots = E[N_m \cdot c_m]$ and $Var[N_1 \cdot c_1, N_2 \cdot c_2, \dots N_m \cdot c_m]$ is minimal. $N_i \cdot c_i$, $i=1,m$ here denotes the event of arrival of $N_i$-th message in the channel.
+
+For a Poisson process $Pois(\lambda)$ the arrival of the $n$-th message is distributed according to the Erlang distribution $Erlang(n, \lambda)$ with the expectancy $\frac{n}{\lambda}$ and the variance $\frac{n}{\lambda^2}$.
+
+Draw graphs for the pure zip2 throughput(variance) with infinite queue lengts for Poisson processes and for inverse gamma processes. Probably draw a graph for the less trivial synchroniser, for ex. (a,2b)->c.
+
+\end{enumerate}
+
+We have to somehow find the balance equations for the synchroniser to consider it all.
+
+
+Proliferation: combining and splitting Poisson processes
 
 
 \textbf{Some obvious properties of the model}
