@@ -4,62 +4,70 @@
 \chapter{The syntax of the \ak\ syncroniser}
 
   \section{The full grammar\label{sync_syntax}}
+\setlength{\grammarindent}{8em} % increase separation between LHS/RHS
 \begin{figure}[h!]
-\begin{framed}
-\small
+\scriptsize
 \begin{grammar}
-[(colon){$\rightarrow$}]
-[(semicolon)$|$]
-[(comma){}]
-[(period){\\}]
-[(quote){\begin{bf}}{\end{bf}}]
-[(nonterminal){$\langle$}{$\rangle$}]
-<synchroniser>:"synch",<name>,[<confs>],<params>,"\{"<decls>,<trans>"\}".
+<sync> ::= `synch' <ID> `(' <input> [`,' <input>]* `|' <output> [`,' <output>]* `)' \\
+           `{' <decl>* <state>$^+$ `}'
 
-<confs>:"{\tt [}",<conf>,[",",<conf>]*,"{\tt ]}".
-<conf>:<id>
+<input>  ::= <ID> [`:' (<ID> | <NUMBER>)]
 
-<params>: "(",[<inparam>,[",",<inparam>]*],"{\tt |}",[<outparam>,[",",<outparam>]*],")".
+<output>  ::= <ID> [`:' <depth\_exp>]
 
-<inparam>:<chan>,[":",<indepth>].
-<chan>:<id>.
-<indepth>:<var>;<const>.
-<var>:<id>.
+<depth\_exp> ::= <ID> | <NUMBER> | <ID> `+' <NUMBER> | <ID> `-' <NUMBER>
 
-<outparam>:<chan>,[":",<depth-exp>].
-<depth-exp>:<const>;<var>;<var>,"{\tt+}",<shift>;<var>,"{\tt -}",<shift>.
-<shift>:<const>;<conf>.
+<decl> ::= `store' <id\_list> `;'
+        \alt `state' <type> <id\_list> `;'
 
-<decls>:[<store-decl>;<state-decl>]*.
-<store-decl>:"store",<var>,"{\tt :}",<chan-tail>,[<var>,"{\tt :}",<chan-tail>]*.
-<state-decl>:"state",<type>,<var>[",",<var>]*.
-<type>:"int(",<const>,")";"enum(",<id>,[",",<id>]*,")".
-<chan-tail>: <chan>;<tail>.
+<type> ::= `int' `(' <NUMBER> `)'
+                  \alt `enum' `(' <id_list> `)'
 
-<trans>:<tran>[",",<tran>]*.
-<tran>:[<label>,":"],[<on-clause>],[<do-clause>],[<send-clause>],[<goto-clause>].
+<state> ::= <ID> `{' `on:' <trans\_stmt>$^+$ [`elseon:' <trans\_stmt>$^+$]* `}'
 
-<on-clause>:"on",<chan-cond>;"elseon",<chan-cond>.
-<chan-cond>:<primary>["{\tt \&}"<guard-exp>].
-<primary>:<chan>,[".",<secondary>].
-<secondary>:"{\tt@}",<id>;"{\tt else}";"?",<id>;["?",<id>]<pattern>.
-<pattern>:"(",<id>,[",",<id>]*,["{\tt||}",<tail>, ")".
-<guard-exp>:<int-exp>.
-<tail>:<id>
+<trans\_stmt> ::= <ID> [`.' <condition>] [`&' <int\_exp> ] <actions>
 
-<do-clause>: "do",<assgn>,[",",<assgn>]*.
-<assgn>:<id>,"{\tt :=}",<int-exp>; <id>,"{\tt :=}",<data-exp>.
+<condition> ::= `@' <ID>
+             \alt `?' <ID>
+             \alt [`?' <ID>] `(' <id_list> [`||' <ID> ]`)'
+             \alt `else'
 
-<send-clause>: "send", <dispatch>,[",",<dispatch>]*.
-<dispatch>: <msg-exp>,"{\tt =>}", <chan>.
-<msg-exp>: "{\tt @}",<int-exp>; "?",<id>; ["?",<id>],<data-exp>;"nil".
-<data-exp>: <primary-mes>; "(",<primary-mes>, ["," <primary-mes>]*,")".
-<primary-mes>: <var>;<var>=<int-exp>;"this".
-<goto-clause>:"goto",<label>.
+<actions> ::= `{' [<set\_stmt>] [<send\_stmt>] [<goto\_stmt>] `}'
 
+<set\_stmt> ::= `set' <assign> [`,' <assign>]* `;'
+
+<assign> ::= <ID> `=' (<int\_exp> | <data\_exp>)
+
+<send\_stmt> ::= `send' <dispatch> [`,' <dispatch>]*  `;'
+
+<dispatch> ::= <msg\_exp> `=>' <ID>
+
+<msg\_exp> ::= `@' <ID>
+           \alt `@' <int\_exp>
+           \alt [`?' <ID>] <data\_exp>
+           \alt `nil'
+
+<data\_exp> ::= <data>
+             \alt `(' <data> `)'
+
+<data> ::= <item> [`||' <item>]*
+
+<item> ::= `this'
+        \alt <ID>
+        \alt `\'' <ID>
+        \alt <ID> `:' <rhs>
+
+<rhs> ::= <int\_exp>
+          \alt <ID>
+
+<goto\_stmt> ::= `goto' <id\_list> `;'
+
+<id\_list> ::= <ID> [`,' <ID>]*
+
+<int\_exp> ::= `[' <int_exp_c> `]'
 \end{grammar}
-\end{framed}
 \caption{The syntax of the \ak\ synchroniser}
 \end{figure}
+
 
   \section{The integer expression grammar\label{int_exp_gr}}
