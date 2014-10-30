@@ -177,9 +177,11 @@ synch min (a, b:p | c:2, d:p+1)
 \label{min_sync_head}
 \end{figure}
 
+%% TODO remove read-only state variables
+
 The \ak\ synchroniser allows to declare constant and configurable integer depths for the input and output channels. In addition, the depth of the output channel can be specified with an integer shift to the configurable input channel depth.
 
-The input channels are required to have the bracketing depths specified in the signature. Thus, the channel connected to the port $a$ of the $min$ synchroniser must have zero bracketing depth. The channel connected to the port $b$ has a configurable bracketing depth $p$. Actual values of configurable bracketing depths of input channels are determined by the \ak\ compiler. Once defined in the signature, configurable bracketing depths may be used in state expressions. They are interpreted as read-only state variables.
+The input channels are required to have the bracketing depths specified in the signature. Thus, the channel connected to the port $a$ of the $min$ synchroniser must have zero bracketing depth. The channel connected to the port $b$ has a configurable bracketing depth $p$. Actual values of configurable bracketing depths of input channels are determined by the \ak\ compiler. %Once defined in the signature, configurable bracketing depths may be used in state expressions. They are interpreted as read-only state variables.
 
 The output channels of a synchroniser are guaranteed to have the bracketing depths specified in the channel signature. Thus, the synchroniser $min$ must send messages to the output channel connected to the port $c$ at the depth 2 and optionally at the depths $0$, $1$. The output channel connected to the port $d$ must have the bracketing depth $p+1$ that is the depth of the input channel connected to the port $b$ shifted by $1$.
 
@@ -193,7 +195,7 @@ Line 1 in Fig. \ref{sync_statevar} declares state variables $a$, $b$, $c$ of wid
 
 The state variable $foo$ that is declared in the line 2 in Fig. \ref{sync_statevar} can only be assigned the values $d$, $e$ and $f$ specified in the enumeration. The enumeration values are defined as constants if type $int$. If the values are not specified explicitly, they are assigned consequtive positive integers starting with 0. The width of the $int$ type is $\lceil \log_{2}{n} \rceil + 1$, where $n$ is the number of values in the enumeration. Thus, the variable $foo$ has integer values $d=0$, $e=1$ and $f=2$ of the width $\lceil \log_{2}{3} \rceil + 1 = 3$. If the values are specified explicitly, the width is determined as $\lceil \log{2}{(m+1)} \rceil + 1$, where $m$ is the biggest value in the enumeration. For the variable $bar$ declared in line 3 of Fig. \ref{sync_statevar} $m=4$ and the width is $\lceil \log{2}{(5)} \rceil + 1 = 4$.
 
-Integer state variables and enum values can be mixed freely in state expressions. Enum values are interpreted as read-only integer state variables.
+Integer state variables and enum values can be mixed freely in state expressions. Enum values are interpreted as read-only integer state variables. % constant integers!
 
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
@@ -213,7 +215,7 @@ All the state and store variables are global to all the synchroniser states.
 
 
   \subsection{States and transitions}
-States and transitions of the synchroniser define which channels are read and in what order. Fig. \ref{zip_struc} presents the code of the binary zip synchroniser's state machine. Line 1 declares the start state of the synchroniser. The $on$ clause indicates the beginning of the transitions list. In the start state the zip2 synchroniser acceptes messages from both input channels $a$ and $b$. The channel name on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available. State and store expressions associated with the transition and the destination state are specified in the braces.
+States and transitions of the synchroniser define which channels are read and in what order. Fig. \ref{zip_struc} presents the code of the binary zip synchroniser's state machine. Line 1 declares the start state of the synchroniser. The $on$ clause indicates the beginning of the transitions list. In the start state the zip2 synchroniser acceptes messages from both input channels $a$ and $b$. State and store expressions associated with the transition and the destination state are specified in the braces.
 
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
@@ -259,21 +261,36 @@ foo {
 
 
   \subsection{Triggering of a transition}
-Whether a transition takes place depends on the channel status and optionally the content of the messages and the value of the guarding state experession. 
+The channel name on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available. Whether a transition takes place depends on the channel status and optionally the content of the messages.
 
-%The channel name $\langle$chan$\rangle$ on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available.
+When a message is received on a channel, it can be matched with a pattern in order to extract parameters needed to select a specific transition. Line 3 of Fig. \ref{sync_trans} checks if a message received from the input channel connected to the port $a$ contains label $x$. If it does, the contents of $x$ are stored in a temporary variable $x$. The tail of the message, i.e. everything but the part labeled $x$, is stored in a temporary variable $t$. Both $x$ and $t$ are read-only and available until the state machine makes a move.
+
+
+\begin{figure}[h!]
+\lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
+\begin{lstlisting}[frame=single]
+foo {
+  on:
+    a.(x || t)  { }
+    a.?v        { }
+    a.?v(x, y)  { }
+    a.@k        { }
+    a.else      { }
+}
+\end{lstlisting}
+\caption{Message content extraction}
+\label{sync_trans}
+\end{figure}
+
+To support message formats where several variants of a message are possible, a qualifier \begin{bf}?\end{bf}$\alpha$ is available as an input condition. It qualifies input messages as belonging to $\alpha$ variant. Line 4 of Fig. \ref{sync_trans} checks if a message received from channel connected to the port $a$ belongs to the variant $v$. Line 5 checks that a message that belongs to the variant $v$ contains only two records labeled $x$ and $y$. 
+
+A channel carries a stream that consists of messages and possibly segmentation marks. In line 6 in Fig. \ref{sync_trans} a message is checked if it is a segmentation mark of the depth $k$.
+
+
+guarding state expressions
 
 
 The condition $\langle$chan$\rangle$\begin{bf}.else\end{bf} is equivalent to $\langle$chan$\rangle$ except it is tested after any other condition involving the channel. Although several different channels can be tested in any given state, once a test has established the readiness of a channel, the synchroniser is committed, hence the set of conditions applied to the message on any input channel $\langle$chan$\rangle$ must be exhaustive. If it is not, the final clause \begin{bf}on\end{bf} $\langle$chan$\rangle$\begin{bf}.else;\end{bf} is assumed. That clause discards the input message and transitions the synchroniser back to its current state.
-
-A channel carries a stream that consists of messages and possibly segmentation marks. The synchroniser detects a segmentation mark of the depth $\langle$id$\rangle$ with the channel condition \begin{bf}on\end{bf} $\langle$chan$\rangle${\tt .@}$\langle$id$\rangle$. 
-
-
-The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one.
-
-When a message is received on a channel, it can be matched with a pattern $\langle$pattern$\rangle$ in order to extract parameters needed to select a specific transition. (TODO: what is a tail and how is it used?) To support message formats where several variants of a message are possible, a qualifier \begin{bf}?\end{bf}$\langle$id$\rangle$ is available as an input condition. It qualifies input messages as belonging to the $\langle$id$\rangle$ variant.
-
-guarding state expressions
 
 
   \subsection{State expression}
@@ -300,7 +317,7 @@ The keywords, the reserved words and the punctuation used in the \ak\ synchronis
 \centering
 \begin{tabular}{|c|p{0.7\textwidth}|}
 \hline
-Keywords & synch, store, state, int, enum, on, elseon, else, do, send, goto\\
+Keywords & synch, store, state, int, enum, start, on, elseon, else, do, send, goto\\
 \hline
 Reserved words & nil, this\\
 \hline
@@ -326,7 +343,7 @@ The implementation of the compiler frontend in OCaml \cite{realworldocaml}, with
 
 To be implemented in the compiler:
 \begin{enumerate}
-\item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of the of the input channels.
+\item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of the of the input channels. $p$ is not allowed anywhere in state expressions.
   \begin{itemize}
   \item (a:p | b:p+1) - allowed
   \item (a:p | b:0) - allowed
@@ -337,7 +354,12 @@ To be implemented in the compiler:
 \item State variables types.
   \begin{itemize}
   \item int(n) a, b, c. $a$, $b$ and $c$ must always be within range $[-2^{n-1}; 2^{n-1}-1]$. Check it at least for assignments. For the state expressions that evaluate during the execution of the synchroniser it's probably ok to delegate the overflow checks to the C compiler.
-  \item Integer width determination for enums. (TODO Move the description from the Section Synchroniser code/ Variable declaration.)
+  \item Integer width determination for enums. (TODO Move the description from the Section Synchroniser code/Variable declaration.)
+  \end{itemize}
+
+\item State expressions
+  \begin{itemize}
+  \item Patterns $(x || t)$. $x$ and $t$ are local for the active transition. $x$ and $t$ mustn't be assigned anywhere. If $x$ is used in a state expression, it is integer (has the term 'number'). Tail $t$ can't be used in a state expression; $t$ is always at least a record ($t = (name: value)$).
   \end{itemize}
 
 \item Reserved words $nil$ and $this$ can't be identifiers
