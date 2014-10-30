@@ -152,7 +152,7 @@ Once a transition is known to fire, optional actions may be performed before the
 This section gives an overview of the \ak\ synchroniser programming language. The formal grammar of the \ak\ synchroniser is provided in Appendix \ref{sync_syntax}.
 
   \subsection{Program structure}
-A synchroniser program consists of a header followed by the synchroniser's body wrapped in braces. The begining of a synchroniser program is indicated by the keyword $sync$.
+A synchroniser program consists of a header followed by the synchroniser's body wrapped in braces. The begining of a synchroniser program is indicated by the keyword $synch$.
 
 The header of a synchroniser program contains the synchroniser's name and the channel signature. The name is an ASCII string that follows the C convention.
 
@@ -171,7 +171,7 @@ The input channel depth $-1$ indicates that the input channel is ignored in the 
 
 \begin{figure}[h!]
 \begin{lstlisting}[frame=single]
-sync min (a, b:p | c:2, d:p+1)
+synch min (a, b:p | c:2, d:p+1)
 \end{lstlisting}
 \caption{The synchroniser header}
 \label{min_sync_head}
@@ -184,46 +184,123 @@ The input channels are required to have the bracketing depths specified in the s
 The output channels of a synchroniser are guaranteed to have the bracketing depths specified in the channel signature. Thus, the synchroniser $min$ must send messages to the output channel connected to the port $c$ at the depth 2 and optionally at the depths $0$, $1$. The output channel connected to the port $d$ must have the bracketing depth $p+1$ that is the depth of the input channel connected to the port $b$ shifted by $1$.
 
 
-
+%% TODO Move all the type details to the implementation details
   \subsection{Variable declaration}
-All the state and store variables are global to all the synchroniser transitions.
+The beginning of state variables declaration is indicated by the keyword $state$. A state variable may be either a signed integer of the constant width or a C-style enumeration. State and store variables names are user-defined indentifiers. A user-defined identifier is an ASCII string that follows the C convention.
+
+%% TODO Should move width determining to the implementation detail
+Line 1 in Fig. \ref{sync_statevar} declares state variables $a$, $b$, $c$ of width 4. Thus, all three variables are declared to have integer values in the range $[-8; 7]$. Generally, a state variable of width $n$ has integer values in the range $[-2^{n-1}; 2^{n-1}-1]$.
+
+The state variable $foo$ that is declared in the line 2 in Fig. \ref{sync_statevar} can only be assigned the values $d$, $e$ and $f$ specified in the enumeration. The enumeration values are defined as constants if type $int$. If the values are not specified explicitly, they are assigned consequtive positive integers starting with 0. The width of the $int$ type is $\lceil \log_{2}{n} \rceil + 1$, where $n$ is the number of values in the enumeration. Thus, the variable $foo$ has integer values $d=0$, $e=1$ and $f=2$ of the width $\lceil \log_{2}{3} \rceil + 1 = 3$. If the values are specified explicitly, the width is determined as $\lceil \log{2}{(m+1)} \rceil + 1$, where $m$ is the biggest value in the enumeration. For the variable $bar$ declared in line 3 of Fig. \ref{sync_statevar} $m=4$ and the width is $\lceil \log{2}{(5)} \rceil + 1 = 4$.
+
+Integer state variables and enum values can be mixed freely in state expressions. Enum values are interpreted as read-only integer state variables.
+
+\begin{figure}[h!]
+\lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
+\begin{lstlisting}[frame=single]
+state int(4) a, b, c;
+state enum(d, e, f) foo;
+state enum(x = 1, y = 2, z = 4) bar;
+store msg_a, msg_b;
+\end{lstlisting}
+\caption{State and store variables declaration}
+\label{sync_statevar}
+\end{figure}
+
+Store variables declaration begins with a keyword $store$. Line 4 in Fig. \ref{sync_statevar} declares state variables $msg\_a$ and $msg\_b$. Store variables do not need explicit type specification; their types are determined on the first assignment to the variable.
+
+All the state and store variables are global to all the synchroniser states.
 
 
   \subsection{States and transitions}
-Transitions of the synchroniser define which channels are read and in what order. The on-clause defines the condition on which the transition takes place. The do-clause is a list of actions that evaluate the functional. The send-clause forms and sends the output messages. The goto-clause defines the state transition.
+States and transitions of the synchroniser define which channels are read and in what order. Fig. \ref{zip_struc} presents the code of the binary zip synchroniser's state machine. Line 1 declares the start state of the synchroniser. The $on$ clause indicates the beginning of the transitions list. In the start state the zip2 synchroniser acceptes messages from both input channels $a$ and $b$. The channel name on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available. State and store expressions associated with the transition and the destination state are specified in the braces.
 
-Whether a transition takes place depends on the channel status and optionally the content of the messages. The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one.
+\begin{figure}[h!]
+\lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
+\begin{lstlisting}[frame=single]
+start {
+  on:
+    a { goto s1;    }
+    b { goto s2;    }
+}
+s1 {
+  on:
+    b { goto start; }
+}
+s2 {
+  on:
+    a { goto start; }
+}
+\end{lstlisting}
+\caption{State machine of the zip2 synchroniser}
+\label{zip_struc}
+\end{figure}
 
-The channel name $\langle$chan$\rangle$ on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available.
+When the zip2 synchroniser is in the start state and it receives a message from the channels connected to the port $a$, the underlying state machine makes a transition to the state $s1$. In this state the synchroniser can only receive messages from channel connected to the port $b$ since there's no transition triggered by channel connected to the port $a$ and defined in this state. When the message on channel connected to the port $b$ is received, the state machine makes a transition to the start state. Lines 10-13 define similar behaviour in state $s2$.
+
+The synchroniser language supports top-down prioritised transition scopes. They are indicated with the $elseon$ keyword. A synchroniser in state $foo$ in Fig. \ref{sync_scope} acceptes messages from channels connected to the ports $a$, $b$, $c$ and $d$. When no destination state is specified for a transition, a synchroniser makes the transition to the current state. If all channels are ready at the same time in state $foo$, the synchroniser processes messages from either channel $a$ or $b$ first. When all messages from channels connected to the ports $a$ and $b$ are processed the synchroniser receives messages from channels connected to the port $c$. If there're no messages in channels $a$, $b$ and $c$ the synchroniser receives messages from the channel connected to the port $d$.
+
+\begin{figure}[h!]
+\lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
+\begin{lstlisting}[frame=single]
+foo {
+  on:
+    a { }
+    b { }
+  elseon:
+    c { }
+  elseon:
+    d { }
+}
+\end{lstlisting}
+\caption{Prioritised transition scopes}
+\label{sync_scope}
+\end{figure}
+
+
+  \subsection{Triggering of a transition}
+Whether a transition takes place depends on the channel status and optionally the content of the messages and the value of the guarding state experession. 
+
+%The channel name $\langle$chan$\rangle$ on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available.
+
 
 The condition $\langle$chan$\rangle$\begin{bf}.else\end{bf} is equivalent to $\langle$chan$\rangle$ except it is tested after any other condition involving the channel. Although several different channels can be tested in any given state, once a test has established the readiness of a channel, the synchroniser is committed, hence the set of conditions applied to the message on any input channel $\langle$chan$\rangle$ must be exhaustive. If it is not, the final clause \begin{bf}on\end{bf} $\langle$chan$\rangle$\begin{bf}.else;\end{bf} is assumed. That clause discards the input message and transitions the synchroniser back to its current state.
 
 A channel carries a stream that consists of messages and possibly segmentation marks. The synchroniser detects a segmentation mark of the depth $\langle$id$\rangle$ with the channel condition \begin{bf}on\end{bf} $\langle$chan$\rangle${\tt .@}$\langle$id$\rangle$. 
 
+
+The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one.
+
 When a message is received on a channel, it can be matched with a pattern $\langle$pattern$\rangle$ in order to extract parameters needed to select a specific transition. (TODO: what is a tail and how is it used?) To support message formats where several variants of a message are possible, a qualifier \begin{bf}?\end{bf}$\langle$id$\rangle$ is available as an input condition. It qualifies input messages as belonging to the $\langle$id$\rangle$ variant.
 
-(TODO: how does elseon-clause behave?)
+guarding state expressions
 
+
+  \subsection{State expression}
 The synchroniser functional is evaluated with the action list that is specified within the do-clause.
 
 Non-terminal symbol $\langle$int-exp$\rangle$ stands for integer expressions. The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression. Integer experessions can be assigned to state variables and to undeclared variables that are considered aliases for integer expressions. Such variables are used only within the transition where they were activated.
 
+
+  \subsection{Store expression}
 (TODO: check it) Data expression combine messages, message tails and store variables. Parentheses denote the concatenation of the messages between them.
 
 (TODO: fix) In an array of synchronisers replicas may include an explicit $\langle$id$\rangle$$=$$\langle$integer$\rangle$ pair into an output message. This would result in the output message being inserted in another replica's output sequence non-deterministically.
 
 A message received on a channel is referred to by the keyword 'this' within the active transition.
 
+
+  \subsection{Sending messages}
 Messages are formed and sent to the output channels using the send-clause. Messages are dispatched 
 
 
   \subsection{Keywords, reserved words and punctuation}
 The keywords, the reserved words and the punctuation used in the \ak\ synchroniser sytax are shown in Fig. \ref{sync_kw}.
-\begin{figure}
+\begin{figure}[h!]
 \centering
 \begin{tabular}{|c|p{0.7\textwidth}|}
 \hline
-Keywords & sync, store, state, int, enum, on, elseon, else, do, send, goto\\
+Keywords & synch, store, state, int, enum, on, elseon, else, do, send, goto\\
 \hline
 Reserved words & nil, this\\
 \hline
@@ -234,20 +311,52 @@ Punctuation & braces, brackets, parantheses, the comma, the dot, the semicolon, 
 \label{sync_kw}
 \end{figure}
  
-%%%%%%
-A user-defined identifier is an ASCII string that follows the C conventions.
-
 
 \section{Execution order of synchroniser\label{execod}}
-Fairness policy
-?on-elseon priorities
-Algorithm of the execution of synchronisers, in which order transitions execute
+\begin{itemize}
+\item Fairness policy
+\item on-elseon execution order, dead $elseon$ code with <chan>$.else$
+\item Non-deterministic $goto$
+\item Algorithm of the execution of synchronisers
+\end{itemize}
 
 
 \section{The implementation of the compiler}
-The implementation of the compiler frontend in OCaml \cite{realworldocaml}, with code generation to a python structure.
+The implementation of the compiler frontend in OCaml \cite{realworldocaml}, with code generation to an intermediate representation that is loaded by the runtime system.
+
+To be implemented in the compiler:
+\begin{enumerate}
+\item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of the of the input channels.
+  \begin{itemize}
+  \item (a:p | b:p+1) - allowed
+  \item (a:p | b:0) - allowed
+  \item (a:p | b:r) - allowed
+  \item (a:p | b:r+1) - NOT allowed
+  \end{itemize}
+
+\item State variables types.
+  \begin{itemize}
+  \item int(n) a, b, c. $a$, $b$ and $c$ must always be within range $[-2^{n-1}; 2^{n-1}-1]$. Check it at least for assignments. For the state expressions that evaluate during the execution of the synchroniser it's probably ok to delegate the overflow checks to the C compiler.
+  \item Integer width determination for enums. (TODO Move the description from the Section Synchroniser code/ Variable declaration.)
+  \end{itemize}
+
+\item Reserved words $nil$ and $this$ can't be identifiers
+\end{enumerate}
+
+  
+  \subsection{Preprocessor}
+%%%
+%%% We removed macros from the language. The compiler must invoke a preprocessor to expand them.
+%%%
+%The synchroniser language provides macros to avoid having to trivially alter synchroniser programs. Macros are specified in brackets between the synchroniser's name and its channel signature. An example of a configurable synchroniser can be found in \cite{astrakahn}.
+Preprocessor performs (a C-like) macro expansion. There's no preprocessor directives in the synchroniser language (like \#define in C). Preprocessor commands are passed to it as a part of the compiler invocation command (a special flag like -Dday=night in C).
 
   \subsection{Type checking}
+Type assignment rules
+
   \subsection{Synchroniser passport}
+
+
 %  \subsection{Dead code elimination}
-%Based on Section \ref{execod}.
+%Remove unreachable states.
+%Based on Section Execution order.
