@@ -187,7 +187,7 @@ The output channels of a synchroniser are guaranteed to have the bracketing dept
 
 
 %% TODO Move all the type details to the implementation details
-%% TODO Do we really need to declare the width of int explicitly?
+%% TODO The width of int type is declared explicitly to reduce the number of potential states of automata.
   \subsection{Variable declaration}
 %% Add about state and store variables initialisation.
 %% state int(8) a, b=1, c=8; // assignes a=0 b=1 c=9
@@ -275,11 +275,11 @@ state int(8) count = 0;
 foo {
   on:
     a {
-      set count = count + 1;
+      set [count = count + 1];
     }
   elseon:
     b {
-      set n = count, count = 0;
+      set [n = count], [count = 0];
       send count:n => c;
     }
 }
@@ -306,7 +306,7 @@ foo {
     a.(x || t)  { }
     a.?v        { }
     a.?v(x, y)  { }
-    a.@k        { }
+    a.@[k]      { }
 }
 \end{lstlisting}
 \caption{Message content extraction}
@@ -315,7 +315,7 @@ foo {
 
 To support message formats where several variants of a message are possible, a qualifier \begin{bf}?\end{bf}$\alpha$ is available as an input condition. It qualifies input messages as belonging to $\alpha$ variant. Line 4 of Fig. \ref{sync_trans} checks if a message received from channel connected to the port $a$ belongs to the variant $v$. Line 5 checks that a message that belongs to the variant $v$ contains only two records labeled $x$ and $y$. 
 
-A channel carries a stream that consists of messages and possibly segmentation marks. In line 6 in Fig. \ref{sync_trans} a message is checked if it is a segmentation mark of the depth $k$.
+A channel carries a stream that consists of messages and possibly segmentation marks. In line 6 in Fig. \ref{sync_trans} a message is checked if it is a segmentation mark of the depth $k$. The depth of a segmentation mark can be a state expression.
 
 Several different channels can be tested in any given state, however, once the readiness of a channel was established, the synchroniser is committed. Hence the set of conditions applied to the message on any input channel must be exhaustive. In Fig. \ref{sync_trans} it is not, because there no pattern for messages that do not contain label $x$, do not belong to variant $v$ and are not a segmentation mark of depth $k$ at the same time. In this case the final clause $a$\begin{bf}.else;\end{bf} is assumed. This clause discards the input message and transitions the synchroniser back to its current state.
 
@@ -327,11 +327,11 @@ A transition can be guarded by a state expression. In this case the transition f
 state int(8) i;
 start {
   on:
-    a & i < 255 {
-      set i = i + 1;
+    a & [i < 255] {
+      set [i = i + 1];
     }
-    a & i = 255 {
-      set i = 0;
+    a & [i = 255] {
+      set [i = 0];
       send this => c;
     }
 }
@@ -342,10 +342,14 @@ start {
 
 
   \subsection{Store expression}
+%% Data are typed in \ak\.  Types are CAL terms. Store expression returns data of a valid CAL type (because it just concatenates data).
+Store expression is a mechanism to combine data.
+
 (TODO: check it) Data expression combine messages, message tails and store variables. Parentheses denote the concatenation of the messages between them.
 
-(TODO: fix) In an array of synchronisers replicas may include an explicit $\langle$id$\rangle$$=$$\langle$integer$\rangle$ pair into an output message. This would result in the output message being inserted in another replica's output sequence non-deterministically.
+%(TODO: fix) In an array of synchronisers replicas may include an explicit $\langle$id$\rangle$$=$$\langle$integer$\rangle$ pair into an output message. This would result in the output message being inserted in another replica's output sequence non-deterministically.
 
+%% provide an example to introduce this
 A message received on a channel is referred to by the keyword 'this' within the active transition.
 
 The type of a message is its CAL term.
@@ -405,6 +409,7 @@ To be implemented in the compiler:
   \begin{itemize}
   \item Patterns $(x || t)$. $x$ and $t$ are local for the active transition. $x$ and $t$ mustn't be assigned anywhere. If $x$ is used in a state expression, it is integer (has the term 'number'). Tail $t$ can't be used in a state expression; $t$ is always at least a record ($t = (name: value)$).
   \item The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
+  \item If state variables in state expression have different width, then the types are coerced the the widest type. The types of integer constants are coerced to the widest as well.
   \end{itemize}
 
 \item Reserved words $nil$ and $this$ can't be identifiers
