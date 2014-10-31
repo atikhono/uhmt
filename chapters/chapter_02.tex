@@ -187,7 +187,11 @@ The output channels of a synchroniser are guaranteed to have the bracketing dept
 
 
 %% TODO Move all the type details to the implementation details
+%% TODO Do we really need to declare the width of int explicitly?
   \subsection{Variable declaration}
+%% Add about state and store variables initialisation.
+%% state int(8) a, b=1, c=8; // assignes a=0 b=1 c=9
+%% enum (a,b,c) foo, bar=a;  // assignes foo=0 bar=a
 The beginning of state variables declaration is indicated by the keyword $state$. A state variable may be either a signed integer of the constant width or a C-style enumeration. State and store variables names are user-defined indentifiers. A user-defined identifier is an ASCII string that follows the C convention.
 
 %% TODO Should move width determining to the implementation detail
@@ -240,6 +244,7 @@ s2 {
 
 When the zip2 synchroniser is in the start state and it receives a message from the channels connected to the port $a$, the underlying state machine makes a transition to the state $s1$. In this state the synchroniser can only receive messages from channel connected to the port $b$ since there's no transition triggered by channel connected to the port $a$ and defined in this state. When the message on channel connected to the port $b$ is received, the state machine makes a transition to the start state. Lines 10-13 define similar behaviour in state $s2$.
 
+%% Change 'scopes'. 'Blocks' probably
 The synchroniser language supports top-down prioritised transition scopes. They are indicated with the $elseon$ keyword. A synchroniser in state $foo$ in Fig. \ref{sync_scope} acceptes messages from channels connected to the ports $a$, $b$, $c$ and $d$. When no destination state is specified for a transition, a synchroniser makes the transition to the current state. If all channels are ready at the same time in state $foo$, the synchroniser processes messages from either channel $a$ or $b$ first. When all messages from channels connected to the ports $a$ and $b$ are processed the synchroniser receives messages from channels connected to the port $c$. If there're no messages in channels $a$, $b$ and $c$ the synchroniser receives messages from the channel connected to the port $d$.
 
 \begin{figure}[h!]
@@ -260,11 +265,38 @@ foo {
 \end{figure}
 
 
+  \subsection{State expressions}
+State expression is a combination of integer constants, state variables and operators, which computes and produces an integer value. The interpretation of a state expression follows C rules of precedence and association. State expressions can be assigned to state variables. In assumption that the output channel is infinite a synthetic example in Fig. \ref{sync_state_exp} counts the number of messages received from channel connected to the port $a$ between the arrivals of messages in channel connected to the port $b$. Line 1 declares the 8-bit integer $count$ and initialises it with 0. When a message from channel connected to the port $a$ is received the value of $count$ increases by 1 (line 5).
+
+\begin{figure}[h!]
+\lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
+\begin{lstlisting}[frame=single]
+state int(8) count = 0;
+foo {
+  on:
+    a {
+      set count = count + 1;
+    }
+  elseon:
+    b {
+      set n = count, count = 0;
+      send count:n => c;
+    }
+}
+\end{lstlisting}
+\caption{Use of state variables and expressions}
+\label{sync_state_exp}
+\end{figure}
+
+When a message from channel connected to the port $b$ is received the value of $count$ is stored in the temporary variable $n$, set to 0 and then $n$ is sent to the output channel.
+
+The variable $n$ does not have to be declared and is considered alias for the integer expression. Temporary variables are available until the state machine of a synchroniser makes the next move.
+
+
   \subsection{Triggering of a transition}
 The channel name on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available. Whether a transition takes place depends on the channel status and optionally the content of the messages.
 
 When a message is received on a channel, it can be matched with a pattern in order to extract parameters needed to select a specific transition. Line 3 of Fig. \ref{sync_trans} checks if a message received from the input channel connected to the port $a$ contains label $x$. If it does, the contents of $x$ are stored in a temporary variable $x$. The tail of the message, i.e. everything but the part labeled $x$, is stored in a temporary variable $t$. Both $x$ and $t$ are read-only and available until the state machine makes a move.
-
 
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
@@ -275,7 +307,6 @@ foo {
     a.?v        { }
     a.?v(x, y)  { }
     a.@k        { }
-    a.else      { }
 }
 \end{lstlisting}
 \caption{Message content extraction}
@@ -286,17 +317,28 @@ To support message formats where several variants of a message are possible, a q
 
 A channel carries a stream that consists of messages and possibly segmentation marks. In line 6 in Fig. \ref{sync_trans} a message is checked if it is a segmentation mark of the depth $k$.
 
+Several different channels can be tested in any given state, however, once the readiness of a channel was established, the synchroniser is committed. Hence the set of conditions applied to the message on any input channel must be exhaustive. In Fig. \ref{sync_trans} it is not, because there no pattern for messages that do not contain label $x$, do not belong to variant $v$ and are not a segmentation mark of depth $k$ at the same time. In this case the final clause $a$\begin{bf}.else;\end{bf} is assumed. This clause discards the input message and transitions the synchroniser back to its current state.
 
-guarding state expressions
+A transition can be guarded by a state expression. In this case the transition fires only if the guarding expression evaluates to true. The synchroniser in Fig. \ref{sync_g_state_exp} sends every 256-th message to the output channel. Line 1 declares the 8-bit state variable $i$ that is initialised with 0. It is incremented every time a message from channel connected to the port $a$ is received, except when it reaches 255, in which case it is reset 0 and the received message is sent down the channel $c$. 
 
-
-The condition $\langle$chan$\rangle$\begin{bf}.else\end{bf} is equivalent to $\langle$chan$\rangle$ except it is tested after any other condition involving the channel. Although several different channels can be tested in any given state, once a test has established the readiness of a channel, the synchroniser is committed, hence the set of conditions applied to the message on any input channel $\langle$chan$\rangle$ must be exhaustive. If it is not, the final clause \begin{bf}on\end{bf} $\langle$chan$\rangle$\begin{bf}.else;\end{bf} is assumed. That clause discards the input message and transitions the synchroniser back to its current state.
-
-
-  \subsection{State expression}
-The synchroniser functional is evaluated with the action list that is specified within the do-clause.
-
-Non-terminal symbol $\langle$int-exp$\rangle$ stands for integer expressions. The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression. Integer experessions can be assigned to state variables and to undeclared variables that are considered aliases for integer expressions. Such variables are used only within the transition where they were activated.
+\begin{figure}[h!]
+\lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
+\begin{lstlisting}[frame=single]
+state int(8) i;
+start {
+  on:
+    a & i < 255 {
+      set i = i + 1;
+    }
+    a & i = 255 {
+      set i = 0;
+      send this => c;
+    }
+}
+\end{lstlisting}
+\caption{Use of guarding state expressions}
+\label{sync_g_state_exp}
+\end{figure}
 
 
   \subsection{Store expression}
@@ -306,11 +348,13 @@ Non-terminal symbol $\langle$int-exp$\rangle$ stands for integer expressions. Th
 
 A message received on a channel is referred to by the keyword 'this' within the active transition.
 
+The type of a message is its CAL term.
 
   \subsection{Sending messages}
 Messages are formed and sent to the output channels using the send-clause. Messages are dispatched 
 
 
+%% TODO Probably move to implementation details
   \subsection{Keywords, reserved words and punctuation}
 The keywords, the reserved words and the punctuation used in the \ak\ synchroniser sytax are shown in Fig. \ref{sync_kw}.
 \begin{figure}[h!]
@@ -360,6 +404,7 @@ To be implemented in the compiler:
 \item State expressions
   \begin{itemize}
   \item Patterns $(x || t)$. $x$ and $t$ are local for the active transition. $x$ and $t$ mustn't be assigned anywhere. If $x$ is used in a state expression, it is integer (has the term 'number'). Tail $t$ can't be used in a state expression; $t$ is always at least a record ($t = (name: value)$).
+  \item The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
   \end{itemize}
 
 \item Reserved words $nil$ and $this$ can't be identifiers
