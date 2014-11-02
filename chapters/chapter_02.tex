@@ -348,7 +348,7 @@ start {
 %% TODO Probably fix it after writing about CAL terms.
 Store expression is a mechanism to combine data. Data are typed in \ak\. Types are CAL terms. Store expression concatenates data in the user-defined order and therefore results in the data of a valid CAL type. The result of the store expression can be either stored in a store variable or sent down the output channel.
 
-The example in Fig. \ref{sync_send} demonstrates the use of store expressions and the $send$ clause. In the start state the synchroniser receives messages from channel connected to the port $a$ that has label $n$ in it. In line 5 the value under label $n$ is incremented and stored in the store variable $ma $under label $n$ together with the tail $t$.
+The example in Fig. \ref{sync_send} demonstrates the use of store expressions and the $send$ clause. In the start state the synchroniser receives messages from channel connected to the port $a$ that has label $n$ in it. In line 5 the value under label $n$ is incremented and stored in the store variable $ma$ under label $n$ together with the tail $t$. The syntactic sugar for defining a record is supported. The operator $'$ applied to the variable $x$ creates the record $'x': value(x)$.
 
 %% TODO Provide a more convincing example for 'id and this
 \begin{figure}[h!]
@@ -410,26 +410,58 @@ The implementation of the compiler frontend in OCaml \cite{realworldocaml}, with
 
 To be implemented in the compiler:
 \begin{enumerate}
-\item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of the of the input channels. $p$ is not allowed anywhere in state expressions.
+\item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of one of the input channels. $p$ is not allowed anywhere in state expressions.
   \begin{itemize}
   \item (a:p | b:p+1) - allowed
   \item (a:p | b:0) - allowed
   \item (a:p | b:r) - allowed
   \item (a:p | b:r+1) - NOT allowed
   \end{itemize}
+The special depth $-1$ indicated that the channel is not used. Therefore, if it is an input channel, all the transitions reading from it can be removed. If it is an output channel, and the transition that sends to this channel is valid, then an error must occur.
 
 \item State variables types.
   \begin{itemize}
-  \item int(n) a, b, c. $a$, $b$ and $c$ must always be within range $[-2^{n-1}; 2^{n-1}-1]$. Check it at least for assignments. For the state expressions that evaluate during the execution of the synchroniser it's probably ok to delegate the overflow checks to the C compiler.
+  \item int(n) a, b, c. Decide if int type is signed or unsigned (it shouldn't really matter).  
+
+$a$, $b$ and $c$ must always be within range $[-2^{n-1}; 2^{n-1}-1]$ if int is signed and $[0; 2^{n}-1]$ if int is unsigned.
+
+Check if the range condition is valid at least for assignments (int(1) x = 10 is not good, should issue a warning, check what would be assigned to x in C). For the state expressions that evaluate during the execution of the synchroniser it's probably ok to delegate the overflow checks to the C compiler.
   \item Integer width determination for enums. (TODO Move the description from the Section Synchroniser code/Variable declaration.)
   \end{itemize}
 
 \item State expressions
   \begin{itemize}
-  \item Patterns $(x || t)$. $x$ and $t$ are local for the active transition. $x$ and $t$ mustn't be assigned anywhere. If $x$ is used in a state expression, it is integer (has the term 'number'). Tail $t$ can't be used in a state expression; $t$ is always at least a record ($t = (name: value)$).
+  \item Everything inside brackets is a state expression.
+  \item Patterns $(x || t)$. $x$ and $t$ are local for the active transition.
+  
+$x$ and $t$ musn't be declared global - otherwise it is an error.
+
+$x$ and $t$ mustn't be assigned anywhere.
+
+If $x$ is used in a state expression, it is integer (has the term 'number'). Tail $t$ can't be used in a state expression; $t$ is always at least a record ($t = (name: value)$).
   \item The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
   \item If state variables in state expression have different width, then the types are coerced the the widest type. The types of integer constants are coerced to the widest as well.
   \end{itemize}
+
+\item Variables scopes
+  \begin{itemize}
+  \item Global scope - every variable that is visible for all transitions (from declataions).
+  \item Local scope for each transition (every variable that is visible only for a specific transition). Includes temporary variables matched from message and aliases for state expressions.
+  \item Identifier intersections between scopes are restricted. There must be no variable identifier that exists both in some local and in the global scope.
+  \end{itemize}
+
+\item Store variables
+Store variables are typed by CAL terms.
+The type of a store variable is determined on the first assignment to it.
+
+\item Store expressions
+The result has a valid CAL term.
+If the right-hand side of an assignment is not in brackets, it is a store expression.
+
+\item Symbol table
+Hash (variable id, scope) => (type)
+
+\item Object AST => visitor pattern
 
 \item Reserved words $nil$ and $this$ can't be identifiers
 \end{enumerate}
@@ -445,8 +477,12 @@ Preprocessor performs (a C-like) macro expansion. There's no preprocessor direct
   \subsection{Type checking}
 Type assignment rules
 
-  \subsection{Synchroniser passport}
+\begin{itemize}
+\item Everything inside brackets is a state expression. If no brackets were specified, it is a store expression.
+\end{itemize}
 
+  \subsection{Synchroniser passport}
+A synchroniser can impose some restriction on the type of messages it accepts.
 
 %  \subsection{Dead code elimination}
 %Remove unreachable states.
