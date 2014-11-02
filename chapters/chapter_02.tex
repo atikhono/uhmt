@@ -145,6 +145,8 @@ $\Pi \; (s_{2}, c) = \psi_{\sqcap} \; \{\mu_{0} = b \: | \: \rho_{20}^{c} \; (s_
 
 
 \section{Synchroniser code}
+%% TODO fix 'channel connected to the port x' to channel x
+%% Insert a footer that explains that 'channel x' is short for 'channel connected to the port x'
 An \ak\ synchroniser is a finite state machine, therefore the basic building blocks of a synchroniser program are states and transitions. A state of a synchroniser is fully defined by the corresponding state of the finite state machine and the values of the state variables. A transition is the act of moving to another state which is initiated by a triggering event. A triggering event for the synchroniser transition is an arrival of a message to the associated channel. The message may be required to have a specific structure. In addition, a transition may be guarded by special conditions on the values of the state variables. If the conditions are satisfied the transition fires, otherwise it is cancelled.
 
 Once a transition is known to fire, optional actions may be performed before the underlying state machine makes the move. These actions include changing the state and store variable values and sending messages to the output channels. In order to change the state and store variables, the synchroniser language provides state and store expressions over them.
@@ -275,12 +277,12 @@ state int(8) count = 0;
 foo {
   on:
     a {
-      set [count = count + 1];
+      set count = [count + 1];
     }
   elseon:
     b {
-      set [n = count], [count = 0];
-      send count:n => c;
+      set n = [count], count = [0];
+      send count:[n] => c;
     }
 }
 \end{lstlisting}
@@ -321,6 +323,7 @@ Several different channels can be tested in any given state, however, once the r
 
 A transition can be guarded by a state expression. In this case the transition fires only if the guarding expression evaluates to true. The synchroniser in Fig. \ref{sync_g_state_exp} sends every 256-th message to the output channel. Line 1 declares the 8-bit state variable $i$ that is initialised with 0. It is incremented every time a message from channel connected to the port $a$ is received, except when it reaches 255, in which case it is reset 0 and the received message is sent down the channel $c$. 
 
+Values that are matched from the message can be used in guarding state expressions.
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
 \begin{lstlisting}[frame=single]
@@ -328,10 +331,10 @@ state int(8) i;
 start {
   on:
     a & [i < 255] {
-      set [i = i + 1];
+      set i = [i + 1];
     }
     a & [i = 255] {
-      set [i = 0];
+      set i = [0];
       send this => c;
     }
 }
@@ -341,21 +344,37 @@ start {
 \end{figure}
 
 
-  \subsection{Store expression}
-%% Data are typed in \ak\.  Types are CAL terms. Store expression returns data of a valid CAL type (because it just concatenates data).
-Store expression is a mechanism to combine data.
+  \subsection{Store expressions and sending messages}
+%% TODO Probably fix it after writing about CAL terms.
+Store expression is a mechanism to combine data. Data are typed in \ak\. Types are CAL terms. Store expression concatenates data in the user-defined order and therefore results in the data of a valid CAL type. The result of the store expression can be either stored in a store variable or sent down the output channel.
 
-(TODO: check it) Data expression combine messages, message tails and store variables. Parentheses denote the concatenation of the messages between them.
+The example in Fig. \ref{sync_send} demonstrates the use of store expressions and the $send$ clause. In the start state the synchroniser receives messages from channel connected to the port $a$ that has label $n$ in it. In line 5 the value under label $n$ is incremented and stored in the store variable $ma $under label $n$ together with the tail $t$.
 
-%(TODO: fix) In an array of synchronisers replicas may include an explicit $\langle$id$\rangle$$=$$\langle$integer$\rangle$ pair into an output message. This would result in the output message being inserted in another replica's output sequence non-deterministically.
+%% TODO Provide a more convincing example for 'id and this
+\begin{figure}[h!]
+\lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
+\begin{lstlisting}[frame=single]
+store ma;
+start {
+  on:
+    a.(n || t) {
+      set ma = (n:[n+1] || t);
+      goto s1;
+    }
+}
+s1 {
+  on:
+    b {
+      send ma || this => c;
+      goto start;
+    }
+}
+\end{lstlisting}
+\caption{Use of store expressions and the $send$ clause}
+\label{sync_send}
+\end{figure}
 
-%% provide an example to introduce this
-A message received on a channel is referred to by the keyword 'this' within the active transition.
-
-The type of a message is its CAL term.
-
-  \subsection{Sending messages}
-Messages are formed and sent to the output channels using the send-clause. Messages are dispatched 
+A message received on a channel is referred to by the keyword $this$ within the active transition. In state $s1$ the synchroniser receives messages from channel connected to the port $b$. When a message is received, it is concatenated with the store variable $ma$ (line 12) and sent to the output channel connected to the port $c$.
 
 
 %% TODO Probably move to implementation details
