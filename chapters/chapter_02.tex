@@ -199,7 +199,7 @@ The beginning of state variables declaration is indicated by the keyword $state$
 %% TODO Should move width determining to the implementation detail
 Line 1 in Fig. \ref{sync_statevar} declares state variables $a$, $b$, $c$ of width 4. Thus, all three variables are declared to have integer values in the range $[-8; 7]$. Generally, a state variable of width $n$ has integer values in the range $[-2^{n-1}; 2^{n-1}-1]$.
 
-The state variable $foo$ that is declared in the line 2 in Fig. \ref{sync_statevar} can only be assigned the values $d$, $e$ and $f$ specified in the enumeration. The enumeration values are defined as constants if type $int$. If the values are not specified explicitly, they are assigned consequtive positive integers starting with 0. The width of the $int$ type is $\lceil \log_{2}{n} \rceil + 1$, where $n$ is the number of values in the enumeration. Thus, the variable $foo$ has integer values $d=0$, $e=1$ and $f=2$ of the width $\lceil \log_{2}{3} \rceil + 1 = 3$. If the values are specified explicitly, the width is determined as $\lceil \log{2}{(m+1)} \rceil + 1$, where $m$ is the biggest value in the enumeration. For the variable $bar$ declared in line 3 of Fig. \ref{sync_statevar} $m=4$ and the width is $\lceil \log{2}{(5)} \rceil + 1 = 4$.
+The state variable $foo$ that is declared in the line 2 in Fig. \ref{sync_statevar} can only be assigned the values $d$, $e$ and $f$ specified in the enumeration. The enumeration values are defined as constants if type $int$. If the values are not specified explicitly, they are assigned consequtive positive integers starting with 0. The width of the $int$ type is $\lceil \log_{2}{n} \rceil + 1$, where $n$ is the number of values in the enumeration. Thus, the variable $foo$ has integer values $d=0$, $e=1$ and $f=2$ of the width $\lceil \log_{2}{3} \rceil + 1 = 3$. If the values are specified explicitly, the width is determined as $\lceil \log_{2}{(m+1)} \rceil + 1$, where $m$ is the biggest value in the enumeration. For the variable $bar$ declared in line 3 of Fig. \ref{sync_statevar} $m=4$ and the width is $\lceil \log_{2}{(5)} \rceil + 1 = 4$.
 
 Integer state variables and enum values can be mixed freely in state expressions. Enum values are interpreted as read-only integer state variables. % constant integers!
 
@@ -406,9 +406,61 @@ Punctuation & braces, brackets, parantheses, the comma, the dot, the semicolon, 
 
 
 \section{The implementation of the compiler}
-The implementation of the compiler frontend in OCaml \cite{realworldocaml}, with code generation to an intermediate representation that is loaded by the runtime system.
+The implementation of the compiler is written in Python (TODO: cite a cookbook), with code generation to an intermediate representation that is used by the \ak\ runtime system.
 
-To be implemented in the compiler:
+\subsection{Lexical analysis}
+  \paragraph{Lexical analyser} PLY
+  \paragraph{Preprocessor}
+%%%
+%%% We removed macros from the language. The compiler must invoke a preprocessor to expand them.
+%%%
+%The synchroniser language provides macros to avoid having to trivially alter synchroniser programs. Macros are specified in brackets between the synchroniser's name and its channel signature. An example of a configurable synchroniser can be found in \cite{astrakahn}.
+Preprocessor performs (a C-like) macro expansion. There's no preprocessor directives in the synchroniser language (like \#define in C). Preprocessor commands are passed to it as a part of the compiler invocation command (a special flag like -Dday=night in C).
+
+
+\subsection{Syntax analysis}
+  \paragraph{Syntax alanyser} PLY. Syntax-directed translation. A translation scheme embeds program fragments called semantic actions in production bodies (TODO Dragon book, p.107)
+
+  \paragraph{Abstract syntax tree} The result of syntax analysis is a representation of the source program called intermediate code. We use abstract syntax tree in the implementation.
+
+TODO: structure of the AST.
+AST generator by Eli with the reference.
+
+  \paragraph{Symbol table}
+Symbol tables are data structures used by compilers to hold information about identifiers in a program's source code. The information is collected incrementally by the analysis phases of a compiler. Entries in the symbol table contain identifier's type, scope level, location and any other relevant information.
+
+The role of a symbol table is to pass information from declarations to uses. A semantic action puts information about identifier $x$ into the symbol table, when the declaration of $x$ is analysed. Subsequenlty, a semantic action associated with a production that involves an identifier gets information about the identifier from the symbol table.
+
+The scope of a declaration is the portion of a program to which the declaration applies. (TODO scope straucture of a sync program). State and store variables are visible for all transitions, therefore they belong to the global scope. State expression aliases and variables that are pattern matched belong to the local scope of a transition.
+
+Symbol tables typically need to support multiple declarations of the same identifier within a program. We shall implement scope by setting up a separate symbol table for each scope (transition) and chaining them. The approach to the implementation of a symbol table is taken from (TODO ref Dragon book, p.89). Chaining of symbol tables results in a tree structure (probably we can simplity it somehow, because we do not really need a tree of scopes).
+
+(TODO: probably a short description of the approach is needed. Class with fields hashtable and a link to the previous scope object, and methods 'create new', 'put', 'get' which searches the chain of tables.)
+
+The symbol table contains types and (possibly) locations. Builing of a symbol table Dragon book p.90.
+
+  \paragraph{Syntax-driven type inference?}
+Special language constructs simplify type inference (probably it's not a good word here).
+A state expression is specified in brackets. Everything in state expression is integer.
+If an assignment is being parsed and no brackets were specified in assignment expression, then it is a store expression.
+
+  \paragraph{Static checking}
+Static checks are consistency checks that are done during compilation. Not only do they assure that a program can be compiled successfully, but they also catch programming errors early. Static checking includes:
+\begin{itemize}
+\item Syntactic checking. Constraints such as an identifier is declared at most once in a scope (TODO: more)
+
+Reserved words $nil$ and $this$ can't be identifiers
+
+\item Type checking. The type rules of a language assure that an operator or function is applied to the right number and type of operands.
+
+If an identifier was met and it is already in the current scope of symbol table, it must have the same type (int or data) as before.
+\end{itemize}
+
+\subsection{Semantic analysis}
+  \paragraph{Semantic analyser}
+Architecture of the analyser. Pattern visitor?
+
+  \paragraph{Checks}
 \begin{enumerate}
 \item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of one of the input channels. $p$ is not allowed anywhere in state expressions.
   \begin{itemize}
@@ -419,36 +471,55 @@ To be implemented in the compiler:
   \end{itemize}
 The special depth $-1$ indicated that the channel is not used. Therefore, if it is an input channel, all the transitions reading from it can be removed. If it is an output channel, and the transition that sends to this channel is valid, then an error must occur.
 
-\item State variables types.
-  \begin{itemize}
-  \item int(n) a, b, c. Decide if int type is signed or unsigned (it shouldn't really matter).  
+Visitor for ports that returns their depths which are IDs.
+For the input and output channels sets that are returned by the visitor are equal.
+Do we really need visitor for it?
 
-$a$, $b$ and $c$ must always be within range $[-2^{n-1}; 2^{n-1}-1]$ if int is signed and $[0; 2^{n}-1]$ if int is unsigned.
+\item State variables.
+State variables are in global scope.
+
+int(n) a, b, c; n denotes only the value range of a state variable. It decreases the number of possible states of a synchroniser. $a$, $b$ and $c$ must always be within range $[0; 2^{n}-1]$ (int is unsigned). At low level state variables are machine- and target language- dependent integers.
+
+The translation scheme in Fig. \ref{std} presents state variable types and their ranges.
+
+(Table: grammar rule - type/width, p.375 Dragon book).
+\begin{figure}[h!]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+Type & Values\\
+\hline
+int(n) & $[0; 2^{n}-1] \cap \mathbb{Z}$\\
+\hline
+enum($a_1$, $a_2$, $\dots$ $a_n$) & $[0; n-1] \cap \mathbb{Z}$\\
+\hline
+enum($a_1=N_1$, $a_2=N_2$, $\dots$ $a_n=N_n$) & $N_1$, $N_2$, $\dots$ $N_n$\\
+\hline
+\end{tabular}
+\caption{Computing types and their value ranges}
+\label{std}
+\end{figure}
+
+(TODO: Probably it is a static check that can be done right from parser)
 
 Check if the range condition is valid at least for assignments (int(1) x = 10 is not good, should issue a warning, check what would be assigned to x in C). For the state expressions that evaluate during the execution of the synchroniser it's probably ok to delegate the overflow checks to the C compiler.
-  \item Integer width determination for enums. (TODO Move the description from the Section Synchroniser code/Variable declaration.)
-  \end{itemize}
 
-\item State expressions
+\item State expressions. Probably it is all static check as well.
   \begin{itemize}
-  \item Everything inside brackets is a state expression.
-  \item Patterns $(x || t)$. $x$ and $t$ are local for the active transition.
-  
-$x$ and $t$ musn't be declared global - otherwise it is an error.
+  \item Patterns $(x || t)$ and aliases for state expressions. $x$ and $t$ are in local scope of the active transition.
 
-$x$ and $t$ mustn't be assigned anywhere.
+(TODO: think if it should be restricted). $x$ and $t$ musn't be declared global - otherwise it is an error??
+
+$x$ and $t$ are read-only.
+
+Probably should not differentiate between pattern variables and aliases. For state and store variables there's a differentiation because we need to know what is included in states of synchroniser (state vars) and what is not (store vars).
 
 If $x$ is used in a state expression, it is integer (has the term 'number'). Tail $t$ can't be used in a state expression; $t$ is always at least a record ($t = (name: value)$).
+
   \item The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
-  \item If state variables in state expression have different width, then the types are coerced the the widest type. The types of integer constants are coerced to the widest as well.
+
   \end{itemize}
 
-\item Variables scopes
-  \begin{itemize}
-  \item Global scope - every variable that is visible for all transitions (from declataions).
-  \item Local scope for each transition (every variable that is visible only for a specific transition). Includes temporary variables matched from message and aliases for state expressions.
-  \item Identifier intersections between scopes are restricted. There must be no variable identifier that exists both in some local and in the global scope.
-  \end{itemize}
 
 \item Store variables
 Store variables are typed by CAL terms.
@@ -458,32 +529,22 @@ The type of a store variable is determined on the first assignment to it.
 The result has a valid CAL term.
 If the right-hand side of an assignment is not in brackets, it is a store expression.
 
-\item Symbol table
-Hash (variable id, scope) => (type)
-
-\item Object AST => visitor pattern
-
-\item Reserved words $nil$ and $this$ can't be identifiers
 \end{enumerate}
 
-  
-  \subsection{Preprocessor}
-%%%
-%%% We removed macros from the language. The compiler must invoke a preprocessor to expand them.
-%%%
-%The synchroniser language provides macros to avoid having to trivially alter synchroniser programs. Macros are specified in brackets between the synchroniser's name and its channel signature. An example of a configurable synchroniser can be found in \cite{astrakahn}.
-Preprocessor performs (a C-like) macro expansion. There's no preprocessor directives in the synchroniser language (like \#define in C). Preprocessor commands are passed to it as a part of the compiler invocation command (a special flag like -Dday=night in C).
 
-  \subsection{Type checking}
-Type assignment rules
-
+\subsection{Code optimisation}
+  \paragraph{Dead code elimination}
 \begin{itemize}
-\item Everything inside brackets is a state expression. If no brackets were specified, it is a store expression.
+\item Remove unreachable states of an automaton (when there's no state variables involved).
+\item Remove unreachable transitions based on Section Execution order.
+\item Remove unused assignments (this may require some simple def-use analysis, probably can put it into symbol tables).
 \end{itemize}
 
-  \subsection{Synchroniser passport}
-A synchroniser can impose some restriction on the type of messages it accepts.
 
-%  \subsection{Dead code elimination}
-%Remove unreachable states.
-%Based on Section Execution order.
+\subsection{Code generation}
+  \paragraph{Synchroniser runtime code}
+Give a class diagram?
+Generator architecture - node visitor
+
+  \paragraph{Synchroniser passport}
+A synchroniser can impose some restriction on the type of messages it accepts.
