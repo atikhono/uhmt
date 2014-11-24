@@ -1,19 +1,191 @@
-\chapter{\ak\ language reference}
-The should references should be given in the form of story:
-\begin{enumerate}
-\item For the synchroniser compiler
-  \begin{itemize}
-  \item Bracketing depth of the channel
-  \item CAL terms
+\chapter{Introduction}
+For years, processor manufacturers have delivered increases in clock rates, so that single-threaded code executed faster on newer processor without any modifications. While manufacturing technology still improves, physical limitations of semiconductor-based electronics have become a major concern of design. In order for the processors to continue to improve in performance, multi-core design has become necessary \cite{sutter}.
 
-  \end{itemize}
-  
-\item For the \ak\ compiler
-  \begin{itemize}
-  \item Net-list: network topology and wiring
-  \item FP analisys: forward fix point
-  \end{itemize}
+Unlike the increase in clock frequency for previous-generation processors, this shift in hardware design does not provide automatic benefits for software. The improvement in performance gained by the use of a multi-core processor depends significantly on the programming concepts, tools and infrastructure used for software implementation. Some parallel programming models such as OpenMP \cite{openmp}, MPI \cite{mpi}, Cilk Plus \cite{cilk} were developed for multi-core platforms. However, in most cases these models require massive software re-engineering to take advantage of multi-core processing.
 
-\end{enumerate}
+The main challenge in engineering of correct concurrent code is managing concurrency. Concurrency management includes ensuring the correct sequencing of the interactions between different computational executions, and coordinating access to resources that are shared among executions. The complexity comes from the fact that these actions are mixed with computations.
 
-Optionally: synchronisers can be used for monitoring of network
+Software parallelization is a significant topic of ongoing research. One of the research directions that addresses issues of efficient multi-core programming and difficult concurrency management is coordination programming. The idea of coordination programming is to represent a program as a set of computational processes and to specify relations between them in special coordination language. Potentially, this model allows execution of every single process on a dedicated processor core. However, in real-world applications, a large number of concurrent processes and their communication facilities have to share a very limited amount of resources. Thus, the issue of application progress becomes quite complicated. In order to boost application performance a programmer has to tune it manually.
+
+A new programming language called Astra\emph{Kahn} is described in \cite{astrakahn}. Astra\emph{Kahn} attempts to combine coordination programming with stream processing to provide a self-regulatory concurrency mechanism. The goal of the project is to provide an environment for development of scalable concurrent applications that does not require manual tuning efforts.
+
+
+    \section{Motivation}
+The long-term goal of the Astra\emph{Kahn} project is to provide an environment for development of scalable concurrent applications that does not require manual tuning efforts. An Astra\emph{Kahn} approach to adaptive concurrency relies on the concept of communication pressure propagation across a network. Since pressure propagation directly affects proliferation levels of certain vertices, effectiveness of concurrency self-regulation depends largely on correctness of pressure propagation strategy. An important part of this strategy is pressure propagation through synchronisers because, unlike other vertices in Astra\emph{Kahn}, they induce negative pressure that represents a demand for messages in a certain part of a network.
+
+This project is focused on synchroniser analysis and development of supporting tools. Since the synchroniser is programmed in a dedicated language, a compiler for this language is needed. Target architecture assembly generation is of no concern within the project, thus, the compiler translates a given source code into a C program and then calls available C compiler to generate an executable file. Also, the compiler provides various syntactic and semantic checks.
+
+In order to propagate pressure through a synchroniser, Astra\emph{Kahn} coordinator needs to know its \emph{transfer function}. The transfer function describes relations between demands of messages on a synchroniser's input and output channels. Derivation of the transfer function is a concern of static analysis, in particular, execution path analysis. Because synchronisers are non-deterministic, there may be potentially an infinite number of possible execution paths and therefore more than one transfer function. It may be impossible to determine an exact execution path at compile time, because it may depend on incoming message content. If synchroniser has an inner loop, the transfer function must consider the number of iterations in this loop. Thus, transfer function derivation relates to induction variable analysis.
+
+These issues are subject to synchroniser analysis in the project. Once a set of transfer functions is obtained, it is up to TPL how to choose a particular transfer function and propagate pressure through a synchroniser. Also, synchroniser analysis includes passport generation for Constraint Aggregation Layer.
+
+
+    \section{Contribution}
+The contribution of the research is a technique for pressure propagation through synchronisers. This mechanism is an important part of concurrency self-regulating mechanism in Astra\emph{Kahn}. An approach to the problem will be provided in accordance with runtime system regulation policies and a tool for pressure propagation support on runtime will be implemented. The chosen pressure propagation strategy will be tested with a runtime system prototype to decide on its usability for adaptive concurrency regulation. Depending on the result, synchronisation model nondeterminism restrictions and/or strategy changes can be provided to enable efficient concurrency self-regulation on runtime.
+
+
+    \section{Outline}
+
+\chapter{Theoretical Background}
+
+
+    \section{Stream Processing}
+Stream processing research, particularly the study of stream processing systems, has a long history. In general, a stream processing system can be described as a system comprised of a set of processing components that compute in parallel and communicate data via channels. Channels pass data as infinite sequences; these infinite sequences are referred to as streams.
+
+Examples of stream processing research are dataflow systems, reactive systems, signal processing systems, etc. An overview of the hystorical development and the discussion of the different techniques for streams programming is presented in the survey by R. Stephens \cite{stephens97}.
+
+Stephens identifies that the first type of stream processing systems are dataflow systems. The first dataflow programming language Lucid \cite{lucid} was designed in 1970s. In Lucid, each variable is an infinite stream of values. Computation is carried out by defining transformation functions that process these streams. Lucid is possibly the first language to introduce the idea of a block that transforms input message sequences into output sequences.
+
+In 1974 G. Kahn published his paper \cite{kahn74} outlining the semantics of a simple language for parallel programming. In his work Kahn suggests a distributed model of computation where a group of deterministic sequential processes communicate via unbounded FIFO channels. In this model a program is represented as a directed graph whose vertices are prefix monotonic\footnote{Process is prefix monotonic when it takes partial input stream - prefix - in order to produce partial output stream, i.e. for prefix monotonic process $f(x)$ and prefix $p : f(p)=r$ it is true that $f(p || t) = r || T$} computational processes and edges are stream-carrying channels with the following assumptions:
+\begin{itemize}
+\item[-]Channels are the only way for processes to communicate;
+\item[-]Channels transmit messages within a finite time;
+\item[-]At any given time a process is either performing computation or waiting for messages on one of its input channels;
+\item[-]Each process is a sequential program.
+\end{itemize}
+Kahn proved that the resulting process network exhibits deterministic behaviour, i.e. its output does not depend on computation or communication delays. This model is now referred to as Kahn Process Network (KPN). Astra\emph{Kahn} is based on KPNs.
+
+One of the latest KPN interpretations in programming languages is StreamIt \cite{streamit}. In StreamIt, basic computational unit is called \emph{filter}. A filter is a user-defined single-input, single-output block that translates input data sequences to output sequences. Notable feature of StreamIt is that it imposes structuring on applications with the following structural primitives:
+\begin{itemize}
+\item \emph{pipeline} specifies sequential composition of filters,
+\item \emph{splitjoin} specifies parallel composition of filters,
+\item and \emph{feedbackloop} provides a way to create loop constructs in stream graph.
+\end{itemize}
+
+Recall that KPN model is theoretical and works well under interpretation when resources are unlimited. In real world, concurrent processes and their communication facilities have to share a very limited pool of resources. Thus, several refinements to KPNs are needed to address resource limitations.
+
+The fundamental technique to deal with the issue is load balancing. Several static and dynamic approaches were suggested for load balancing in StreamIt applications. Static load balancing implies partitioning of a StreamIt program into a set of balanced patritions. Static strategies introduce heuristic approach \cite{streamit}, as well as use of ILP solvers \cite{kudlur}, approximation alghorithms \cite{farhad} and machine learning \cite{wang}. Dynamic load balancing technique proposed in \cite{collins} takes advantage of filters' statelessness\footnote{Regardless of input sequence $A$, stateless filter output sequence does not depend on input sequences that came before $A$.}. The approach is based on communication pressure that emerges from the channels' boundedness. Here communication pressure characterises the channel occupancy of some computational process and feedback from its co-located computational processes.
+
+Astra\emph{Kahn} proposes demand-driven self-regulatory mechanism. It is based on the same concept of communication pressure with a refinement to achieve fine-grained parallelism.
+
+In Astra\emph{Kahn} predecessor S-Net \cite{snet_intro} the problem with resource management persists. A programmer has to tune S-Net application manually.
+
+
+    \section{Coordination programming}
+The coordination aspect of Astra\emph{Kahn} is related to significant amount of prior work in data-driven coordination. Main existing coordination technologies are described in details in the survey \cite{papadopoulos} by G. Papadopoulos and F. Arbab.
+
+Unlike a great many approaches to coordination programming, coordination and computation in Astra\emph{Kahn} are completely separate. This is achieved by introduction of a special type of process called a synchroniser. A synchroniser can be thought of as a facility that guarantees data availability on computational process inputs.
+
+S-Net is also the case. S-Net utilises \emph{synchrocells} in order to control synchronisation. Synchrocells are the only means in S-Net to combine messages from several channels into a single record; they only realise a functional mapping from input streams to the output stream. In constrant to synchrocells, synchronisers allow complex synchronisation patterns. They are programmed in a dedicated programming language which is a part of Astra\emph{Kahn}.
+
+Another related coordination technology is the language Reo \cite{Reo_Arbab04}. Like Astra\emph{Kahn} or S-Net, Reo is exogenous in terms of coordination. Reo's emphasis is on complex coordinators, or \emph{connectors}, and their composition out of simpler ones, rather than on the components that communicate via these connectors.
+
+A channel is an atomic connector in Reo. A channel is undirected, i.e. its ends may be either \emph{source} or \emph{sink}. Source and sink are connected to producer and to consumer nodes respectively. Channels in Reo are typed, however, no fixed set of types is assumed. Channels coincide in another fundamental entity called a \emph{node}. Reo defines sets of operations on channels and nodes, see \cite{Reo_Arbab04} for reference.
+
+Complex connector in Reo is represented as undirected graph contisting of channels and nodes. C. Baier et al. introduce \emph{constraint automata} and propose them as an operational model for component connectors in Reo \cite{baier_ca}. Concerns of equivalence or containment checks and verification are addressed in this paper as well as in \cite{Pourvatan}.
+
+
+    \section{\ak\ Approach to Streaming Networks}
+The \ak\ computation model is based on Kahn's model of process networks. Program in Atra\emph{Kahn} is represented as a directed graph of computational processes connected with edges that are stream-carrying channels.
+
+% Relation to KPNs
+What properties of KPNs do \ak\ inherit? What are the differences?
+
+
+The semantics of AstraKahn on the TPL is described in terms of structures put in place for the coordinator, i.e. a controlling agent, or indeed a group of agents, responsible for progress and communication of the KPN vertices. The vertices are connected by stream-carrying channels using wiring patterns.
+
+
+Though \ak\ preserves certain properties of KPNs, it provides the following refinements:
+\begin{description}
+\item[complete separation of coordination logic from computations]
+
+This refinement leaves computational components stateless and opens opportunities for easier parallelisation. Coordination logic is expressed in special vertices called \emph{synchronisers}. \emph{Synchronisers} are programmed in dedicated programming language;
+\item[self-regulatory concurrency mechanism] based on the concept of communication pressure. The mechanism address the issue of application progress under the interpretation when resources are limited. Behavioural classification of computational components is provided along with this mechanism;
+\item[separation into independent layers communicating by means of interfaces]
+
+This refinement addresses standard engineering issues such as abstraction, encapsulation and hierarchical development.
+\end{description}
+
+As the result of refinement, \ak\ is seen as a construction of three independent layers:
+\begin{itemize}
+\item Topology and Progress Layer (TPL) defines the topology and provides concurrency regulatory mechanism.
+The TPL defines:
+1. classes of boxes, their algebraic properties, their effects on channel segmentation and the behaviour under both types of pressure.
+2. classes of channels with respect to pressure conductance 3. the language for synchronisers, including:
+• the structure of the state, the specification of the state transitions and the associated storage/retrieval behaviour
+• pressure creation and conductance • nondeterminism and fairness policies
+4. the static wiring patterns 4
+5. subnetwork encapsulation facility
+
+\item Constraint Aggregation Layer (CAL) insures type safety all over network with data constraints provided by each component
+
+\item Data Instrumentation Layer (DIL) manages data distribution and concurrent memory access.
+\end{itemize}
+
+
+
+\paragraph{Boxes}
+Boxes are stateless functions that read messages from one (or in some cases two) input channels. Boxes read an input message, do some computation and send messages to output channels.
+
+It should be noted that all vertices are pure stream- to-stream prefix-monotonic functions that map the totality of their input streams to the totality of their output streams.
+
+boxes are specified in a
+box programming language and are subject to a box contract. The contract sets out acceptable behaviour for a box and is partly cooperative (i.e. cannot be inforced, but any guarantees that AstraKahn makes are subject to the fulfilment of the contract on behalf of all the boxes) and partly enforceable. AstraKahn accepts any box programming language that enables the programmer to fulfil the contract. The interface between a box and the AstraKahn run-time system for any valid implementation is defined by the AstraKahn Box-API for each supported box language.
+
+
+
+\paragraph{Synchronisers}
+Synchronisers are vertices that can have any number of input channels. Synchronisers have an internal state and generally accept messages from each input channel in some states, while in any of the other states the channel is blocked until a state transition brings the synchroniser to a state in which messages from the channel are accepted, thus unblocking it. Synchronisers are able to store received messages and retrieve them for the sole purpose of sending them on, either as they are, or combined with other stored or received messages and with trivial message extensions computed by the synch itself. The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one. In other words, a synchroniser is a finite state machine for joining messages and sending them on to its output channels.
+
+
+\paragraph{Channels}
+Bracketing depth of channels
+
+Boxes and synchronisers are connected by segmented channels. A channel carries a stream that
+consists of messages and possibly segmentation marks. The latter can be thought of as “brackets”. The intention of the brackets is to mark the beginning and the end of a sequence.
+
+Sequences may in turn consist of sequences in their own right, hence a channel can have a bracketing depth (or depth for short) greater than one. However, each message on a given channel will under all circumstances find itself between the same number of brackets, hence the depth is static, and is a characteristic of a channel available from the TPL.
+
+
+\paragraph{Network Composition}
+% TODO 4 or 5 wiring patterns?
+
+Wiring patterns form a small set: only 5 in total, describing connections between
+nodes in a hierarchical way. A pattern is applied to its operand networks, either vertices or groups of nodes already wired up with some wiring patterns. The pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result. Four out of five patterns are finite, applicable to one or two operands. The fifth one is infinite as it infinitely replicates the single operand network and wires up an infinite chain. That last pattern can also be dynamic, in the sense that the wiring takes place step-by-step at run time, which is the most complex topological and regulatory behaviour available in TPL.
+
+AstraKahn provides a small set of wiring patterns which is sufficient to achieve arbitrary wiring of the vertices.
+- The serial connection
+- The parallel connection
+- The wrap-around connection
+
+- Infinite star combinator
+
+
+The construction of networks in AstraKahn is hierarchical: vertices are combined into a subnetwork, which in turn can act as a vertex in a larger network, etc.
+
+
+\paragraph{The type system of \ak\ }
+
+the role of the CAL in AstraKahn is similar to the role
+of the type system in a conventional (non-coordination) programming language. The CAL is, in a way, a universal type system in the sense that it does not fix the structure and meaning of the type assertions that boxes may choose to import and export. It instead provides a constraint programming framework in which a wide variety of assertions can be formulated. It relies on general-purpose constraint solving as a means of type checking, type inference and most general subtyping.
+
+In data communication the static correctness of the channel demands that the statically guaranteed properties of an output message be sufficient to satisfy the static requirements of its recipients.
+a vertex is both an originator of its output messages and the recipient of the input ones, and since the input constraints are the necessary condition for the vertex to operate correctly and hence to guarantee the output properties, the vertex can be abstracted with
+respect to its data-transformation behaviour as an implicative statement p ⇒ P. Here p is the conjunction of all the requirements and P is the conjunction of all the guarantees. We will call these implications box passports.
+
+A box is represented as a combination of a source code and a triad of the box name, box category and CAL passport. An AstraKahn compiler performs its first (Constraint Aggregation or CA) pass by only taking the above-mentioned triad and the coordination program written in AstraKahn/TPL. During the CA pass, the topology of the network is extracted from the AstraKahn program, the properties of the synchronisers with respect to input terms (i.e. their “passports” if they had one) are inferred from each synchroniser program, and the process of juxtaposition and constraint solving is performed to instantiate all term variables. As a side effect, a proof is obtained that the constraint system is satisfiable, which indicates that all components have received sufficient assurances to guarantee their output, and consequently the whole program that will be generated next is consistent and type correct.
+
+CAL is based on the Message Definition Language (MDL) which is a language of abstract terms that are built recursively from the ground up. Structurally they are symbolic trees with the following kinds of leaf:
+-symbol
+-number
+-string
+-variable
+-flag
+
+Terms are built recursively using the following types of constructors:
+-tuple
+-list
+-record
+-choice
+-switch
+
+
+Data on streams in \ak\ are organised as choices of records.
+
+
+%Optionally: synchronisers can be used for monitoring of network
+
+
+\chapter{Related Work}
+Approaches to synchronisation.
+Synchronisation facilities in coordination languages.

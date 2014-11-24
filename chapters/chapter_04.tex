@@ -1,13 +1,161 @@
-\chapter{The \ak\ compiler}
+% TODO change this uglyness
+\chapter{Synchronisers in the FPS resolution}
 
-Implementation of the \ak\ compiler:
+In this chapter we discuss the role of synchronisers in wiring patterns based on a replicated operand network.
+
+
+    \section{Introduction}
+The replication operand creates conceptually infinite number of copies of its component, which may be either a box or a net, and connects them in series. Replication is demand-driven, hence replicas are created dynamically in runtime and do not necessarily require significant resouces since \ak\ boxes are stateless and synchronisers require no resouces in their start state. Later on we call these replicas inactive. A replica is inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running. Indeed the cost of replication is only felt when the replicas are active, which is the case when the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
+
+The replication combinators in S-Net require a specification of termination pattern. The termination mechanism in S-Net is based on the record subtyping provided by the S-Net type system. Processing of a record in the replication pipeline terminates when the record is a subtype of the specified pattern and then the record leaves the pipeline through the output stream. \ak\ attempts to provide a termination mechanism that does not require to explicitly specify termination rules in the \ak\ application code. This mechanism is based on the concept of a fixed point. In mathematics, a fixed point of a function is an element of the function's domain that is mapped to itself by the function. Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net. In the following sections we will discuss this approach and present the fixpoint resolution algoritm. With the reference to fixpoint utilisation we will call the \ak\ replication operand the fixed point series (FPS).
+
+Strictly the FPS is not a connection since it does not simply wire the replicas of its component. It also creates a set of output channels and in some cases augments the replicas with some auxiliary vertices. However, in the main it wires the replicas in a serian fashion. We will consequently call the FPS a connection. In section (TODO: put the section ref) we will clarify how the FPS is wired to the rest of network and how the output of the FPS is produced.
+
+
+    \section{Forward Fixed Point Series}
+In this section we provide the original approach to the forward fixed point.
+
+Consider a vertex v that has an input and an output channel, both named x.
+
+% The original approach to forward fix point in Ak.
+Definition. The vertex $v$ is said to have a forward fixed point in $x$ if and only if the following requirements are satisfied:
+
 \begin{enumerate}
-  \item A convinient netlist-like structure to run the CAL solver on two adjacent vertices
-  \item Forward fix-point analisys of stars
+\item There exists a condition $p(m)$ on the content of the message $m$ received by the vertex on the input channel $x$ under which it follows a unique non-branching path to the output channel $x$ without traversing any boxes.
+
+\item The path can traverse synchronisers, but then whenever $p(m)$ is true and the synchroniser is in the start state, it must accept $m$ and transition back to the start state while sending the message $m$ on the path unchanged and without producing any other output.
+
+Why does it consider only the start state? Why can't it be a closed subset of states in a general case?
 \end{enumerate}
 
 
-  \section{The net environment}
-  \section{Vertex passport}
-  \section{Checking passports over program network}
-  \section{Implementation of the compiler}
+The condition $p$ may not be unique for each vertex, and when it is not, a disjunction of all such conditions is called the fixed-point condition of the vertex on channel $x$. The condition can also be a tautology, in which case the forward fixed point is called unconditional.
+
+
+When we have several synchronisers on the path, fixed-point condition is a conjunction of their $p(m)$ conditions.
+
+
+
+
+Forward fix point puts some requirements on the message value and not its type.
+Forward fix point checker checks if a message satisfies a set of requirements to be a fix point.
+
+Forward fix point checker is a code generated from the synchronisers source code. It utilises message api like fuction that tells that a message has variant $v$ etc.
+
+
+    \subsection{Output from the Forward FPS}
+In this section we clarify how the output of an FPS is produced.
+
+We denote the FPS connection as $A* = A' \: .. \: A' \: .. \: A' \: .. \: \dots$ where $A'$ is the network that contains $A$ and provides additional wiring to ensure that all output channels of $A'$ match its input channels bijectively.
+
+% Forward fix point only!
+The FPS connection $A*$ defines the output channel set $N_{out}$ as follows:
+
+$N_{out} = { c | c \in O \land fp(c) }$
+
+where $O$ is the output channel set of $A$ and the predicate $fp(c)$ is true on any channel $c$ that has a forward fixed point.
+
+
+An FPS is a form of replication wiring whereby an infinite chain of replicas is created, connected
+in series. The connection is denoted as A* for any operand network A and can be thought of as the equivalent of
+$A^* = A'..A'..A'.. \dots$
+where $A'$, called the streamlining of the vertex A, is a network that contains A and provides some additional wiring to ensure that each output channel of A? matches an input channel and vice versa. We will dwell on the streamlining procedure a little further down, and at this point only remark that if all output channels of A match its input channels bijectively, A' = A.
+
+%How the output is produced from FPS
+
+
+
+TODO!! Explain that synchroniser analysis is relevant to fix-point resolution
+
+    \subsection{Discussion}
+When the vertex $x$ has a complex structure and there are several synchronisers on the fix-point path, it may be hard to see what is the fix point condition (because you need to aggregate all the fix-point conditions on the message for each synchroniser on the path). The programmer needs to fund the fix point path in the network topology, then to read the codes of all the synchronisers, the to aggregate their fix-point conditions in order just to find out the fix-point condition. This approach for the forward fix point makes debugging too complicated. Moreover, definintion of the fix point condition in synchronisers adds an extra edge to every synchroniser on the path. And it creates dificulties for the synchroniser analysis that make it conservative. I.e. in some cases when the fix point exists the compiler may miss it.
+
+(TODO: For which wiring pattern does S-net have fix points???)
+
+The idea behind putting the fix-point condition outside of boxes to synchronisers comes from the original idea for S-net. In S-net the idea was to resolve fix-point by the type system means: when all the fields in the record are flow-inherited then the fix-point is reached and the message can be outputted. TODO Explain why it was changed in S-net!! However, the final decision for fix-point resolution was made on the side of simplicity (????) TODO What is the solution in S-net??
+In S-Net program when the programmer uses the star, they have to put the values for integer fields in message that control the fix point. The values of these fields are checked after iteration and when they are equal to the user's input, the fix point is reached.
+
+So we propose the simple approach similar to S-net. The fix-point condition on the message is now checked in the box code. The box has a special channel that is connected to the output channel of the star. The fix-point message is sent straitaway from the box when it found out the the message satisfied the condition and no iteration are needed anymore. Now the \ak\ compiler can check the fix-point out of the network topology because there's a channel connected to the box that.
+
+
+    \subsection{A new approach to forward fix point}
+% A net in wrapped in a Star combinator
+%  __                               __
+% |       _____________________       | *
+% |      |    __      __       |      |
+% |     _|  /|__|----|__|-\    |_     |
+% |  a |_|-|      __      |----|_| a  |
+% |      |  \----|__|-----/    |      |
+% |     _|                |    |_     |
+% |  b |_|----------------*----|_| b  |  - fix point channel b (goes straight throuhg the net)
+% |      |              merger |      |
+% |      |_____________________|      |
+% |__                               __|
+%
+% Find what outputs to the fixpoint channel
+
+    \subsection{Forward fixed point detection}
+The new approach to forward fixed point makes the detection trivial. The fixed point detection does not require sycnhroniser analysis anymore. The fixed point is detected right from the network topology.
+%% Provide detection algorithm
+
+
+    \section{Reverse Fixed Point Series}
+%%%%%%%%%
+%%  Motivation for the reverse fixpoint
+%%%%%%%%%
+The reverse fix-point is defined to unify backslash \ combinatior and the star in terms of their functionality, which was never done in S-Net(TODO which patterns??). The intention is that they only differ in the pressure propagation strategy. The backslash creates no pressure (TODO why??) in its looped channel, and the start mantains and propagates the pressure in channels between instanses.
+
+% probably a picture
+%
+% backslash (* is the synchroniser)
+%      _________
+%    \|/ _____  |
+% ____*_|     |_|
+%       |_____|
+%
+%
+% Star with the reverse fix point
+%        __________________
+%      _|___________       |
+%    _|______       |      |
+%   |    __ \|/ __ \|/ __ \|/ __
+% --*---|__|-*-|__|-*-|__|-*-|__|-- ...
+%
+
+The reverse fix point is more the way to write code. It is the way to program a loop dependency, when the result of the iteration depends not only on the result of the previous iteration but on the new incoming data. The difference with backslash is in the pressure propagation.
+
+If you want the feature, you must define a closed set of translating states in every synchroniser on the fp path.
+
+
+%%%%%%%%%%%%
+Definition. The vertex v is said to have a reverse fixed point in x if and only if the following statements hold:
+
+\begin{enumerate}
+\item A unique non-branching path from the input to the output channel $x$ exists that does not traverse any boxes.
+
+\item Every synchroniser $S_i$ on the path has a subset of states, which we denote as $s_i$, such that in each of these states every message on the path is immediately transferred without being changed or even stored, causing the synchroniser to remain in the same state. In a state from $s_i$ the synchroniser $S_i$ may still be sensitive to other input channels, as long as this does not, under any circumstances, cause a transition to a state outside $s_i$.
+\end{enumerate}
+
+It should also be borne in mind that the values of any state variables form a part of the synchroniser state.
+The vertex $v$ is said to be in a reverse fixed point state on channel $x$ when each $S_i$ is in a state that belongs to its $s_i$.
+
+
+    \subsection{Reverse Fixed Point Detection}
+%%% Synch state conditions for the reverse fixpoint state
+A message is not changed by the synchroniser in some state when:
+- message is sent out by the synchroniser without any changes and storing in any transition including user-specified $else$ ($this$)
+
+A message sent in autogenerated $else$ transition is disregarded by the synchroniser.
+
+If a message is sent out in a user-defined $else$ then we have to make sure that the message get to this $else$. Before $else$ the channel may be tested for variants and segmantation marks, so we have to make sure that the message doesn't contain these variants/not a segmentation mark whatever.
+%%%%%%
+
+
+Choose any convenient structure for nets to resolve fix points. It may be a kind of graph that traversing it it's easy to find paths that only consist of synchronisers.
+It could be a hypergraph (each vertex may have several inputs and several outputs) with type vertices (something that indicates whether vertex is a synchroniser or a box)
+
+This chosen structure can be build in the net parser of from the net compiler internal data structure.
+
+Then we need to represent a set of possible paths in this hypergraph that only contain synchronisers. And a traversal of the hypergraph to find all these paths.
+
+Then we analyse every synchroniser in each path for the satisfiability of fix point conditions.

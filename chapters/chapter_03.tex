@@ -178,6 +178,9 @@ The states and the transition probability matrix $P$. The transition probabiliti
   \subsection{Structure of a chain}
 \textbf{States} States of a chain describe all the possible states of input channels. By a state of a channel at time $t$ we assume the number of messages stored in it at time $t$. If a synchroniser has $A^1, \; A^2, \; \cdots A^m$ input channels, then the states of a corresponding chain are $A^1_{l_1} A^2_{l_2} \cdots A^m_{l_m}$, where $l_i, \; i=1,m$ is the number of messages in the channel $A^i$ at any time $t$.
 
+    Provide a sketch of the algorithm to find the states. The algorithm is recursive. We have the reduced set of events that corresponds to time $t$ we chose. Then we put each event of the set to the synchroniser and record the state of queues. We run this procedure for each new state we get until we get a new state. This algoritm stops because the queues, the set of events and the set of states of he synchroniser are all finite.
+
+
 \textbf{Transitions}
 A transition is any tuple of messages we may get in the channels during time $t$. Defining a transition like this we state that any state is reachable from any state with just one step (need a proof?).
 However, making a transition $(a^1,a^1)$ from the state $A^1_{l_1=1} A^2_{l_2}$ in the system where $|A^1|=2$ produces a lost message on the channel $A^1$. To consider lost messages we modify the state adding the number of lost messages to it: $A^1_{l_1} L^1_{k_1} A^2_{l_2} L^2_{k_2}$.
@@ -199,7 +202,11 @@ Let $L_i, \; i=1,m$ be the length of the channel $A^i$. Obviously, $l_i <= L_i, 
 Describe what are the states of the chain ($A_{i} B_{j} L_{k}$). How the number of states depends on the length of the channels. Why number of states is unlimited (because of $L_{k}$).
 
 Example: zip2
-  \subsection{Simplification}
+  \subsection{Approximation}
+Markov chains only can be used when the arrival process is memoryless (a Markov process). In our system the arrival processes are not Markov, however we can try to approximate the model with the Markov model of higher order.
+
+Why can we assume that the arrival processes are independent? They all come from the same source.
+
 -discrete time
 -events in channels
 

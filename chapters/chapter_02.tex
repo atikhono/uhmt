@@ -1,9 +1,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                          CHAPTER 2                         %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\chapter{The synchroniser compiler}
-  \section{Mathematical Model}
-Synchroniser $S = (\Phi, \; \Pi)$, where
+\chapter{\ak\ Synchroniser}
+A synchroniser is a vertex that produces output messages based on a potentially unlimited history of input messages read from its input channels. In order to do this, a synchroniser maintains an internal state and makes state transitions. The states and transitions between them define which channels are read and in what order depending on the channel status (available, not available) and optionally the content of the messages. Messages received in various states can be stored in the synchronisation storage with the single purpose to retrieve them in another state and to use them in output messages.
+
+    \section{Mathematical Model}
+From the mathematical point of view a synchroniser is a pair $(\Phi, \; \Pi)$, where
   \begin{itemize}
   \item[] $\Phi = (A, \; S, \; T)$ -- nondeterministic state machine:
     \begin{itemize}
@@ -144,7 +146,14 @@ $\Pi \; (s_{2}, c) = \psi_{\sqcap} \; \{\mu_{0} = b \: | \: \rho_{20}^{c} \; (s_
   \end{enumerate}
 
 
-\section{Synchroniser code}
+\section{The language for \ak\ synchroniser}
+We develop the language according to chosen message protocol. The protocol restricts anything but a $choice$ termed message trevelling in channels. This the syntax $on a.(x,y, ...)$ is not needed with this protocol. We may include this syntax as a syntax sugar for $uniq$ when choice has just one alternative. Originally this syntax was intended for records in channels. However, the chosen protocal doesn't allow it. For example if we want to extend the protocol for lists to travel in channels, we need to define the union of lists, possibly as a construct with 2 nested lists $(union l_1 l_2)$ and we need to extend the protocol to encode this construct. For record and choice union is easy to define. If no labels in $t_1$ and $t_2$ intersect then the resulting record of choice has all the labels from $t_1$ and $t_2$ with their values: $t = union \; t_1 \: t_2 = union \; {a:t_a} \: {b:t_b} = {a:t_a, \: b:t_b}$. When labels intersect, it is the deal for CAL solver to resolve with option to take (it should consider flow inheritance). The synchroniser just leaves it to be a union of terms:
+
+For example for Choice: $union \; (: \: a:t_a \: :) \: (: \: a:t_b \: :) = (: \: a:union \: t_a, \: t_b \: :)$.
+Same for record.
+
+
+\subsection{Synchroniser code}
 %% TODO fix 'channel connected to the port x' to channel x
 %% Insert a footer that explains that 'channel x' is short for 'channel connected to the port x'
 An \ak\ synchroniser is a finite state machine, therefore the basic building blocks of a synchroniser program are states and transitions. A state of a synchroniser is fully defined by the corresponding state of the finite state machine and the values of the state variables. A transition is the act of moving to another state which is initiated by a triggering event. A triggering event for the synchroniser transition is an arrival of a message to the associated channel. The message may be required to have a specific structure. In addition, a transition may be guarded by special conditions on the values of the state variables. If the conditions are satisfied the transition fires, otherwise it is cancelled.
@@ -153,7 +162,7 @@ Once a transition is known to fire, optional actions may be performed before the
 
 This section gives an overview of the \ak\ synchroniser programming language. The formal grammar of the \ak\ synchroniser is provided in Appendix \ref{sync_syntax}.
 
-  \subsection{Program structure}
+  \subsubsection{Program structure}
 A synchroniser program consists of a header followed by the synchroniser's body wrapped in braces. The begining of a synchroniser program is indicated by the keyword $synch$.
 
 The header of a synchroniser program contains the synchroniser's name and the channel signature. The name is an ASCII string that follows the C convention.
@@ -166,7 +175,7 @@ The body of the synchroniser lists the state and store variables declarations an
 %%%
 %The synchroniser language provides macros to avoid having to trivially alter synchroniser programs. Macros are specified in brackets between the synchroniser's name and its channel signature. An example of a configurable synchroniser can be found in \cite{astrakahn}.
 
-  \subsection{Channel signature}
+  \subsubsection{Channel signature}
 The channel signature defines the input channels and the output channels of the synchroniser and their bracketing depths. The synchroniser header (Fig. \ref{min_sync_head}) declares the synchroniser $min$ with two input channels that are connected to the ports $a$, $b$ and two output channels that are connected to the ports $c$, $d$. If the bracketing depths of the channels are not specified, they are assumed to be 0. Thus, the bracketing depth of the channel $a$ is 0.
 
 The input channel depth $-1$ indicates that the input channel is ignored in the synchroniser program. The output channel with the depth $-1$ must not have data sent to them.
@@ -190,7 +199,7 @@ The output channels of a synchroniser are guaranteed to have the bracketing dept
 
 %% TODO Move all the type details to the implementation details
 %% TODO The width of int type is declared explicitly to reduce the number of potential states of automata.
-  \subsection{Variable declaration}
+  \subsubsection{Variable declaration}
 %% Add about state and store variables initialisation.
 %% state int(8) a, b=1, c=8; // assignes a=0 b=1 c=9
 %% enum (a,b,c) foo, bar=a;  // assignes foo=0 bar=a
@@ -220,7 +229,7 @@ Store variables declaration begins with a keyword $store$. Line 4 in Fig. \ref{s
 All the state and store variables are global to all the synchroniser states.
 
 
-  \subsection{States and transitions}
+  \subsubsection{States and transitions}
 States and transitions of the synchroniser define which channels are read and in what order. Fig. \ref{zip_struc} presents the code of the binary zip synchroniser's state machine. Line 1 declares the start state of the synchroniser. The $on$ clause indicates the beginning of the transitions list. In the start state the zip2 synchroniser acceptes messages from both input channels $a$ and $b$. State and store expressions associated with the transition and the destination state are specified in the braces.
 
 \begin{figure}[h!]
@@ -267,7 +276,7 @@ foo {
 \end{figure}
 
 
-  \subsection{State expressions}
+  \subsubsection{State expressions}
 State expression is a combination of integer constants, state variables and operators, which computes and produces an integer value. The interpretation of a state expression follows C rules of precedence and association. State expressions can be assigned to state variables. In assumption that the output channel is infinite a synthetic example in Fig. \ref{sync_state_exp} counts the number of messages received from channel connected to the port $a$ between the arrivals of messages in channel connected to the port $b$. Line 1 declares the 8-bit integer $count$ and initialises it with 0. When a message from channel connected to the port $a$ is received the value of $count$ increases by 1 (line 5).
 
 \begin{figure}[h!]
@@ -295,11 +304,12 @@ When a message from channel connected to the port $b$ is received the value of $
 The variable $n$ does not have to be declared and is considered alias for the integer expression. Temporary variables are available until the state machine of a synchroniser makes the next move.
 
 
-  \subsection{Triggering of a transition}
+  \subsubsection{Triggering of a transition}
 The channel name on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available. Whether a transition takes place depends on the channel status and optionally the content of the messages.
 
 When a message is received on a channel, it can be matched with a pattern in order to extract parameters needed to select a specific transition. Line 3 of Fig. \ref{sync_trans} checks if a message received from the input channel connected to the port $a$ contains label $x$. If it does, the contents of $x$ are stored in a temporary variable $x$. The tail of the message, i.e. everything but the part labeled $x$, is stored in a temporary variable $t$. Both $x$ and $t$ are read-only and available until the state machine makes a move.
 
+TODO: Fix; everything in $.?v(.... \|\| tail)$ before $\|\|$ are integers.
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
 \begin{lstlisting}[frame=single]
@@ -344,7 +354,7 @@ start {
 \end{figure}
 
 
-  \subsection{Store expressions and sending messages}
+  \subsubsection{Store expressions and sending messages}
 %% TODO Probably fix it after writing about CAL terms.
 Store expression is a mechanism to combine data. Data are typed in \ak\. Types are CAL terms. Store expression concatenates data in the user-defined order and therefore results in the data of a valid CAL type. The result of the store expression can be either stored in a store variable or sent down the output channel.
 
@@ -377,35 +387,26 @@ s1 {
 A message received on a channel is referred to by the keyword $this$ within the active transition. In state $s1$ the synchroniser receives messages from channel connected to the port $b$. When a message is received, it is concatenated with the store variable $ma$ (line 12) and sent to the output channel connected to the port $c$.
 
 
-%% TODO Probably move to implementation details
-  \subsection{Keywords, reserved words and punctuation}
-The keywords, the reserved words and the punctuation used in the \ak\ synchroniser sytax are shown in Fig. \ref{sync_kw}.
-\begin{figure}[h!]
-\centering
-\begin{tabular}{|c|p{0.7\textwidth}|}
-\hline
-Keywords & synch, store, state, int, enum, start, on, elseon, else, do, send, goto\\
-\hline
-Reserved words & nil, this\\
-\hline
-Punctuation & braces, brackets, parantheses, the comma, the dot, the semicolon, the plus sign, the minus sign, the ampersand, the at sign, the question mark, the bar-bar sign, the equality sign, the arrow\\
-\hline
-\end{tabular}
-\caption{\ak\ synchroniser keywords, reserved words and punctiation}
-\label{sync_kw}
-\end{figure}
- 
+
 
 \section{Execution order of synchroniser\label{execod}}
 \begin{itemize}
 \item Fairness policy
-\item on-elseon execution order, dead $elseon$ code with <chan>$.else$
+In a certain state both input channels may be ready, but a state machine receives input symbols one at a time. Which transition will be triggered under such circumstances is defined by the fairness policy: the coordinator will ensure that when more than one transition is possible in a given state, all choices will be made with the same frequency.
+
 \item Non-deterministic $goto$
+
+The purpose of non-deterministic gotos comes from the requirement that the synchroniser must not block the execution. If non-deterministic goto is the case then the synchroniser makes a fair transition to the state that sends messages to the channel that is not blocked.
+
+In other words, the synchoniser avoids to make transitions to the states that send messages to blocked channels.
+
+
 \item Algorithm of the execution of synchronisers
+on-elseon execution order, dead $elseon$ code with $\langle chan \rangle .else$
 \end{itemize}
 
 
-\section{The implementation of the compiler}
+\section{The implementation of the $aksync$ compiler}
 The implementation of the compiler is written in Python (TODO: cite a cookbook), with code generation to an intermediate representation that is used by the \ak\ runtime system.
 
 \subsection{Lexical analysis}
@@ -417,14 +418,18 @@ The implementation of the compiler is written in Python (TODO: cite a cookbook),
 %The synchroniser language provides macros to avoid having to trivially alter synchroniser programs. Macros are specified in brackets between the synchroniser's name and its channel signature. An example of a configurable synchroniser can be found in \cite{astrakahn}.
 Preprocessor performs (a C-like) macro expansion. There's no preprocessor directives in the synchroniser language (like \#define in C). Preprocessor commands are passed to it as a part of the compiler invocation command (a special flag like -Dday=night in C).
 
+With the preprocessor we implement configuration paramenters from the original synchroniser language. Explain why they were removed. Explain what is bad about macros (can substitute anything, even a piece of code).
 
 \subsection{Syntax analysis}
   \paragraph{Syntax alanyser} PLY. Syntax-directed translation. A translation scheme embeds program fragments called semantic actions in production bodies (TODO Dragon book, p.107)
 
+Error handling in PLY.
+
+
   \paragraph{Abstract syntax tree} The result of syntax analysis is a representation of the source program called intermediate code. We use abstract syntax tree in the implementation.
 
 TODO: structure of the AST.
-AST generator by Eli with the reference.
+AST generator by Eli Bendersky with the reference.
 
   \paragraph{Symbol table}
 Symbol tables are data structures used by compilers to hold information about identifiers in a program's source code. The information is collected incrementally by the analysis phases of a compiler. Entries in the symbol table contain identifier's type, scope level, location and any other relevant information.
@@ -441,6 +446,73 @@ The symbol table contains types and (possibly) locations. Builing of a symbol ta
 
   \paragraph{Syntax-driven type inference?}
 Special language constructs simplify type inference (probably it's not a good word here).
+
+$x$ and $y$ are assigned a special type None.
+\begin{figure}[h!]
+\begin{lstlisting}
+// typeof(x) = None means a term variable
+a.?v(x, y || t) {
+  // typeof(x) = None
+  // typeof(y) = None
+  // typeof(this) = DataTyp(h={'x': typeof(x), 'y': typeof(y)}, t='t')
+  // typeof(a) = DataTyp(h={'v': typeof(this)}, t='a_tail')
+
+  set n = [x+1], ma = (this || id:y);
+  // typeof(x) = IntTyp(None)
+  // typeof(n) = IntTyp(None)
+  // typeof(ma) = DataTyp(h=typeof(this).h+{'id': typeof(y)}, t='t')
+
+  send (ma || 'n':n) => c;
+  // typeof(c) = DataTyp(h=typeof(ma).h+{'n': typeof(n)}, t='t')
+}
+
+a.?v(x, y || t) {
+  // typeof(x) = None
+  // typeof(y) = None
+  // typeof(this) = DataTyp(h={'x': typeof(x), 'y': typeof(y)}, t='t')
+??  // typeof(a) = DataTyp(h={'v': typeof(this)}, t='a_tail')
+
+  set ma = (this || y);
+  // typeof(n) = IntTyp(None)
+  // typeof(ma) = DataTyp(h=typeof(this).h+typeof(y).h, t=tailof(this))
+
+  send ?v(ma) => c;
+  // typeof(c) = DataTyp(h={'v':typeof(ma)}, t=None)
+}
+
+
+
+
+// Remove variant 'v'?
+a.?v(x, y || t) {
+// typeof(x) = None
+// typeof(y) = None
+// typeof(this) = DataTyp(h={'x': typeof(x), 'y': typeof(y)}, v='v', t='t')
+// typeof(a) = DataTyp(h={'v': typeof(this)}, v=None, t='tail')
+
+set n = [x];
+// typeof(x) = IntTyp(width=None)
+
+set m = this || x || 'y || id:z
+// typeof(x) = DataTyp(h={'x': None}, v=None, t=None)
+// typeof(y), typeof(z) not influenced
+// typeof(m) = DataTyp(h=typeof(this).h + {'x': None} + {'y': typeof(y)} + {'id': typeof(z)}, v=None, t=tailof(this))
+
+send this || x || 'y || id:z => c
+// typeof(x) = DataTyp(h={'x': None}, v=None, t=None)
+// typeof(y), typeof(z) not influenced
+// typeof(c) = DataTyp(h=typeof(this).h + typeof(x).h + {'y': typeof(y)} + {'id': typeof(z)}, v=None, t=tailof(this))
+
+send ?v(this || x || 'y || id:z) => c
+// typeof(c) = DataTyp(h={'v': typeof(this || x || 'y || id:z)}, v='v', t=None)
+
+\end{lstlisting}
+\label{aa}
+\end{figure}
+
+If $x$ or $y$ are used in a state expression, their type is assigned to Int.
+
+
 A state expression is specified in brackets. Everything in state expression is integer.
 If an assignment is being parsed and no brackets were specified in assignment expression, then it is a store expression.
 
@@ -455,6 +527,10 @@ Reserved words $nil$ and $this$ can't be identifiers
 
 If an identifier was met and it is already in the current scope of symbol table, it must have the same type (int or data) as before.
 \end{itemize}
+
+    \paragraph{Tests}
+Uses standard python unittest module.
+Expands AST into nested list.
 
 \subsection{Semantic analysis}
   \paragraph{Semantic analyser}
@@ -471,9 +547,11 @@ Architecture of the analyser. Pattern visitor?
   \end{itemize}
 The special depth $-1$ indicated that the channel is not used. Therefore, if it is an input channel, all the transitions reading from it can be removed. If it is an output channel, and the transition that sends to this channel is valid, then an error must occur.
 
-Visitor for ports that returns their depths which are IDs.
+!!Probably avoid writing a visitor!! Visitor for ports that returns their depths which are IDs.
 For the input and output channels sets that are returned by the visitor are equal.
 Do we really need visitor for it?
+
+Check that transitions in states are made on the specified in signature input channels and messages are sent on the specified output channels.
 
 \item State variables.
 State variables are in global scope.
@@ -536,8 +614,10 @@ If the right-hand side of an assignment is not in brackets, it is a store expres
   \paragraph{Dead code elimination}
 \begin{itemize}
 \item Remove unreachable states of an automaton (when there's no state variables involved).
+
 \item Remove unreachable transitions based on Section Execution order.
-\item Remove unused assignments (this may require some simple def-use analysis, probably can put it into symbol tables).
+
+\item Remove unused state, store variables and assignments (this may require some simple def-use analysis, probably can put it into symbol tables).
 \end{itemize}
 
 
@@ -548,3 +628,59 @@ Generator architecture - node visitor
 
   \paragraph{Synchroniser passport}
 A synchroniser can impose some restriction on the type of messages it accepts.
+In the implementation we consider that only choices travel between channels (it is unclear what is a unification of lists, how to order the elements in the resulting list).
+
+None indicates that it is a term variable.
+
+Input channels: Fig. \ref{a}.
+\begin{figure}[h!]
+\begin{lstlisting}
+//term: None (term variable), Int, Record, Choice
+a.(x,y||t) {
+  //x - is a value not a pair. In a store expression of in a send it must be 'x
+  //term(x) = None
+  //term(y) = None
+  //term(a) = { x:term(x), y:term(y) | $t }
+  //term(this) = term(a)
+
+  set n = [x];
+  //term(x) = Int
+  //term(a) = { x:term(x), y:term(y) | $t }
+}
+
+a.?v(x,y||t) {
+  //term(x) = None
+  //term(y) = None
+  //term(this) = { x:term(x), y:term(y) | $t }
+  //term(a) = (: v:term(this) | $a_t :)
+
+  set n = [x];
+  //term(x) = Int
+  //term(a) = (: v:{ x:term(x), y:term(y) | $t } | $a_t :)
+}
+\end{lstlisting}
+\label{a}
+\end{figure}
+
+Output channels: Fig. \ref{b}.
+\begin{figure}[h!]
+\begin{lstlisting}[frame=single]
+//record union with label 'x' collision: {x:type_1, y:...} + {x:type_2, z:...} = {x:type_2, y:..., z:...}
+//python's dict.update(...)
+a.(x,y||t) {
+  //term(x) = None
+  //term(y) = None
+  //term(this) = { x:term(x), y:term(y) | $t }
+  //term(a) = term(this)
+
+  set ma = (this || id:y);
+  //term(ma) = term(this) || id:term(y) =
+             = { x:term(x), y:term(y), id:term(y) | $t }
+
+  send ?v(ma || n:x) => c;
+  //term(c) = (: v:(term(ma) || n:x) | $c_t :) =
+            = (: v:{ x:term(x), y:term(y), id:{ y:term(x) }, n:term(x) | $t } | $c_t :)
+}
+\end{lstlisting}
+\label{b}
+\end{figure}
