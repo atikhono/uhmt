@@ -7,12 +7,20 @@ In this chapter we discuss the role of synchronisers in wiring patterns based on
     \section{Introduction}
 The replication operand creates conceptually infinite number of copies of its component, which may be either a box or a net, and connects them in series. Replication is demand-driven, hence replicas are created dynamically in runtime and do not necessarily require significant resouces since \ak\ boxes are stateless and synchronisers require no resouces in their start state. Later on we call these replicas inactive. A replica is inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running. Indeed the cost of replication is only felt when the replicas are active, which is the case when the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
 
-The replication combinators in S-Net require a specification of termination pattern. The termination mechanism in S-Net is based on the record subtyping provided by the S-Net type system. Processing of a record in the replication pipeline terminates when the record is a subtype of the specified pattern and then the record leaves the pipeline through the output stream. \ak\ attempts to provide a termination mechanism that does not require to explicitly specify termination rules in the \ak\ application code. This mechanism is based on the concept of a fixed point. In mathematics, a fixed point of a function is an element of the function's domain that is mapped to itself by the function. Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net. In the following sections we will discuss this approach and present the fixpoint resolution algoritm. With the reference to fixpoint utilisation we will call the \ak\ replication operand the fixed point series (FPS).
+The replication combinators in S-Net require a specification of termination pattern. The termination mechanism in S-Net is based on the record subtyping provided by the S-Net type system. Processing of a record in the replication pipeline terminates when the record is a subtype of the specified pattern and then the record leaves the pipeline through the output stream. \ak\ attempts to provide a termination mechanism that does not require to explicitly specify termination rules in the \ak\ application code. This mechanism is based on the concept of a fixed point. In mathematics, a fixed point of a function is an element of the function's domain that is mapped to itself by the function. Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net.
 
-Strictly the FPS is not a connection since it does not simply wire the replicas of its component. It also creates a set of output channels and in some cases augments the replicas with some auxiliary vertices. However, in the main it wires the replicas in a serian fashion. We will consequently call the FPS a connection. In section (TODO: put the section ref) we will clarify how the FPS is wired to the rest of network and how the output of the FPS is produced.
+\ak\ defines two types of a fixed point: a forward fixed point and a reverse fixed point. The intention of a forward fixed point is to cut infinite tail of inactive replicas chain. The reverse fixed point is an optimisation of an input connection that has to cascade through the chain to a replica that is ready to accept the data. Its intention is to bypass the replicas that transmit messages without change (TODO not good). Later we will see that a replica does not have to be inactive in order to that.
+
+%TODO!! Explain that synchroniser analysis is relevant to fix-point resolution
+In order to utilize the fixed point the \ak\ compiler must be able to detect it. Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or network topology of a net. It means that the net graph must have at least one path that goes exclusively via synchronisers (TODO fix) or straight through the net without traversing any box.
 
 
-    \section{Forward Fixed Point Series}
+With the reference to fixed point utilisation we will call the \ak\ replication operand the fixed point series (FPS). Strictly the FPS is not a connection since it does not simply wire the replicas of its component. It also creates a set of output channels and in some cases augments the replicas with some auxiliary vertices. However, in the main it wires the replicas in a serian fashion and we will consequently call the FPS a connection.
+
+The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{rfp} we introduce both types of fixed point. In section \ref{ffp_discussion} we argue the original forward fixed point approch and propose a new one. In sections \ref{ffp_detect} and \ref{rfp_detect} we provide detection algoritms for both types of fixed point.
+
+
+    \section{Forward Fixed Point Series\label{ffp}}
 In this section we provide the original approach to the forward fixed point.
 
 Consider a vertex v that has an input and an output channel, both named x.
@@ -43,8 +51,9 @@ Forward fix point checker checks if a message satisfies a set of requirements to
 Forward fix point checker is a code generated from the synchronisers source code. It utilises message api like fuction that tells that a message has variant $v$ etc.
 
 
+
     \subsection{Output from the Forward FPS}
-In this section we clarify how the output of an FPS is produced.
+In this section we will clarify how the FPS is wired to the rest of network and how the output of the FPS is produced.
 
 We denote the FPS connection as $A* = A' \: .. \: A' \: .. \: A' \: .. \: \dots$ where $A'$ is the network that contains $A$ and provides additional wiring to ensure that all output channels of $A'$ match its input channels bijectively.
 
@@ -64,10 +73,7 @@ where $A'$, called the streamlining of the vertex A, is a network that contains 
 %How the output is produced from FPS
 
 
-
-TODO!! Explain that synchroniser analysis is relevant to fix-point resolution
-
-    \subsection{Discussion}
+    \subsection{Discussion\label{ffp_discussion}}
 When the vertex $x$ has a complex structure and there are several synchronisers on the fix-point path, it may be hard to see what is the fix point condition (because you need to aggregate all the fix-point conditions on the message for each synchroniser on the path). The programmer needs to fund the fix point path in the network topology, then to read the codes of all the synchronisers, the to aggregate their fix-point conditions in order just to find out the fix-point condition. This approach for the forward fix point makes debugging too complicated. Moreover, definintion of the fix point condition in synchronisers adds an extra edge to every synchroniser on the path. And it creates dificulties for the synchroniser analysis that make it conservative. I.e. in some cases when the fix point exists the compiler may miss it.
 
 (TODO: For which wiring pattern does S-net have fix points???)
@@ -94,12 +100,12 @@ So we propose the simple approach similar to S-net. The fix-point condition on t
 %
 % Find what outputs to the fixpoint channel
 
-    \subsection{Forward fixed point detection}
+    \subsection{Forward fixed point detection\label{ffp_detect}}
 The new approach to forward fixed point makes the detection trivial. The fixed point detection does not require sycnhroniser analysis anymore. The fixed point is detected right from the network topology.
 %% Provide detection algorithm
 
 
-    \section{Reverse Fixed Point Series}
+    \section{Reverse Fixed Point Series\label{rfp}}
 %%%%%%%%%
 %%  Motivation for the reverse fixpoint
 %%%%%%%%%
@@ -140,7 +146,7 @@ It should also be borne in mind that the values of any state variables form a pa
 The vertex $v$ is said to be in a reverse fixed point state on channel $x$ when each $S_i$ is in a state that belongs to its $s_i$.
 
 
-    \subsection{Reverse Fixed Point Detection}
+    \subsection{Reverse Fixed Point Detection\label{rfp_detect}}
 %%% Synch state conditions for the reverse fixpoint state
 A message is not changed by the synchroniser in some state when:
 - message is sent out by the synchroniser without any changes and storing in any transition including user-specified $else$ ($this$)
