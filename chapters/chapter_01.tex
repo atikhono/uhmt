@@ -189,3 +189,15 @@ Data on streams in \ak\ are organised as choices of records.
 \chapter{Related Work}
 Approaches to synchronisation.
 Synchronisation facilities in coordination languages.
+
+Linda (which is the first coordination language) does not separate concepts of coordination and synchronisation. The synchronisation is specified right in the application code.
+MPI is (probably) quite the same.
+
+
+Which languages separate synchronisation from coordination?
+
+Reo: typed channels. A channel is a synchronisation primitive
+Channel are combined in complex connectors.
+Unlike S-Net or \ak\ Reo connectors never combine (or process) messages.
+
+S-Net: SISO, synchrocell
