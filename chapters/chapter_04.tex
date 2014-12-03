@@ -13,9 +13,17 @@ As the chain of replicas evolves, it may be the case that some replicas in the h
 The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{rfp} we explain why both cases are relevant to synchroniser analysis and give formal definitions. In section \ref{ffp_discussion} we discuss the original approach to the output of the infinite chain of replicas and in section (TODO) we propose a new one. In section \ref{fp_detect} we provide detection algoritms for both cases.
 
 
+    \section{Fixed Point}
+A replica is inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running. Indeed the cost of replication is only felt when the replicas are active, which is the case when the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
 
-%\ak\ defines two types of a fixed point: a forward fixed point and a reverse fixed point. The intention of a forward fixed point is to cut infinite tail of inactive replicas chain. The reverse fixed point is an optimisation of an input connection that has to cascade through the chain to a replica that is ready to accept the data. Its intention is to bypass the replicas that transmit messages without change (TODO not good). Later we will see that a replica does not have to be inactive in order to that.
+The replication combinators in S-Net require a specification of termination pattern. The termination mechanism in S-Net is based on the record subtyping provided by the S-Net type system. Processing of a record in the replication pipeline terminates when the record is a subtype of the specified pattern and then the record leaves the pipeline through the output stream. \ak\ attempts to provide a termination mechanism that does not require to explicitly specify termination rules in the \ak\ application code. This mechanism is based on the concept of a fixed point. In mathematics, a fixed point of a function is an element of the function's domain that is mapped to itself by the function. Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net.
 
+%TODO!! Explain that synchroniser analysis is relevant to fix-point resolution
+In order to utilize the fixed point the \ak\ compiler must be able to detect it. Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or the network topology of a net. It means that the net graph must have at least one path that goes exclusively via synchronisers (TODO fix) or straight through the net without traversing any box.
+
+\ak\ defines two types of a fixed point: a forward fixed point and a reverse fixed point. The intention of a forward fixed point is to cut infinite tail of inactive replicas chain. The reverse fixed point is an optimisation of an input connection that has to cascade through the chain to a replica that is ready to accept the data. Its intention is to bypass the replicas that transmit messages without change (TODO not good). Later we will see that a replica does not have to be inactive in order to that.
+
+With the reference to fixed point utilisation we will call the \ak\ replication operator the fixed point series (FPS).
 
 
 
@@ -23,69 +31,90 @@ The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{
 In this section we provide the original approach to the forward fixed point.
 
 
-Later on we call these replicas inactive. A replica is inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running. Indeed the cost of replication is only felt when the replicas are active, which is the case when the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
+Consider a vertex $v$ that has an input and an output channel, both named $x$.
 
-
-The replication combinators in S-Net require a specification of termination pattern. The termination mechanism in S-Net is based on the record subtyping provided by the S-Net type system. Processing of a record in the replication pipeline terminates when the record is a subtype of the specified pattern and then the record leaves the pipeline through the output stream. \ak\ attempts to provide a termination mechanism that does not require to explicitly specify termination rules in the \ak\ application code. This mechanism is based on the concept of a fixed point. In mathematics, a fixed point of a function is an element of the function's domain that is mapped to itself by the function. Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net.
-
-%TODO!! Explain that synchroniser analysis is relevant to fix-point resolution
-In order to utilize the fixed point the \ak\ compiler must be able to detect it. Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or the network topology of a net. %It means that the net graph must have at least one path that goes exclusively via synchronisers (TODO fix) or straight through the net without traversing any box.
-
-With the reference to fixed point utilisation we will call the \ak\ replication operator the fixed point series (FPS). Strictly the FPS is not a connection since it does not simply wire the replicas of its component. It also creates a set of output channels and in some cases augments the replicas with some auxiliary vertices. However, in the main it wires the replicas in a serian fashion and we will consequently call the FPS a connection.
-
-
-
-Consider a vertex v that has an input and an output channel, both named x.
-
-% The original approach to forward fix point in Ak.
-Definition. The vertex $v$ is said to have a forward fixed point in $x$ if and only if the following requirements are satisfied:
+\begin{definition}The vertex $v$ is said to have a forward fixed point in $x$ if and only if the following requirements are satisfied:
 
 \begin{enumerate}
 \item There exists a condition $p(m)$ on the content of the message $m$ received by the vertex on the input channel $x$ under which it follows a unique non-branching path to the output channel $x$ without traversing any boxes.
 
 \item The path can traverse synchronisers, but then whenever $p(m)$ is true and the synchroniser is in the start state, it must accept $m$ and transition back to the start state while sending the message $m$ on the path unchanged and without producing any other output.
 
-Why does it consider only the start state? Why can't it be a closed subset of states in a general case?
 \end{enumerate}
+\end{definition}
+
+% Give a definition for "edge that satisfies the fixed-point definition"
+The condition $p(m)$ may not be unique for each vertex, and when it is not, a disjunction of all such conditions is called the fixed-point condition of the vertex on channel $x$. The condition can also be a tautology, in which case the forward fixed point is called unconditional. When the path traverses several vertices, the fixed-point condition is a conjunction of their fixed-point conditions. If there are several paths in a net, the fixed-point condition of the net is a disjunction of the fixed-point conditions of those paths.
+
+% Draw a picture to explain conj and disj
+  \begin{figure}[h!]
+  \centering
+  \includegraphics{figs/chapter_04_ffp.pdf}
+  \caption{Forming of the forward fixed-point condition of a vertex.}
+  \label{fig:ffp}
+  \end{figure}
+
+A replicated vertex in Fig. \ref{fig:ffp} is a net that has two paths $[v_1, \: v_2, \: v_3]$ and $[v_4]$ that traverse only synchronisers. The synchroniser $v_4$ has two edges that loop around the start state and satisfy the fix-point definition (TODO fix; explain how). The firing conditions for those edges are $p^{1}_4(m)$ and $p^{1}_4(m)$. A message $m$ is a fixed-point when it satisties any of them, i.e. $p^{1}_4(m) \lor p^{1}_4(m)$. The synchronisers $v_1$, $v_2$ and $v_3$ have fixed-point conditions $p_1(m)$, $p_2(m)$ and $p_3(m)$ respectively, where $p_i(m) = p^{1}_i(m) \lor \dots p^{j}_i$, $i=1,3$ and $j$ is the number of edges that satisfy the fixed-point definition (TODO fix). Then the fixed-point condition for the path $[v_1, \: v_2, \: v_3]$ is $p_1(m) \land p_2(m) \land p_3(m)$. The net in Fig. \ref{ffp} has two paths that have fixed-points, therefore the fixed-point condition of the net is $p_1(m) \land p_2(m) \land p_3(m) \lor p^{1}_4(m) \lor p^{1}_4(m)$.
 
 
-The condition $p$ may not be unique for each vertex, and when it is not, a disjunction of all such conditions is called the fixed-point condition of the vertex on channel $x$. The condition can also be a tautology, in which case the forward fixed point is called unconditional.
+%Forward fix point puts some requirements on the message value and not its type.
+
+%Forward fix point checker checks if a message satisfies a set of requirements to be a fix point.
+
+%Forward fix point checker is a code generated from the synchronisers source code. It utilises message api like fuction that tells that a message has variant $v$ etc.
 
 
-When we have several synchronisers on the path, fixed-point condition is a conjunction of their $p(m)$ conditions.
-
-
-
-
-Forward fix point puts some requirements on the message value and not its type.
-Forward fix point checker checks if a message satisfies a set of requirements to be a fix point.
-
-Forward fix point checker is a code generated from the synchronisers source code. It utilises message api like fuction that tells that a message has variant $v$ etc.
-
-
-
-    \subsection{Output from the Forward FPS}
+    \subsubsection{Output from the Forward FPS}
 In this section we will clarify how the FPS is wired to the rest of network and how the output of the FPS is produced.
 
-We denote the FPS connection as $A* = A' \: .. \: A' \: .. \: A' \: .. \: \dots$ where $A'$ is the network that contains $A$ and provides additional wiring to ensure that all output channels of $A'$ match its input channels bijectively.
+Strictly the FPS is not a connection since it does not simply wire the replicas of its component. It also creates a set of output channels and in some cases augments the replicas with some auxiliary vertices. However, in the main it wires the replicas in a serian fashion and we will consequently call the FPS a connection.
 
-% Forward fix point only!
-The FPS connection $A*$ defines the output channel set $N_{out}$ as follows:
+We denote the FPS connection as $A^{*} = A' \: .. \: A' \: .. \: A' \: .. \: \dots$, where $A'$ is the network that contains $A$ and provides additional wiring to ensure that all output channels of $A'$ match its input channels bijectively.
 
-$N_{out} = { c | c \in O \land fp(c) }$
+The FPS connection $A^{*}$ defines the output channel set $\mathcal{N}_{out}$ as follows:
+\begin{equation}
+\mathcal{N}_{out} = \{ name(c) \: | \: c \in \mathcal{O} \land fp(c) \}\nonumber
+\end{equation}
+where $\mathcal{O}$ is the output channel set of $A$ and the predicate $fp(c)$ is true on any channel $c$ that has a forward fixed point. The FPS creates a set of fresh output channels $\mathcal{O}^{*}$ taking the names from the set $\mathcal{N}_{out}$. A message coming to an inactive replica on any channel $c$ with $name(c) \in \mathcal{N}_{out}$ and which satisfies the fixed-point condition on that channel is immediately transferred to the identically named output channel from $\mathcal{O}^{*}$.
 
-where $O$ is the output channel set of $A$ and the predicate $fp(c)$ is true on any channel $c$ that has a forward fixed point.
+  \begin{figure}[h!]
+  \centering
+  \includegraphics{figs/chapter_04_ffp_out.pdf}
+  \caption{Output from the forward fixed-point series.}
+  \label{fig:ffp_out}
+  \end{figure}
+
+In Fig. \ref{fig:ffp_out} a replicated vertex $A$ has the fixed-point condition $p(m)$. Synchroniser $S_f$ is inserted before every inactive replica $A'^{i+1}$ to check whether a message in channel $a_{i}$ satisfies the condition $p(m)$. If $p(m)$ is satisfied, the message $m$ is sent to the output channel $a$ of $A^{*}$. Otherwise, it is sent to the input channel $a^{(i+1)}$ of the next replica. The listing of the synchroniser $S_f$ is given in Fig. \ref{ffp:synch_filt}.
+
+\begin{figure}[h!]
+\begin{lstlisting}[frame=single,mathescape]
+synch $S_f$ ($a_i$ | $a_{i+1}$, $a$)
+{
+  start {
+    on:
+      $a_{i}$.$p(m)$ {
+        send this => $a$;
+      }
+      $a$.else {
+        send this => $a_{i+1}$;
+      }
+  }
+}
+\end{lstlisting}
+\caption{The synchroniser $S_f$}
+\label{ffp:synch_filt}
+\end{figure}
+
+The merger $M$ accepts input messages from all synchronisers $S_f$ that are inserted before inactive replicas of $A$ (TODO fix) and sends the messages to the output channel $a$.
 
 
-An FPS is a form of replication wiring whereby an infinite chain of replicas is created, connected
-in series. The connection is denoted as A* for any operand network A and can be thought of as the equivalent of
-$A^* = A'..A'..A'.. \dots$
-where $A'$, called the streamlining of the vertex A, is a network that contains A and provides some additional wiring to ensure that each output channel of A? matches an input channel and vice versa. We will dwell on the streamlining procedure a little further down, and at this point only remark that if all output channels of A match its input channels bijectively, A' = A.
+%An FPS is a form of replication wiring whereby an infinite chain of replicas is created, connected in series. The connection is denoted as A* for any operand network A and can be thought of as the equivalent of $A^{*} = A'..A'..A'.. \dots$ where $A'$, called the streamlining of the vertex A, is a network that contains A and provides some additional wiring to ensure that each output channel of A? matches an input channel and vice versa. We will dwell on the streamlining procedure a little further down, and at this point only remark that if all output channels of A match its input channels bijectively, A' = A.
 
-%How the output is produced from FPS
 
 
     \subsection{Discussion\label{ffp_discussion}}
+%Why does it consider only the start state? Why can't it be a closed subset of states in a general case?
+%Explain that it should be ok but it makes the approach really bad (because need to add the sane edge to every state in the closed set)
 When the vertex $x$ has a complex structure and there are several synchronisers on the fix-point path, it may be hard to see what is the fix point condition (because you need to aggregate all the fix-point conditions on the message for each synchroniser on the path). The programmer needs to fund the fix point path in the network topology, then to read the codes of all the synchronisers, the to aggregate their fix-point conditions in order just to find out the fix-point condition. This approach for the forward fix point makes debugging too complicated. Moreover, definintion of the fix point condition in synchronisers adds an extra edge to every synchroniser on the path. And it creates dificulties for the synchroniser analysis that make it conservative. I.e. in some cases when the fix point exists the compiler may miss it.
 
 (TODO: For which wiring pattern does S-net have fix points???)
