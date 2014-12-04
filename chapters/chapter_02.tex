@@ -688,3 +688,5 @@ a.(x,y||t) {
 
 \section{Discussion}
 MDL is wider than what the presented synchroniser can synchronise. TODO: give examples. However, it need to be elaborated with the real world applications of \ak\ whether it is useful to implement it in synchronisers.
+
+Decide how to do flow inheritance in synchronisers. This will be done outside of synchronisers. Need to somehow specify which fields are inherited and which are not. In synchroniser transitions we can pick fields of an accepted message, with ehich we want to do something in synchroniser. However, there may be many fields in the message and some of them do not need to be inherited. In theory we could pick all the fields that we want to inherit along with the fields we want to work with, and them concat them and send them to then output channel. But there may be too many to specify manually for eack transition in the synchroniser caused by the channel.

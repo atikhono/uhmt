@@ -5,12 +5,12 @@ In this chapter we discuss the role of synchronisers in wiring patterns based on
 
 The replication combinator creates conceptually infinite number of copies of its component, which may be either a box or a net, and connects them in series. Replication is demand-driven, hence replicas are created dynamically in runtime and do not necessarily require significant resouces since \ak\ boxes are stateless and synchronisers require no resouces in their start state.
 
-\ak\ proposes an elegant way to produce the output of the infinite chain of replicas. Despite its elegance, we argue the convenience of the approach and propose a new one, which, in our opinion, is more convenient and easier to use.
+\ak\ proposes an elegant way to produce the output of the infinite chain of replicas. Despite its elegance, we argue the convenience of the approach and propose another one, which, in our opinion, is more convenient and easier to use.
 
 % TODO: I don't like the reason. Why was the reverse fixed point introduced?
 As the chain of replicas evolves, it may be the case that some replicas in the head of the chain are active yet they just transmit messages without a change. \ak\ is commited to detect such replicas and optimise the connection so that the data are sent directly to a replica that is ready to process it. 
 
-The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{rfp} we explain why both cases are relevant to synchroniser analysis and give formal definitions. In section \ref{ffp_discussion} we discuss the original approach to the output of the infinite chain of replicas and in section (TODO) we propose a new one. In section \ref{fp_detect} we provide detection algoritms for both cases.
+The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{rfp} we explain why both cases are relevant to synchroniser analysis and give formal definitions. In section \ref{ffp_discussion} we discuss the original approach to the output of the infinite chain of replicas and in section (TODO) we propose another one. In section \ref{fp_detect} we provide detection algoritms for both cases.
 
 
     \section{Fixed Point}
@@ -44,7 +44,7 @@ Consider a vertex $v$ that has an input and an output channel, both named $x$.
 \end{definition}
 
 % Give a definition for "edge that satisfies the fixed-point definition"
-The condition $p(m)$ may not be unique for each vertex, and when it is not, a disjunction of all such conditions is called the fixed-point condition of the vertex on channel $x$. The condition can also be a tautology, in which case the forward fixed point is called unconditional. When the path traverses several vertices, the fixed-point condition is a conjunction of their fixed-point conditions. If there are several paths in a net, the fixed-point condition of the net is a disjunction of the fixed-point conditions of those paths.
+The condition $p(m)$ may not be unique for each vertex, and when it is not, a disjunction of all such conditions is called the fixed-point condition of the vertex on channel $x$. The condition can also be a tautology, in which case the forward fixed point is called unconditional. When the path traverses several vertices, the fixed-point condition is a conjunction of their fixed-point conditions.
 
 % Draw a picture to explain conj and disj
   \begin{figure}[h!]
@@ -54,7 +54,7 @@ The condition $p(m)$ may not be unique for each vertex, and when it is not, a di
   \label{fig:ffp}
   \end{figure}
 
-A replicated vertex in Fig. \ref{fig:ffp} is a net that has two paths $[v_1, \: v_2, \: v_3]$ and $[v_4]$ that traverse only synchronisers. The synchroniser $v_4$ has two edges that loop around the start state and satisfy the fix-point definition (TODO fix; explain how). The firing conditions for those edges are $p^{1}_4(m)$ and $p^{1}_4(m)$. A message $m$ is a fixed-point when it satisties any of them, i.e. $p^{1}_4(m) \lor p^{1}_4(m)$. The synchronisers $v_1$, $v_2$ and $v_3$ have fixed-point conditions $p_1(m)$, $p_2(m)$ and $p_3(m)$ respectively, where $p_i(m) = p^{1}_i(m) \lor \dots p^{j}_i$, $i=1,3$ and $j$ is the number of edges that satisfy the fixed-point definition (TODO fix). Then the fixed-point condition for the path $[v_1, \: v_2, \: v_3]$ is $p_1(m) \land p_2(m) \land p_3(m)$. The net in Fig. \ref{ffp} has two paths that have fixed-points, therefore the fixed-point condition of the net is $p_1(m) \land p_2(m) \land p_3(m) \lor p^{1}_4(m) \lor p^{1}_4(m)$.
+A replicated vertex in Fig. \ref{fig:ffp} is a net that has a unique path $[v_1, \: v_2, \: v_3]$ that traverses only synchronisers. The synchroniser $v_2$ has two edges that loop around the start state and satisfy the fix-point definition (TODO fix; explain how). The firing conditions for those edges are $p^{1}_2(m)$ and $p^{1}_2(m)$. A message $m$ is a fixed-point when it satisties any of them, i.e. $p^{1}_2(m) \lor p^{1}_2(m)$. The synchronisers $v_1$ and $v_3$ have fixed-point conditions $p_1(m)$ and $p_3(m)$ respectively, where $p_i(m) = p^{1}_i(m) \lor \dots p^{j}_i$, $i=1,3$ and $j$ is the number of edges that satisfy the fixed-point definition (TODO fix). Then the fixed-point condition of the whole net is $p_1(m) \land (p^{1}_2(m) \lor p^{1}_2(m)) \land p_3(m)$.
 
 
 %Forward fix point puts some requirements on the message value and not its type.
@@ -84,7 +84,7 @@ where $\mathcal{O}$ is the output channel set of $A$ and the predicate $fp(c)$ i
   \label{fig:ffp_out}
   \end{figure}
 
-In Fig. \ref{fig:ffp_out} a replicated vertex $A$ has the fixed-point condition $p(m)$. Synchroniser $S_f$ is inserted before every inactive replica $A'^{i+1}$ to check whether a message in channel $a_{i}$ satisfies the condition $p(m)$. If $p(m)$ is satisfied, the message $m$ is sent to the output channel $a$ of $A^{*}$. Otherwise, it is sent to the input channel $a^{(i+1)}$ of the next replica. The listing of the synchroniser $S_f$ is given in Fig. \ref{ffp:synch_filt}.
+In Fig. \ref{fig:ffp_out} a replicated vertex $A$ has the fixed-point condition $p(m)$. Synchroniser $S_f$ is inserted before every inactive replica $A'^{(i+1)}$ to check whether a message in channel $a_{i}$ satisfies the condition $p(m)$. If $p(m)$ is satisfied, the message $m$ is sent to the output channel $a$ of $A^{*}$. Otherwise, it is sent to the input channel $a^{(i+1)}$ of the next replica. The listing of the synchroniser $S_f$ is given in Fig. \ref{ffp:synch_filt}.
 
 \begin{figure}[h!]
 \begin{lstlisting}[frame=single,mathescape]
@@ -113,8 +113,23 @@ The merger $M$ accepts input messages from all synchronisers $S_f$ that are inse
 
 
     \subsection{Discussion\label{ffp_discussion}}
+%Why is the path required to be unique?
+The definition of the forward fixed point required the uniqueness of the fixed point path. (TODO) Explain why it is required to be unique.
+
 %Why does it consider only the start state? Why can't it be a closed subset of states in a general case?
 %Explain that it should be ok but it makes the approach really bad (because need to add the sane edge to every state in the closed set)
+The forward fixed point definition requires the traversed synchronisers to be in their start states when a message that satisfies the fixed-point condition is received. This requirement does not mean that synchronisers have to stay in their start states. A net in Fig. \ref{fig:ffp_net} demonstrates such behaviour. The synchroniser $S$ that implements the fixed-point condition $p(m)$ on channel $a$ moves to the state $s_1$ when it received a message from channel $b$. A message received from channel $c$ make $S$ move from state $s_1$ to the start state. The synchroniser $S$ can implement some processing of messages from channels $b$ and $c$, i.g. pattern matching, combining and sending to the output channels. However, to make sure that $S$ is in the start state when a message from channel $a$ is received, messages need to be ordered so that a message from channel $a$ always arrives before a message from channel $b$ and a message from channel $c$. Such ordering can be implemented with a synchroniser. In Fig. \ref{fig:ffp_net} this synchroniser is denoted $Ord$.
+
+  \begin{figure}[h!]
+  \centering
+  \includegraphics{figs/chapter_04_ffp_net.pdf}
+  \caption{An example net where the fixed point synchroniser does not have to stay in its start state}
+  \label{fig:ffp_net}
+  \end{figure}
+
+Adding of a fixed-point edge to state $s_1$ could potentially let optimise replicas in rpf manner.
+
+
 When the vertex $x$ has a complex structure and there are several synchronisers on the fix-point path, it may be hard to see what is the fix point condition (because you need to aggregate all the fix-point conditions on the message for each synchroniser on the path). The programmer needs to fund the fix point path in the network topology, then to read the codes of all the synchronisers, the to aggregate their fix-point conditions in order just to find out the fix-point condition. This approach for the forward fix point makes debugging too complicated. Moreover, definintion of the fix point condition in synchronisers adds an extra edge to every synchroniser on the path. And it creates dificulties for the synchroniser analysis that make it conservative. I.e. in some cases when the fix point exists the compiler may miss it.
 
 (TODO: For which wiring pattern does S-net have fix points???)
@@ -125,7 +140,7 @@ In S-Net program when the programmer uses the star, they have to put the values 
 So we propose the simple approach similar to S-net. The fix-point condition on the message is now checked in the box code. The box has a special channel that is connected to the output channel of the star. The fix-point message is sent straitaway from the box when it found out the the message satisfied the condition and no iteration are needed anymore. Now the \ak\ compiler can check the fix-point out of the network topology because there's a channel connected to the box that.
 
 
-    \subsection{A new approach to forward fix point}
+    \subsection{Another Approach to the Forward Fixed Point}
 % A net in wrapped in a Star combinator
 %  __                               __
 % |       _____________________       | *
@@ -144,6 +159,21 @@ So we propose the simple approach similar to S-net. The fix-point condition on t
 
 
     \section{Reverse Fixed Point Series\label{rfp}}
+In this section we provide the approach to the reverse fixed point.
+
+Consider a vertex $v$ that has an input and an output channel, both named $x$.
+
+\begin{definition} The vertex $v$ is said to have a reverse fixed point in $x$ if and only if the following statements hold:
+
+\begin{enumerate}
+\item A unique non-branching path from the input to the output channel $x$ exists that does not traverse any boxes.
+
+\item Every synchroniser $S_i$ on the path has a subset of states, which we denote as $s_i$, such that in each of these states every message on the path is immediately transferred without being changed or even stored, causing the synchroniser to remain in the same state\footnote{It should also be borne in mind that the values of any state variables form a part of the synchroniser state}. In a state from $s_i$ the synchroniser $S_i$ may still be sensitive to other input channels, as long as this does not, under any circumstances, cause a transition to a state outside $s_i$.
+\end{enumerate}
+\end{definition}
+
+The vertex $v$ is said to be in a reverse fixed point state on channel $x$ when each $S_i$ is in a state that belongs to its $s_i$.
+
 %%%%%%%%%
 %%  Motivation for the reverse fixpoint
 %%%%%%%%%
@@ -171,22 +201,14 @@ The reverse fix point is more the way to write code. It is the way to program a 
 If you want the feature, you must define a closed set of translating states in every synchroniser on the fp path.
 
 
-%%%%%%%%%%%%
-Definition. The vertex v is said to have a reverse fixed point in x if and only if the following statements hold:
+\subsubsection{Rewiring of the Reverse FPS}
+The reverse fixed point optimises an input connection that has to cascade through the chain to a replica that is ready to accept the data. Any input channel $x$ wired to an active replica $A_i$ that transitions to a reverse fixed point state on that channel is disconnected from $A_i$ and dynamically rewired to the input channel $x$ of the next replica on the chain $A'_{i+1}$.
 
-\begin{enumerate}
-\item A unique non-branching path from the input to the output channel $x$ exists that does not traverse any boxes.
-
-\item Every synchroniser $S_i$ on the path has a subset of states, which we denote as $s_i$, such that in each of these states every message on the path is immediately transferred without being changed or even stored, causing the synchroniser to remain in the same state. In a state from $s_i$ the synchroniser $S_i$ may still be sensitive to other input channels, as long as this does not, under any circumstances, cause a transition to a state outside $s_i$.
-\end{enumerate}
-
-It should also be borne in mind that the values of any state variables form a part of the synchroniser state.
-The vertex $v$ is said to be in a reverse fixed point state on channel $x$ when each $S_i$ is in a state that belongs to its $s_i$.
-
+%pic
 
     \section{Fixed Point Detection\label{fp_detect}}
 
-    \subsection{Forward fixed point detection\label{ffp_detect}}
+    \subsection{Forward Fixed Point Detection\label{ffp_detect}}
 The new approach to forward fixed point makes the detection trivial. The fixed point detection does not require sycnhroniser analysis anymore. The fixed point is detected right from the network topology.
 %% Provide detection algorithm
 
