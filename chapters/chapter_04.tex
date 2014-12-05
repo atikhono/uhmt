@@ -127,17 +127,19 @@ The forward fixed point definition requires the traversed synchronisers to be in
   \label{fig:ffp_net}
   \end{figure}
 
-Adding of a fixed-point edge to state $s_1$ could potentially let optimise replicas in rpf manner.
+Synchroniser $S$ has a subset of states $s=\{start, \: s_1\}$ and both states $start$ and $s_1$ read messages from other channels $b$ or $c$, however, no transition to a state outside of the subset $s$ exists. Addition of a fixed-point edge to state $s_1$ could potentially let messages from channel $a$ that satisty the fixed point condition leave the replication pipeline earlier. This idea is generalised as follows: the fixed-point synchroniser can have a subset of states that have the fixed-point edge, and the synchroniser may still be sensitive to other input channels, as long as it does not cause a transition to a state outside of the subset. Thus, the definition of the forward fixed point should be extended to cover the described case.
 
+The extended approach makes the maintenance of the fixed-point condition inconvenient because the programmer needs to keep track of changes in all fixed-point edges of synchronisers. Moreover, if the replicated vertex has several synchronisers on the fixed-point path, it may be hard to find and maintain the fixed-point condition at all. Considering these drawbacks, the question arises if the idea of terminating the replication implicitly is good.
 
-When the vertex $x$ has a complex structure and there are several synchronisers on the fix-point path, it may be hard to see what is the fix point condition (because you need to aggregate all the fix-point conditions on the message for each synchroniser on the path). The programmer needs to fund the fix point path in the network topology, then to read the codes of all the synchronisers, the to aggregate their fix-point conditions in order just to find out the fix-point condition. This approach for the forward fix point makes debugging too complicated. Moreover, definintion of the fix point condition in synchronisers adds an extra edge to every synchroniser on the path. And it creates dificulties for the synchroniser analysis that make it conservative. I.e. in some cases when the fix point exists the compiler may miss it.
+%And it creates dificulties for the synchroniser analysis that make it conservative. I.e. in some cases when the fix point exists the compiler may miss it.
 
-(TODO: For which wiring pattern does S-net have fix points???)
+The idea of the implicit replication termination originates in S-Net. In S-Net the termination could be done by its type system means: the record leaves the replication pipeline when all its fields are flow-inherited. However, it was implemented in a more explicit way: whether a record leaves the replication pipeline is decided by checking if the record matches the specified termination pattern.
 
-The idea behind putting the fix-point condition outside of boxes to synchronisers comes from the original idea for S-net. In S-net the idea was to resolve fix-point by the type system means: when all the fields in the record are flow-inherited then the fix-point is reached and the message can be outputted. TODO Explain why it was changed in S-net!! However, the final decision for fix-point resolution was made on the side of simplicity (????) TODO What is the solution in S-net??
-In S-Net program when the programmer uses the star, they have to put the values for integer fields in message that control the fix point. The values of these fields are checked after iteration and when they are equal to the user's input, the fix point is reached.
+%However, the final decision for fix-point resolution was made on the side of simplicity (????) TODO What is the solution in S-net??
 
-So we propose the simple approach similar to S-net. The fix-point condition on the message is now checked in the box code. The box has a special channel that is connected to the output channel of the star. The fix-point message is sent straitaway from the box when it found out the the message satisfied the condition and no iteration are needed anymore. Now the \ak\ compiler can check the fix-point out of the network topology because there's a channel connected to the box that.
+In this chapter we propose a straightforward approach to the FPS. The fixed-point satisfaction check is now maintained in the box code. The box sends the fixed points to a special channel that goes through the replicated vertex without traversing any box or synchroniser.
+
+%Now the \ak\ compiler can check the fix-point out of the network topology because there's a channel connected to the box that.
 
 
     \subsection{Another Approach to the Forward Fixed Point}
