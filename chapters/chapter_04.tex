@@ -10,7 +10,7 @@ The replication combinator creates conceptually infinite number of copies of its
 % TODO: I don't like the reason. Why was the reverse fixed point introduced?
 As the chain of replicas evolves, it may be the case that some replicas in the head of the chain are active yet they just transmit messages without a change. \ak\ is commited to detect such replicas and optimise the connection so that the data are sent directly to a replica that is ready to process it. 
 
-The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{rfp} we explain why both cases are relevant to synchroniser analysis and give formal definitions. In section \ref{ffp_discussion} we discuss the original approach to the output of the infinite chain of replicas and in section (TODO) we propose another one. In section \ref{fp_detect} we provide detection algoritms for both cases.
+The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{rfp} we explain why both cases are relevant to synchroniser analysis and give formal definitions. In section \ref{ffp_discussion} we discuss the original approach to the output of the infinite chain of replicas and in section \ref{approach} we propose another one. In section \ref{fp_detect} we provide detection algoritms for both cases.
 
 
     \section{Fixed Point}
@@ -129,20 +129,40 @@ The forward fixed point definition requires the traversed synchronisers to be in
 
 Synchroniser $S$ has a subset of states $s=\{start, \: s_1\}$ and both states $start$ and $s_1$ read messages from other channels $b$ or $c$, however, no transition to a state outside of the subset $s$ exists. Addition of a fixed-point edge to state $s_1$ could potentially let messages from channel $a$ that satisty the fixed point condition leave the replication pipeline earlier. This idea is generalised as follows: the fixed-point synchroniser can have a subset of states that have the fixed-point edge, and the synchroniser may still be sensitive to other input channels, as long as it does not cause a transition to a state outside of the subset. Thus, the definition of the forward fixed point should be extended to cover the described case.
 
-The extended approach makes the maintenance of the fixed-point condition inconvenient because the programmer needs to keep track of changes in all fixed-point edges of synchronisers. Moreover, if the replicated vertex has several synchronisers on the fixed-point path, it may be hard to find and maintain the fixed-point condition at all. Considering these drawbacks, the question arises if the idea of terminating the replication implicitly is good.
+The extended approach makes the maintenance of the fixed-point condition inconvenient because the programmer needs to keep track of changes in all fixed-point edges of synchronisers. Moreover, if the replicated vertex has several synchronisers on the fixed-point path, it may be hard to find and maintain the fixed-point condition at all. Considering these drawbacks, the question arises if the idea of terminating the processing of a message implicitly is good.
 
 %And it creates dificulties for the synchroniser analysis that make it conservative. I.e. in some cases when the fix point exists the compiler may miss it.
 
-The idea of the implicit replication termination originates in S-Net. In S-Net the termination could be done by its type system means: the record leaves the replication pipeline when all its fields are flow-inherited. However, it was implemented in a more explicit way: whether a record leaves the replication pipeline is decided by checking if the record matches the specified termination pattern.
+The idea of the implicit processing termination originates in S-Net. In S-Net the termination could be done by its type system means: the record leaves the replication pipeline when all its fields are flow-inherited. However, it was implemented in a more explicit way: whether a record leaves the replication pipeline is decided by checking if the record matches the specified termination pattern.
 
 %However, the final decision for fix-point resolution was made on the side of simplicity (????) TODO What is the solution in S-net??
 
-In this chapter we propose a straightforward approach to the FPS. The fixed-point satisfaction check is now maintained in the box code. The box sends the fixed points to a special channel that goes through the replicated vertex without traversing any box or synchroniser.
+In this chapter we propose a straightforward approach to the FPS. The fixed-point satisfaction check is now maintained in the box code. The box sends the fixed points to a special channel that goes through the replicated vertex without traversing any box or synchroniser. Messages that are sent to this channel leave the replication pipeline.
 
 %Now the \ak\ compiler can check the fix-point out of the network topology because there's a channel connected to the box that.
 
 
-    \subsection{Another Approach to the Forward Fixed Point}
+    \subsection{Another Approach to the Forward Fixed Point\label{approach}}
+Consider a vertex $v$ that has input and output channels sets $\mathcal{I}$ and $\mathcal{O}$, respectively. The set of matched inputs and outputs is $\mathcal{M}(\mathcal{I}, \: \mathcal{O}) = \mathcal{I} \cap \mathcal{O}$.
+
+\begin{definition} The vertex $v$ is said to have a forward fixed point in $x \in \mathcal{M}(\mathcal{I}, \: \mathcal{O})$ if the following requirements are true:
+    \begin{enumerate}
+\item A unique non-branching path from the input to the output channel $x$ exists that does not traverse any boxes or synchronisers.
+\item There exists at least one box or synchroniser within $v$ that produces output to $x$.
+    \end{enumerate}
+\end{definition}
+
+A non-branching path that does not traverse boxed and synchronisers may traverse mergers. Output is send to the channel $x$ via mergers.
+
+A net in Fig. \ref{fig:ffp_new} has two input and output channels $a$ and $x$. Channel $x$ is the fixed-point channel. Output to the channel $x$ is produced by box $B_3$. Its output channel is wired with $x$ via merger $M$.
+
+  \begin{figure}[h!]
+  \centering
+  \includegraphics{figs/chapter_04_ffp_new.pdf}
+  \caption{Output}
+  \label{fig:ffp_new}
+  \end{figure}
+
 % A net in wrapped in a Star combinator
 %  __                               __
 % |       _____________________       | *
@@ -157,6 +177,51 @@ In this chapter we propose a straightforward approach to the FPS. The fixed-poin
 % |__                               __|
 %
 % Find what outputs to the fixpoint channel
+
+The definition above provides topological requirements for the fixed-point existence. Making sure that messages are actually sent to the fixed-point channel is the programmmer's responsibility.
+
+
+    \subsection{Forward Fixed Point Detection\label{ffp_detect}}
+The approch we proposed in section \ref{approach} makes the forward fixed-point detection trivial. The forward fixed-point detection does not require synchroniser analysis anymore. The \ak\ compiler just checks that the forward fixed-point exists in the network topology.
+
+We split the forward fixed-point detection problem into the following subproblems:
+\begin{itemize}
+\item Choose a data structure to represent a net
+\item Provide an algoritm for the fixed-point path detection
+\item Provide an algoritm for recursive fixed-point check
+\end{itemize}
+
+%% Provide detection algorithm
+
+\ak\ compiler needs to just detect the forward fixpoint from the network topology (answer 'yes' or 'no' if the fixpoint exists). If the fixpoint was not found then the network is infinite and inconsistent.
+
+Forward fixpoint detection is pure network topology analysis. Find a way in a net graph that goes exclusively through mergers and some other vertex output to this channel.
+
+How to represent the net graph.
+We have (at least) 4 types of vertices: boxes, synchronisers, nets, mergers.
+If we find net on the way we have to run the analysis for it (recursively). For example:
+% A net in wrapped in a Star combinator
+%  __                               __
+% |       _____________________       | *
+% |      |    __      __       |      |
+% |     _|  /|__|----|__|-\    |_     |
+% |  a |_|-|      __      |----|_| a  |
+% |      |  \----|__|-----/    |      |
+% |     _|                |    |_     |
+% |  b |_|---------------|N|---|_| b  |  - fix point channel b (goes straight throuhg the net)
+% |      |               net   |      |
+% |      |_____________________|      |
+% |__                               __|
+%
+We could represent the net graph as a multigraph (where a vertex, which is a box, a synch, a net or a merger can have several inputs and several outputs).
+But it is inconvenient because we cannot specify the connections to the net inputs and outputs. In order to specify this connections, we can have ports as vertices of a graph.
+
+We assume that the ports graph is a connected graph.
+
+We can filter the subgraph those vertices are only mergers and nets. In this case with the assumption of the original graph connectivity, the resulting graph is a connected graph by construction.
+We construct this graph by traversing all the vertices from the 'start' vertex (we have to keep it in the graph structure). We take the successors of the current vertex and check their 'type'. If the successor is a merger, we add it to the resulting graph and traverse it. (Anyway, generating such a graph seems useless since we can detect the paths we need with just a single traversal)
+
+Or we can leave the graph as is and just put a condition of every vertex we visit that it must be net or merger.
 
 
 
@@ -207,42 +272,6 @@ If you want the feature, you must define a closed set of translating states in e
 The reverse fixed point optimises an input connection that has to cascade through the chain to a replica that is ready to accept the data. Any input channel $x$ wired to an active replica $A_i$ that transitions to a reverse fixed point state on that channel is disconnected from $A_i$ and dynamically rewired to the input channel $x$ of the next replica on the chain $A'_{i+1}$.
 
 %pic
-
-    \section{Fixed Point Detection\label{fp_detect}}
-
-    \subsection{Forward Fixed Point Detection\label{ffp_detect}}
-The new approach to forward fixed point makes the detection trivial. The fixed point detection does not require sycnhroniser analysis anymore. The fixed point is detected right from the network topology.
-%% Provide detection algorithm
-
-\ak\ compiler needs to just detect the forward fixpoint from the network topology (answer 'yes' or 'no' if the fixpoint exists). If the fixpoint was not found then the network is infinite and inconsistent.
-
-Forward fixpoint detection is pure network topology analysis. Find a way in a net graph that goes exclusively through mergers and some other vertex output to this channel.
-
-How to represent the net graph.
-We have (at least) 4 types of vertices: boxes, synchronisers, nets, mergers.
-If we find net on the way we have to run the analysis for it (recursively). For example:
-% A net in wrapped in a Star combinator
-%  __                               __
-% |       _____________________       | *
-% |      |    __      __       |      |
-% |     _|  /|__|----|__|-\    |_     |
-% |  a |_|-|      __      |----|_| a  |
-% |      |  \----|__|-----/    |      |
-% |     _|                |    |_     |
-% |  b |_|---------------|N|---|_| b  |  - fix point channel b (goes straight throuhg the net)
-% |      |               net   |      |
-% |      |_____________________|      |
-% |__                               __|
-%
-We could represent the net graph as a multigraph (where a vertex, which is a box, a synch, a net or a merger can have several inputs and several outputs).
-But it is inconvenient because we cannot specify the connections to the net inputs and outputs. In order to specify this connections, we can have ports as vertices of a graph.
-
-We assume that the ports graph is a connected graph.
-
-We can filter the subgraph those vertices are only mergers and nets. In this case with the assumption of the original graph connectivity, the resulting graph is a connected graph by construction.
-We construct this graph by traversing all the vertices from the 'start' vertex (we have to keep it in the graph structure). We take the successors of the current vertex and check their 'type'. If the successor is a merger, we add it to the resulting graph and traverse it. (Anyway, generating such a graph seems useless since we can detect the paths we need with just a single traversal)
-
-Or we can leave the graph as is and just put a condition of every vertex we visit that it must be net or merger.
 
 
     \subsection{Reverse Fixed Point Detection\label{rfp_detect}}
