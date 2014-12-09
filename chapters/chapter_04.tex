@@ -154,12 +154,12 @@ Consider a vertex $v$ that has input and output channels sets $\mathcal{I}$ and 
 
 A non-branching path that does not traverse boxed and synchronisers may traverse mergers. Output is send to the channel $x$ via mergers.
 
-A net in Fig. \ref{fig:ffp_new} has two input and output channels $a$ and $x$. Channel $x$ is the fixed-point channel. Output to the channel $x$ is produced by box $B_3$. Its output channel is wired with $x$ via merger $M$.
+A net in Fig. \ref{fig:ffp_new} has two input and output channels $a$ and $x$. Channel $x$ is the fixed-point channel. Output to the channel $x$ is produced by box $T$. Its output channel is wired with $x$ via merger $M$.
 
   \begin{figure}[h!]
   \centering
   \includegraphics{figs/chapter_04_ffp_new.pdf}
-  \caption{Output}
+  \caption{Output to the fixed-point channel}
   \label{fig:ffp_new}
   \end{figure}
 
@@ -226,6 +226,7 @@ Or we can leave the graph as is and just put a condition of every vertex we visi
 
 
     \section{Reverse Fixed Point Series\label{rfp}}
+%channels are ordered, need to insert synchronisers
 In this section we provide the approach to the reverse fixed point.
 
 Consider a vertex $v$ that has an input and an output channel, both named $x$.

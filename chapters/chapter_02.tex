@@ -147,7 +147,7 @@ $\Pi \; (s_{2}, c) = \psi_{\sqcap} \; \{\mu_{0} = b \: | \: \rho_{20}^{c} \; (s_
 
 
 \section{The language for \ak\ synchroniser}
-We develop the language according to chosen message protocol. The protocol restricts anything but a $choice$ termed message trevelling in channels. This the syntax $on a.(x,y, ...)$ is not needed with this protocol. We may include this syntax as a syntax sugar for $uniq$ when choice has just one alternative. Originally this syntax was intended for records in channels. However, the chosen protocal doesn't allow it. For example if we want to extend the protocol for lists to travel in channels, we need to define the union of lists, possibly as a construct with 2 nested lists $(union l_1 l_2)$ and we need to extend the protocol to encode this construct. For record and choice union is easy to define. If no labels in $t_1$ and $t_2$ intersect then the resulting record of choice has all the labels from $t_1$ and $t_2$ with their values: $t = union \; t_1 \: t_2 = union \; {a:t_a} \: {b:t_b} = {a:t_a, \: b:t_b}$. When labels intersect, it is the deal for CAL solver to resolve with option to take (it should consider flow inheritance). The synchroniser just leaves it to be a union of terms:
+We develop the language according to chosen message protocol. The protocol restricts anything but a $choice$ termed message trevelling in channels. This the syntax $on a.(x,y, ...)$ is not needed with this protocol. We may include this syntax as a syntax sugar for $uniq$ when choice has just one alternative. Originally this syntax was intended for records in channels. However, the chosen protocal doesn't allow it. For example if we want to extend the protocol for lists to travel in channels, we need to define the union of lists, possibly as a construct with 2 nested lists $(union l_1 l_2)$ and we need to extend the protocol to encode this construct. For record and choice union is easy to define. If no labels in $t_1$ and $t_2$ intersect then the resulting record of choice has all the labels from $t_1$ and $t_2$ with their values: $t = union \; t_1 \: t_2 = union \; \{a:t_a\} \: \{b:t_b\} = \{a:t_a, \: b:t_b\}$. When labels intersect, it is the deal for CAL solver to resolve with option to take (it should consider flow inheritance). The synchroniser just leaves it to be a union of terms:
 
 For example for Choice: $union \; (: \: a:t_a \: :) \: (: \: a:t_b \: :) = (: \: a:union \: t_a, \: t_b \: :)$.
 Same for record.
@@ -192,9 +192,9 @@ synch min (a, b:p | c:2, d:p+1)
 
 The \ak\ synchroniser allows to declare constant and configurable integer depths for the input and output channels. In addition, the depth of the output channel can be specified with an integer shift to the configurable input channel depth.
 
-The input channels are required to have the bracketing depths specified in the signature. Thus, the channel connected to the port $a$ of the $min$ synchroniser must have zero bracketing depth. The channel connected to the port $b$ has a configurable bracketing depth $p$. Actual values of configurable bracketing depths of input channels are determined by the \ak\ compiler. %Once defined in the signature, configurable bracketing depths may be used in state expressions. They are interpreted as read-only state variables.
+The input channels are required to have the bracketing depths specified in the signature. Thus, the channel $a$\footnote{channel connected to the port $a$ is meant. Later on we will call a channel connected to the port $x$ channel $x$ for short} of the $min$ synchroniser must have zero bracketing depth. The channel $b$ has a configurable bracketing depth $p$. Actual values of configurable bracketing depths of input channels are determined by the \ak\ compiler. %Once defined in the signature, configurable bracketing depths may be used in state expressions. They are interpreted as read-only state variables.
 
-The output channels of a synchroniser are guaranteed to have the bracketing depths specified in the channel signature. Thus, the synchroniser $min$ must send messages to the output channel connected to the port $c$ at the depth 2 and optionally at the depths $0$, $1$. The output channel connected to the port $d$ must have the bracketing depth $p+1$ that is the depth of the input channel connected to the port $b$ shifted by $1$.
+The output channels of a synchroniser are guaranteed to have the bracketing depths specified in the channel signature. Thus, the synchroniser $min$ must send messages to the output channel $c$ at the depth 2 and optionally at the depths $0$, $1$. The output channel $d$ must have the bracketing depth $p+1$ that is the depth of the input channel $b$ increased by $1$.
 
 
 %% TODO Move all the type details to the implementation details
@@ -206,11 +206,16 @@ The output channels of a synchroniser are guaranteed to have the bracketing dept
 The beginning of state variables declaration is indicated by the keyword $state$. A state variable may be either a signed integer of the constant width or a C-style enumeration. State and store variables names are user-defined indentifiers. A user-defined identifier is an ASCII string that follows the C convention.
 
 %% TODO Should move width determining to the implementation detail
-Line 1 in Fig. \ref{sync_statevar} declares state variables $a$, $b$, $c$ of width 4. Thus, all three variables are declared to have integer values in the range $[-8; 7]$. Generally, a state variable of width $n$ has integer values in the range $[-2^{n-1}; 2^{n-1}-1]$.
+Line 1 in Fig. \ref{sync_statevar} declares state variables $a$, $b$, $c$ of width 4. Thus, all three variables are declared to have integer values in the range $[0; 15]$. Generally, a state variable of width $n$ has integer values in the range $[0; 2^{n}-1]$.
 
-The state variable $foo$ that is declared in the line 2 in Fig. \ref{sync_statevar} can only be assigned the values $d$, $e$ and $f$ specified in the enumeration. The enumeration values are defined as constants if type $int$. If the values are not specified explicitly, they are assigned consequtive positive integers starting with 0. The width of the $int$ type is $\lceil \log_{2}{n} \rceil + 1$, where $n$ is the number of values in the enumeration. Thus, the variable $foo$ has integer values $d=0$, $e=1$ and $f=2$ of the width $\lceil \log_{2}{3} \rceil + 1 = 3$. If the values are specified explicitly, the width is determined as $\lceil \log_{2}{(m+1)} \rceil + 1$, where $m$ is the biggest value in the enumeration. For the variable $bar$ declared in line 3 of Fig. \ref{sync_statevar} $m=4$ and the width is $\lceil \log_{2}{(5)} \rceil + 1 = 4$.
+The state variable $foo$ that is declared in the line 2 in Fig. \ref{sync_statevar} can only be assigned the values $d$, $e$ and $f$ specified in the enumeration. The enumeration values are integer constants. If the values are not specified explicitly, they are assigned consequtive positive integers starting with 0.
+%The width of the $int$ type is $\lceil \log_{2}{n} \rceil + 1$, where $n$ is the number of values in the enumeration.
+Thus, the variable $foo$ has integer values $d=0$, $e=1$ and $f=2$. % of the width $\lceil \log_{2}{3} \rceil + 1 = 3$. If the values are specified explicitly, the width is determined as $\lceil \log_{2}{(m+1)} \rceil + 1$, where $m$ is the biggest value in the enumeration. For the variable $bar$ declared in line 3 of Fig. \ref{sync_statevar} $m=4$ and the width is $\lceil \log_{2}{(5)} \rceil + 1 = 4$.
 
-Integer state variables and enum values can be mixed freely in state expressions. Enum values are interpreted as read-only integer state variables. % constant integers!
+
+The values can be specifed explicity (see line 3 in Fig. \ref{sync_statevar})
+
+Integer state variables and enum values can be mixed freely in state expressions. Enum values are interpreted as integer constants.%read-only integer state variables. % constant integers!
 
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
@@ -253,10 +258,10 @@ s2 {
 \label{zip_struc}
 \end{figure}
 
-When the zip2 synchroniser is in the start state and it receives a message from the channels connected to the port $a$, the underlying state machine makes a transition to the state $s1$. In this state the synchroniser can only receive messages from channel connected to the port $b$ since there's no transition triggered by channel connected to the port $a$ and defined in this state. When the message on channel connected to the port $b$ is received, the state machine makes a transition to the start state. Lines 10-13 define similar behaviour in state $s2$.
+When the zip2 synchroniser is in the start state and it receives a message from the channels connected to the port $a$, the underlying state machine makes a transition to the state $s1$. In this state the synchroniser can only receive messages from channel $b$ since there's no transition triggered by channel $a$ and defined in this state. When the message on channel $b$ is received, the state machine makes a transition to the start state. Lines 10-13 define similar behaviour in state $s2$.
 
 %% Change 'scopes'. 'Blocks' probably
-The synchroniser language supports top-down prioritised transition scopes. They are indicated with the $elseon$ keyword. A synchroniser in state $foo$ in Fig. \ref{sync_scope} acceptes messages from channels connected to the ports $a$, $b$, $c$ and $d$. When no destination state is specified for a transition, a synchroniser makes the transition to the current state. If all channels are ready at the same time in state $foo$, the synchroniser processes messages from either channel $a$ or $b$ first. When all messages from channels connected to the ports $a$ and $b$ are processed the synchroniser receives messages from channels connected to the port $c$. If there're no messages in channels $a$, $b$ and $c$ the synchroniser receives messages from the channel connected to the port $d$.
+The synchroniser language supports top-down prioritised transition scopes. They are indicated with the $elseon$ keyword. A synchroniser in state $foo$ in Fig. \ref{sync_scope} acceptes messages from channels connected to the ports $a$, $b$, $c$ and $d$. When no destination state is specified for a transition, a synchroniser makes the transition to the current state. If all channels are ready at the same time in state $foo$, the synchroniser processes messages from either channel $a$ or $b$ first. When all messages from channels connected to the ports $a$ and $b$ are processed the synchroniser receives messages from channels connected to the port $c$. If there're no messages in channels $a$, $b$ and $c$ the synchroniser receives messages from the channel $d$.
 
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
@@ -277,7 +282,7 @@ foo {
 
 
   \subsubsection{State expressions}
-State expression is a combination of integer constants, state variables and operators, which computes and produces an integer value. The interpretation of a state expression follows C rules of precedence and association. State expressions can be assigned to state variables. In assumption that the output channel is infinite a synthetic example in Fig. \ref{sync_state_exp} counts the number of messages received from channel connected to the port $a$ between the arrivals of messages in channel connected to the port $b$. Line 1 declares the 8-bit integer $count$ and initialises it with 0. When a message from channel connected to the port $a$ is received the value of $count$ increases by 1 (line 5).
+State expression is a combination of integer constants, state variables and operators, which computes and produces an integer value. The interpretation of a state expression follows C rules of precedence and association. State expressions can be assigned to state variables. In assumption that the output channel is infinite a synthetic example in Fig. \ref{sync_state_exp} counts the number of messages received from channel $a$ between the arrivals of messages in channel $b$. Line 1 declares the 8-bit integer $count$ and initialises it with 0. When a message from $a$ is received the value of $count$ increases by 1 (see line 5).
 
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
@@ -299,7 +304,7 @@ foo {
 \label{sync_state_exp}
 \end{figure}
 
-When a message from channel connected to the port $b$ is received the value of $count$ is stored in the temporary variable $n$, set to 0 and then $n$ is sent to the output channel.
+When a message from channel $b$ is received the value of $count$ is stored in the temporary variable $n$, set to 0 and then $n$ is sent to the output channel.
 
 The variable $n$ does not have to be declared and is considered alias for the integer expression. Temporary variables are available until the state machine of a synchroniser makes the next move.
 
@@ -307,9 +312,9 @@ The variable $n$ does not have to be declared and is considered alias for the in
   \subsubsection{Triggering of a transition}
 The channel name on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available. Whether a transition takes place depends on the channel status and optionally the content of the messages.
 
-When a message is received on a channel, it can be matched with a pattern in order to extract parameters needed to select a specific transition. Line 3 of Fig. \ref{sync_trans} checks if a message received from the input channel connected to the port $a$ contains label $x$. If it does, the contents of $x$ are stored in a temporary variable $x$. The tail of the message, i.e. everything but the part labeled $x$, is stored in a temporary variable $t$. Both $x$ and $t$ are read-only and available until the state machine makes a move.
+When a message is received on a channel, it can be matched with a pattern in order to extract parameters needed to select a specific transition. In line 3 of Fig. \ref{sync_trans} it is checked whether a message received from the input channel $a$ is a unique choice. Then the unique record is checked whether it contains a label $x$. If it does, the contents of $x$ are stored in a temporary variable $x$. The tail of the message, i.e. all label-term pairs except for the term labeled $x$, is stored in a temporary variable $t$. Both $x$ and $t$ are read-only and available until the state machine makes the next move.
 
-TODO: Fix; everything in $.?v(.... \|\| tail)$ before $\|\|$ are integers.
+%TODO: Fix; everything in $.?v(.... || tail)$ before $||$ are integers.
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
 \begin{lstlisting}[frame=single]
@@ -325,13 +330,13 @@ foo {
 \label{sync_trans}
 \end{figure}
 
-To support message formats where several variants of a message are possible, a qualifier \begin{bf}?\end{bf}$\alpha$ is available as an input condition. It qualifies input messages as belonging to $\alpha$ variant. Line 4 of Fig. \ref{sync_trans} checks if a message received from channel connected to the port $a$ belongs to the variant $v$. Line 5 checks that a message that belongs to the variant $v$ contains only two records labeled $x$ and $y$. 
+To support message formats where several variants of a message are possible, a qualifier \begin{bf}?\end{bf}$\alpha$ is available as an input condition. It qualifies input messages as belonging to $\alpha$ variant. In line 4 of Fig. \ref{sync_trans} it is checked whether a message received from channel $a$ belongs to the variant $v$. In line 5 it is checked whether a message that belongs to the variant $v$ contains only two records labeled $x$ and $y$. 
 
 A channel carries a stream that consists of messages and possibly segmentation marks. In line 6 in Fig. \ref{sync_trans} a message is checked if it is a segmentation mark of the depth $k$. The depth of a segmentation mark can be a state expression.
 
 Several different channels can be tested in any given state, however, once the readiness of a channel was established, the synchroniser is committed. Hence the set of conditions applied to the message on any input channel must be exhaustive. In Fig. \ref{sync_trans} it is not, because there no pattern for messages that do not contain label $x$, do not belong to variant $v$ and are not a segmentation mark of depth $k$ at the same time. In this case the final clause $a$\begin{bf}.else;\end{bf} is assumed. This clause discards the input message and transitions the synchroniser back to its current state.
 
-A transition can be guarded by a state expression. In this case the transition fires only if the guarding expression evaluates to true. The synchroniser in Fig. \ref{sync_g_state_exp} sends every 256-th message to the output channel. Line 1 declares the 8-bit state variable $i$ that is initialised with 0. It is incremented every time a message from channel connected to the port $a$ is received, except when it reaches 255, in which case it is reset 0 and the received message is sent down the channel $c$. 
+A transition can be guarded by a state expression. In this case the transition fires only if the guarding expression evaluates to true. The synchroniser in Fig. \ref{sync_g_state_exp} sends every 256-th message to the output channel. In line 1 the 8-bit state variable $i$ is declared and initialised with 0. The variable is incremented every time a message from channel $a$ is received, except for when it reaches 255, in which case it is reset to 0 and the received message is sent down the channel $c$. 
 
 Values that are matched from the message can be used in guarding state expressions.
 \begin{figure}[h!]
@@ -356,9 +361,9 @@ start {
 
   \subsubsection{Store expressions and sending messages}
 %% TODO Probably fix it after writing about CAL terms.
-Store expression is a mechanism to combine data. Data are typed in \ak\. Types are CAL terms. Store expression concatenates data in the user-defined order and therefore results in the data of a valid CAL type. The result of the store expression can be either stored in a store variable or sent down the output channel.
+Store expression is a mechanism to combine data. Data are typed in \ak\. Types are CAL terms. Store expression concatenates data and therefore results in the data of a valid CAL type. The result of the store expression can be either stored in a store variable or sent down the output channel.
 
-The example in Fig. \ref{sync_send} demonstrates the use of store expressions and the $send$ clause. In the start state the synchroniser receives messages from channel connected to the port $a$ that has label $n$ in it. In line 5 the value under label $n$ is incremented and stored in the store variable $ma$ under label $n$ together with the tail $t$. The syntactic sugar for defining a record is supported. The operator $'$ applied to the variable $x$ creates the record $'x': value(x)$.
+The example in Fig. \ref{sync_send} demonstrates the use of store expressions and the $send$ clause. In the start state the synchroniser receives messages from channel $a$ that has label $n$ in it. In line 5 the value under label $n$ is incremented and stored in the store variable $ma$ under label $n$ together with the tail $t$. The syntactic sugar for defining a record is supported. The operator $'$ applied to the variable $x$ creates the record $'x': value(x)$.
 
 %% TODO Provide a more convincing example for 'id and this
 \begin{figure}[h!]
@@ -384,8 +389,7 @@ s1 {
 \label{sync_send}
 \end{figure}
 
-A message received on a channel is referred to by the keyword $this$ within the active transition. In state $s1$ the synchroniser receives messages from channel connected to the port $b$. When a message is received, it is concatenated with the store variable $ma$ (line 12) and sent to the output channel connected to the port $c$.
-
+A message received on a channel is referred to by the keyword $this$ within the active transition. In state $s1$ the synchroniser receives messages from channel $b$. When a message is received, it is concatenated with the store variable $ma$ (see line 12) and sent to the output channel $c$.
 
 
 
@@ -407,18 +411,29 @@ on-elseon execution order, dead $elseon$ code with $\langle chan \rangle .else$
 
 
 \section{The implementation of the $aksync$ compiler}
-The implementation of the compiler is written in Python (TODO: cite a cookbook), with code generation to an intermediate representation that is used by the \ak\ runtime system.
+In this section we describe the implementation of the \ak\ synchroniser compiler $aksync$. At the current stage of the \ak\ software stack development the $aksync$ compiler is highly integrated into the \ak\ runtime system prototype. Like the runtime system the $aksync$ compiler is implemented in Python. It generates an intermediate representation of the synchroniser program that is passed to the synchroniser runtime.
+
+Lexical and syntax analysers are implemented using PLY \cite{ply} - an implementation of lex and yacc parsing tools for Python. Semantic analyser performs syntactic and type checking. Code optimiser is a framework for writing optimisation passes, which currently has only dead code elimination. Code generator emits synchroniser's runtime data structure and derives synchroniser's CAL passport.
+
 
 \subsection{Lexical analysis}
-  \paragraph{Lexical analyser} PLY
+  \paragraph{Lexical analyser}
+The lexical analyser reads the stream of characters making up the source program and groups the characters into lexemes. For each lexeme, the lexical analyser produces a token of the form $\langle name, \: value \rangle$ that it passes to the syntax analyser. For tokens that do not need $value$, such as punctuation symbols, reserved words and keywords, the second component is omitted. Punctuation symbols, reserved words and keywords are given in Appendix \ref{sync_kw}.
+
+PLY implements the way in which traditional lex/yacc tools work. Specifically, Python lex provides an external interface in the form of a \texttt{token()} function that returns the next valid token on the input stream. Token positional information, which is useful in the context of error handling, is managed by Python yacc.
+
   \paragraph{Preprocessor}
 %%%
 %%% We removed macros from the language. The compiler must invoke a preprocessor to expand them.
 %%%
-%The synchroniser language provides macros to avoid having to trivially alter synchroniser programs. Macros are specified in brackets between the synchroniser's name and its channel signature. An example of a configurable synchroniser can be found in \cite{astrakahn}.
-Preprocessor performs (a C-like) macro expansion. There's no preprocessor directives in the synchroniser language (like \#define in C). Preprocessor commands are passed to it as a part of the compiler invocation command (a special flag like -Dday=night in C).
+The original synchroniser language in \cite{astrakahn} provides integer configuration parameters to avoid having to trivially alter synchroniser programs. They are specified in brackets between the synchroniser's name and its channel signature. A program that has to be compiled with input parameters makes the analyses in the compiler more conservative. Thus, the best option is to have all parameters substituted before the compilation begins.
 
-With the preprocessor we implement configuration paramenters from the original synchroniser language. Explain why they were removed. Explain what is bad about macros (can substitute anything, even a piece of code).
+For the sake of simplicity, we implement the substitution in a tiny lexical preprocessor. Lexical preprocessor requires only lexical analysis. It performs simple substitution of tokenized character sequences for other tokenized character sequences, according to user-defined rules. The implemented preprocessor does not support any directives and only performs macro substitution. Macros are held in a dictionary data structure and are read from the compiler invocation command.
+
+With the implementation that is described above, configuration parameters do not have to be specified in the synchroniser program. However, the lexical preprocessor implementation of configuration parameters has a serious drawback: a macro can define any substitution. There is no way to make sure that a macro defines a rule for an integer parameter substitution because lexical analysis does not know anything about program structure and semantics. However, at least we can detect rules that are obviously not meant for integer parameter substitution.
+
+%With the preprocessor we implement configuration paramenters from the original synchroniser language. Explain why they were removed. Explain what is bad about macros (can substitute anything, even a piece of code).
+
 
 \subsection{Syntax analysis}
   \paragraph{Syntax alanyser} PLY. Syntax-directed translation. A translation scheme embeds program fragments called semantic actions in production bodies (TODO Dragon book, p.107)
@@ -516,7 +531,11 @@ If $x$ or $y$ are used in a state expression, their type is assigned to Int.
 A state expression is specified in brackets. Everything in state expression is integer.
 If an assignment is being parsed and no brackets were specified in assignment expression, then it is a store expression.
 
-  \paragraph{Static checking}
+
+\subsection{Semantic analysis}
+  \paragraph{Semantic analyser}
+Static checking.
+
 Static checks are consistency checks that are done during compilation. Not only do they assure that a program can be compiled successfully, but they also catch programming errors early. Static checking includes:
 \begin{itemize}
 \item Syntactic checking. Constraints such as an identifier is declared at most once in a scope (TODO: more)
@@ -528,13 +547,8 @@ Reserved words $nil$ and $this$ can't be identifiers
 If an identifier was met and it is already in the current scope of symbol table, it must have the same type (int or data) as before.
 \end{itemize}
 
-    \paragraph{Tests}
-Uses standard python unittest module.
-Expands AST into nested list.
+ Architecture of the analyser. Pattern visitor?
 
-\subsection{Semantic analysis}
-  \paragraph{Semantic analyser}
-Architecture of the analyser. Pattern visitor?
 
   \paragraph{Checks}
 \begin{enumerate}
@@ -608,6 +622,10 @@ The result has a valid CAL term.
 If the right-hand side of an assignment is not in brackets, it is a store expression.
 
 \end{enumerate}
+
+    \paragraph{Tests}
+Uses standard python unittest module.
+Expands AST into nested list.
 
 
 \subsection{Code optimisation}
