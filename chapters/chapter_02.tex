@@ -602,6 +602,20 @@ tmp.\emph{type} = \texttt{\{ \iangled{$p_1$}:\emph{void}, \dots \iangled{$p_n$}:
 \hline
 
 \parbox{0.5\textwidth}{
+\iangled{send\_stmt} ::= \tangled{send} \iangled{dispatch} [\tangled{,} \iangled{dispatch}* \tangled{;}
+
+\iangled{dispatch} ::= \iangled{msg\_exp} \tangled{=>} \iangled{ID}
+} & \parbox{0.5\textwidth}{
+tmp = OutChantab.\emph{get}(\iangled{ID})
+
+\emph{if not} tmp
+
+~~\emph{error}
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
 \iangled{goto\_stmt} ::= \tangled{goto} \iangled{id\_list} \tangled{;}
 } & \parbox{0.5\textwidth}{
 \emph{foreach} \texttt{id} \emph{in} \iangled{id\_list}
@@ -612,6 +626,7 @@ tmp.\emph{type} = \texttt{\{ \iangled{$p_1$}:\emph{void}, \dots \iangled{$p_n$}:
 }\\
 
 \hline
+
 \end{tabular*}
 \caption{Type checking scheme}
 \end{sidewaystable}
@@ -719,7 +734,7 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 
 \iangled{op} ::= \tangled{+} $\mid$ \tangled{-} $\mid$ \tangled{*} $\mid$ \tangled{/} $\mid$ \tangled{\%}
 
-~~$\mid$ \tangled{<<} $\mid$ \tangled{>>} $\mid$ \tangled{|} $\mid$ \tangled{\&} $\mid$ \tangled{\^}
+~~$\mid$ \tangled{<<} $\mid$ \tangled{>>} $\mid$ \tangled{|} $\mid$ \tangled{\&} $\mid$ \tangled{\textasciicircum}
 
 ~~$\mid$ \tangled{<} $\mid$ \tangled{>} $\mid$ \tangled{==} $\mid$ \tangled{!=} $\mid$\tangled{<=}
 
@@ -755,9 +770,77 @@ Production & Semantic Action\\
 \hline
 
 \parbox{0.5\textwidth}{
+\iangled{data} ::= \iangled{item\_list}
 
+\iangled{item\_list} ::= \iangled{item} [\tangled{||} \iangled{item}]*
 } & \parbox{0.5\textwidth}{
+\emph{foreach} \texttt{item} \emph{in} \iangled{item\_list}
 
+~~\iangled{data}.\emph{type} = \iangled{data}.\emph{type} $||$ \texttt{item}.\emph{type}
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{item} ::= \tangled{this}
+} & \parbox{0.5\textwidth}{
+tmp = Symtab.\emph{get}(\tangled{this})
+
+\iangled{item}.\emph{type} = tmp.\emph{type}
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{item} ::= \iangled{ID}
+} & \parbox{0.5\textwidth}{
+tmp = Symtab.\emph{get}(\iangled{ID})
+
+\emph{if not} tmp
+
+~~\emph{error}
+
+\emph{if} tmp.\emph{type == int}
+
+~~\emph{error}
+
+\iangled{item}.\emph{type} = tmp.\emph{type}
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{item} ::= \tangled{\'} \iangled{ID}
+} & \parbox{0.5\textwidth}{
+tmp = Symtab.\emph{get}(\iangled{ID})
+
+\emph{if not} tmp
+
+~~\emph{error}
+
+\iangled{item}.\emph{type} = \{ \tangled{ID}:tmp.\emph{type} \}
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{item} ::= \iangled{ID} \tangled{:} \iangled{rhs}
+
+\iangled{rhs} ::= \iangled{int\_exp} $\mid$ \iangled{rhs\_ID}
+
+\iangled{rhs\_ID} ::= \iangled{ID}
+} & \parbox{0.5\textwidth}{
+\emph{if} \iangled{rhs\_ID}
+
+~~tmp = Symtab.\emph{get}(\iangled{rhs\_ID})
+
+~~\emph{if not} tmp
+
+~~~~\emph{error}
+
+tmp = Symtab.\emph{get}(\iangled{ID})
+
+\iangled{item}.\emph{type} = \{ \tangled{ID}:\iangled{rhs}.\emph{type} \}
 }\\
 
 \hline
@@ -766,45 +849,6 @@ Production & Semantic Action\\
 \caption{Type system for data expressions}
 %\end{sidewaystable}
 \end{figure}
-
-
-
-
-
-\begin{figure}
-\begin{grammar}
-
-%<state> ::= <ID> `{' `on:' <trans\_stmt>$^+$ [`elseon:' <trans\_stmt>$^+$]* `}'
-%<actions> ::= `{' [<set\_stmt>] [<send\_stmt>] [<goto\_stmt>] `}'
-
-%<set\_stmt> ::= `set' <assign> [`,' <assign>]* `;'
-<send\_stmt> ::= `send' <dispatch> [`,' <dispatch>]*  `;'
-
-<dispatch> ::= <msg\_exp> `=>' <ID>
-
-<msg\_exp> ::= `@' <ID>
-           \alt `@' <int\_exp>
-           \alt [`?' <ID>] <data\_exp>
-           \alt `nil'
-
-%<data\_exp> ::= <data>
-%             \alt `(' <data> `)'
-
-<data> ::= <item> [`||' <item>]*
-
-<item> ::= `this'
-        \alt <ID>
-        \alt `\'' <ID>
-        \alt <ID> `:' <rhs>
-
-<rhs> ::= <int\_exp>
-          \alt <ID>
-
-\end{grammar}
-\caption{The syntax of the \ak\ synchroniser}
-\end{figure}
-
-
 
 
 If an identifier was met and it is already in the current scope of symbol table, it must have the same type (int or data) as before.
