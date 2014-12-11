@@ -21,7 +21,7 @@
         \alt `state' <type> <id\_list> `;'
 
 <type> ::= `int' `(' <NUMBER> `)'
-                  \alt `enum' `(' <id_list> `)'
+                  \alt `enum' `(' <id\_list> `)'
 
 <state> ::= <ID> `{' `on:' <trans\_stmt>$^+$ [`elseon:' <trans\_stmt>$^+$]* `}'
 
@@ -29,7 +29,7 @@
 
 <condition> ::= `@' <ID>
              \alt `?' <ID>
-             \alt [`?' <ID>] `(' <id_list> [`||' <ID> ]`)'
+             \alt [`?' <ID>] `(' <id\_list> [`||' <ID> ]`)'
              \alt `else'
 
 <actions> ::= `{' [<set\_stmt>] [<send\_stmt>] [<goto\_stmt>] `}'
@@ -64,13 +64,43 @@
 
 <id\_list> ::= <ID> [`,' <ID>]*
 
-<int\_exp> ::= `[' <int_exp_c> `]'
+<int\_exp> ::= `[' <int\_exp\_c> `]'
 \end{grammar}
 \caption{The syntax of the \ak\ synchroniser}
 \end{figure}
 
 
     \section{The integer expression grammar\label{int_exp_gr}}
+\setlength{\grammarindent}{8em} % increase separation between LHS/RHS
+\begin{figure}[h!]
+\scriptsize
+\begin{grammar}
+<int\_exp\_c> ::= <NUMBER>
+                \alt <ID>
+                \alt `(' <int\_exp\_c> `)'
+                \alt <int\_exp\_c> `+' <int\_exp\_c>
+                \alt <int\_exp\_c> `-' <int\_exp\_c>
+                \alt <int\_exp\_c> `*' <int\_exp\_c>
+                \alt <int\_exp\_c> `/' <int\_exp\_c>
+                \alt <int\_exp\_c> `\%' <int\_exp\_c>
+                \alt <int\_exp\_c> `<<' <int\_exp\_c>
+                \alt <int\_exp\_c> `>>' <int\_exp\_c>
+                \alt <int\_exp\_c> `|' <int\_exp\_c>
+                \alt <int\_exp\_c> `&' <int\_exp\_c>
+                \alt <int\_exp\_c> `^' <int\_exp\_c>
+                \alt `-' <int\_exp\_c> %prec UMINUS
+                \alt <int\_exp\_c> `<' <int\_exp\_c>
+                \alt <int\_exp\_c> `>' <int\_exp\_c>
+                \alt <int\_exp\_c> `==' <int\_exp\_c>
+                \alt <int\_exp\_c> `!=' <int\_exp\_c>
+                \alt <int\_exp\_c> `<=' <int\_exp\_c>
+                \alt <int\_exp\_c> `>=' <int\_exp\_c>
+                \alt `!' <int\_exp\_c>
+                \alt <int\_exp\_c> `&&' <int\_exp\_c>
+                \alt <int\_exp\_c> `||' <int\_exp\_c>
+\end{grammar}
+\caption{The syntax of the integer expression in \ak\ synchroniser}
+\end{figure}
 
 
     \section{Keywords, reserved words and punctuation\label{sync_kw}}

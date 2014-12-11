@@ -467,78 +467,13 @@ The implementation of a chained symbol table is described in \cite{dragonbook}.
 
 %The symbol table contains types and (possibly) locations. Builing of a symbol table Dragon book p.90.
 
-  \section{Syntax-driven Type Inference}
-Special language constructs simplify type inference (probably it's not a good word here).
-
-If $x$ or $y$ are used in a state expression, their type is assigned to Int.
-
-A state expression is specified in brackets. Everything in state expression is integer.
-If an assignment is being parsed and no brackets were specified in assignment expression, then it is a store expression.
-
-
-$x$ and $y$ are assigned a special type None.
-\begin{figure}[h!]
-\begin{lstlisting}
-// typeof(x) = None means a term variable
-a.?v(x, y || t) {
-  // typeof(x) = None
-  // typeof(y) = None
-  // typeof(this) = DataTyp(h={'x': typeof(x), 'y': typeof(y)}, t='t')
-  // typeof(a) = DataTyp(h={'v': typeof(this)}, t='a_tail')
-
-  set n = [x+1], ma = (this || id:y);
-  // typeof(x) = IntTyp(None)
-  // typeof(n) = IntTyp(None)
-  // typeof(ma) = DataTyp(h=typeof(this).h+{'id': typeof(y)}, t='t')
-
-  send (ma || 'n':n) => c;
-  // typeof(c) = DataTyp(h=typeof(ma).h+{'n': typeof(n)}, t='t')
-}
-
-a.?v(x, y || t) {
-  // typeof(x) = None
-  // typeof(y) = None
-  // typeof(this) = DataTyp(h={'x': typeof(x), 'y': typeof(y)}, t='t')
-??  // typeof(a) = DataTyp(h={'v': typeof(this)}, t='a_tail')
-
-  set ma = (this || y);
-  // typeof(n) = IntTyp(None)
-  // typeof(ma) = DataTyp(h=typeof(this).h+typeof(y).h, t=tailof(this))
-
-  send ?v(ma) => c;
-  // typeof(c) = DataTyp(h={'v':typeof(ma)}, t=None)
-}
-
-
-
-
-// Remove variant 'v'?
-a.?v(x, y || t) {
-// typeof(x) = None
-// typeof(y) = None
-// typeof(this) = DataTyp(h={'x': typeof(x), 'y': typeof(y)}, v='v', t='t')
-// typeof(a) = DataTyp(h={'v': typeof(this)}, v=None, t='tail')
-
-set n = [x];
-// typeof(x) = IntTyp(width=None)
-
-set m = this || x || 'y || id:z
-// typeof(x) = DataTyp(h={'x': None}, v=None, t=None)
-// typeof(y), typeof(z) not influenced
-// typeof(m) = DataTyp(h=typeof(this).h + {'x': None} + {'y': typeof(y)} + {'id': typeof(z)}, v=None, t=tailof(this))
-
-send this || x || 'y || id:z => c
-// typeof(x) = DataTyp(h={'x': None}, v=None, t=None)
-// typeof(y), typeof(z) not influenced
-// typeof(c) = DataTyp(h=typeof(this).h + typeof(x).h + {'y': typeof(y)} + {'id': typeof(z)}, v=None, t=tailof(this))
-
-send ?v(this || x || 'y || id:z) => c
-// typeof(c) = DataTyp(h={'v': typeof(this || x || 'y || id:z)}, v='v', t=None)
-
-\end{lstlisting}
-\label{aa}
-\end{figure}
-
+%  \subsubsection{Syntax-driven Type Inference}
+%Special language constructs simplify type inference (probably it's not a good word here).
+%
+%If $x$ or $y$ are used in a state expression, their type is assigned to Int.
+%
+%A state expression is specified in brackets. Everything in state expression is integer.
+%If an assignment is being parsed and no brackets were specified in assignment expression, then it is a store expression.
 
 
 \subsection{Semantic analysis}
@@ -553,6 +488,324 @@ Static checks are consistency checks that are done during compilation. Not only 
 Reserved words $nil$ and $this$ can't be identifiers
 
 \item Type checking. The type rules of a language assure that an operator or function is applied to the right number and type of operands.
+
+\emph{put} checks if the symbol was already defined.
+
+
+%\begin{figure}[h!]
+\begin{sidewaystable}
+\def\arraystretch{2} 
+\begin{tabular*}{1\textwidth}{p{0.5\textwidth}|p{0.5\textwidth}}
+\hline
+Production & Semantic Action\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{sync} ::= \tangled{synch} \iangled{ID} \tangled{(} \iangled{input} [\tangled{,} \iangled{input}]*
+
+~~\tangled{|} \iangled{output} [\tangled{,} \iangled{output}]* \tangled{)} \tangled{\{} \iangled{decl}* \iangled{state}$^+$ \tangled{\}}
+} &\\
+\hline
+\parbox{0.5\textwidth}{
+\iangled{input} ::= \iangled{chan} [\tangled{:} (\iangled{ID} $\mid$ \iangled{NUMBER})]
+
+\iangled{chan} ::= \iangled{ID}
+} & \parbox{0.5\textwidth}{
+\emph{foreach} \iangled{chan}
+
+~~InChantab.\emph{put}(\iangled{chan}, \emph{type=void})
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{output} ::= \iangled{chan} [\tangled{:} \iangled{depth\_exp}]
+
+\iangled{chan} ::= \iangled{ID}
+} & \parbox{0.5\textwidth}{
+\emph{foreach} \iangled{chan}
+
+~~OutChantab.\emph{put}(\iangled{chan}, \emph{type=void})
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{decl} ::= \tangled{store} \iangled{store\_id\_list} \tangled{;}
+
+~~$\mid$ \tangled{state} \iangled{type} \iangled{state\_id\_list} \tangled{;}
+
+\iangled{store\_id\_list} ::= \iangled{id\_list}
+
+\iangled{state\_id\_list} ::= \iangled{id\_list}
+} & \parbox{0.5\textwidth}{
+\emph{foreach} \texttt{id} \emph{in} \iangled{store\_id\_list}
+
+~~Symtab.\emph{put}(\texttt{id}, \emph{type=void})
+
+\emph{foreach} \texttt{id} \emph{in} \iangled{state\_id\_list}
+
+~~Symtab.\emph{put}(\texttt{id}, \emph{type=int})
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{trans\_stmt} ::=
+
+~~\iangled{trans\_name} [\tangled{.} \iangled{condition}] [\tangled{\&} \iangled{int\_exp} ] \iangled{actions}
+
+\iangled{trans\_name} ::= \iangled{ID}
+} & \parbox{0.5\textwidth}{
+\emph{if not} InChantab.\emph{get}(\iangled{trans\_name})
+
+~~\emph{error}
+
+Symtab.\emph{put}(\tangled{this}, \emph{type=void})
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{condition} ::= \tangled{@} \iangled{segmark}
+
+~~$\mid$ \tangled{?} \iangled{ID}
+
+~~$\mid$ \tangled{else}
+
+\iangled{segmark} ::= \iangled{ID}
+} & \parbox{0.5\textwidth}{
+\emph{if not} Symtab.\emph{get}(\iangled{segmark})
+
+~~\emph{error}
+}\\
+
+\hline
+
+\parbox{0.6\textwidth}{
+\iangled{condition} ::= [\tangled{?} \iangled{ID}] \tangled{(} \iangled{id\_list} [\tangled{||} \iangled{tail} ]\tangled{)}
+} & \parbox{0.4\textwidth}{
+\emph{foreach} \texttt{id} \emph{in} \iangled{id\_list} $\cap$ \iangled{tail}
+
+~~Symtab.\emph{put}(\texttt{id}, \emph{type=void})
+
+tmp = Symtab.\emph{get}(\tangled{this})
+
+tmp.\emph{type} = \texttt{\{ \iangled{$p_1$}:\emph{void}, \dots \iangled{$p_n$}:\emph{void} \}}, where \emph{$p_1$, \dots $p_n$} are elements of \iangled{id\_list}
+
+\emph{if} \iangled{tail}
+
+~~tmp.\emph{type} = tmp.\emph{type} $\mid$ \iangled{tail}
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{goto\_stmt} ::= \tangled{goto} \iangled{id\_list} \tangled{;}
+} & \parbox{0.5\textwidth}{
+\emph{foreach} \texttt{id} \emph{in} \iangled{id\_list}
+
+~~\emph{if not} InChantab.\emph{get}.(\texttt{id})
+
+~~~~\emph{error}
+}\\
+
+\hline
+\end{tabular*}
+\caption{Type checking scheme}
+\end{sidewaystable}
+%\end{figure}
+
+
+\begin{figure}[h!]
+%\begin{sidewaystable}
+\def\arraystretch{2} 
+\begin{tabular*}{1\textwidth}{p{0.5\textwidth}|p{0.5\textwidth}}
+\hline
+Production & Semantic Action\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{assign} ::= \iangled{dest} \tangled{=} \tangled{[} \iangled{int\_exp\_c} \tangled{]}
+
+\iangled{dest} ::= \iangled{ID}
+} & \parbox{0.5\textwidth}{
+tmp = Symtab.\emph{get}(\iangled{dest})
+
+\emph{if not} tmp
+
+~~Symtab.\emph{put}(\iangled{dest}, \emph{type=int})
+
+\emph{else}
+
+~~\emph{if} tmp.\emph{type} != \emph{int}
+
+~~~~\emph{error}
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{assign} ::= \iangled{dest} \tangled{=} \iangled{data\_exp}
+
+\iangled{data\_exp} ::=
+
+~~(\iangled{data} $\mid$ \tangled{(} \iangled{data} \tangled{)})
+
+} & \parbox{0.5\textwidth}{
+tmp = Symtab.\emph{get}(\iangled{dest})
+
+\emph{if not} tmp
+
+~~\emph{error}
+
+tmp.\emph{type} = \iangled{data\_exp}.\emph{type}
+}\\
+
+\hline
+
+\end{tabular*}
+\caption{Type system for statements}
+%\end{sidewaystable}
+\end{figure}
+
+
+
+\begin{figure}[h!]
+%\begin{sidewaystable}
+\def\arraystretch{2} 
+\begin{tabular*}{1\textwidth}{p{0.5\textwidth}|p{0.5\textwidth}}
+\hline
+Production & Semantic Action\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{int\_exp\_c} ::= \iangled{NUMBER} $\mid$ \iangled{ID}
+} & \parbox{0.5\textwidth}{
+tmp = Symtab.\emph{get}(\iangled{ID})
+
+\emph{if not} tmp
+
+~~\emph{error}
+
+\emph{if} tmp.\emph{type != int}
+
+~~\emph{error}
+
+\iangled{int\_exp\_c}.\emph{type} = \emph{int}
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{int\_exp\_c} ::= \tangled{(} \iangled{$int\_exp\_c_{1}$} \tangled{)}
+
+~~$\mid$ \tangled{-} \iangled{$int\_exp\_c_{1}$}
+
+~~$\mid$ \tangled{!} \iangled{$int\_exp\_c_{1}$}
+} & \parbox{0.5\textwidth}{
+\iangled{int\_exp\_c}.\emph{type} = \iangled{$int\_exp\_c_{1}$}.\emph{type}
+}\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+\iangled{int\_exp\_c} ::=
+
+~~~~\iangled{$int\_exp\_c_{1}$} \iangled{op} \iangled{$int\_exp\_c_{2}$}
+
+\iangled{op} ::= \tangled{+} $\mid$ \tangled{-} $\mid$ \tangled{*} $\mid$ \tangled{/} $\mid$ \tangled{\%}
+
+~~$\mid$ \tangled{<<} $\mid$ \tangled{>>} $\mid$ \tangled{|} $\mid$ \tangled{\&} $\mid$ \tangled{\^}
+
+~~$\mid$ \tangled{<} $\mid$ \tangled{>} $\mid$ \tangled{==} $\mid$ \tangled{!=} $\mid$\tangled{<=}
+
+~~$\mid$ \tangled{>=} $\mid$ \tangled{\&\&} $\mid$ \tangled{||}
+} & \parbox{0.5\textwidth}{
+\emph{if} \iangled{$int\_exp\_c_{1}$}.\emph{type} == \emph{int}
+
+~~\emph{and} \iangled{$int\_exp\_c_{2}$}.\emph{type} == \emph{int}
+
+~~\iangled{int\_exp\_c}.\emph{type} = \emph{int}
+
+\emph{else}
+
+~~\emph{error}
+}\\
+
+\hline
+
+\end{tabular*}
+\caption{Type system for integer expressions}
+%\end{sidewaystable}
+\end{figure}
+
+
+
+\begin{figure}[h!]
+%\begin{sidewaystable}
+\def\arraystretch{2} 
+\begin{tabular*}{1\textwidth}{p{0.5\textwidth}|p{0.5\textwidth}}
+\hline
+Production & Semantic Action\\
+
+\hline
+
+\parbox{0.5\textwidth}{
+
+} & \parbox{0.5\textwidth}{
+
+}\\
+
+\hline
+
+\end{tabular*}
+\caption{Type system for data expressions}
+%\end{sidewaystable}
+\end{figure}
+
+
+
+
+
+\begin{figure}
+\begin{grammar}
+
+%<state> ::= <ID> `{' `on:' <trans\_stmt>$^+$ [`elseon:' <trans\_stmt>$^+$]* `}'
+%<actions> ::= `{' [<set\_stmt>] [<send\_stmt>] [<goto\_stmt>] `}'
+
+%<set\_stmt> ::= `set' <assign> [`,' <assign>]* `;'
+<send\_stmt> ::= `send' <dispatch> [`,' <dispatch>]*  `;'
+
+<dispatch> ::= <msg\_exp> `=>' <ID>
+
+<msg\_exp> ::= `@' <ID>
+           \alt `@' <int\_exp>
+           \alt [`?' <ID>] <data\_exp>
+           \alt `nil'
+
+%<data\_exp> ::= <data>
+%             \alt `(' <data> `)'
+
+<data> ::= <item> [`||' <item>]*
+
+<item> ::= `this'
+        \alt <ID>
+        \alt `\'' <ID>
+        \alt <ID> `:' <rhs>
+
+<rhs> ::= <int\_exp>
+          \alt <ID>
+
+\end{grammar}
+\caption{The syntax of the \ak\ synchroniser}
+\end{figure}
+
+
+
 
 If an identifier was met and it is already in the current scope of symbol table, it must have the same type (int or data) as before.
 \end{itemize}
