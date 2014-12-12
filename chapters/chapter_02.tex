@@ -450,10 +450,10 @@ Syntax error handling and recovery mechanism in PLY is comparable to the one of 
 %TODO: structure of the AST.
 %AST generator by Eli Bendersky with the reference.
 
-  \subsubsection{Symbol table}
+  \subsubsection{Symbol Table}
 Symbol tables are data structures used by compilers to hold information about identifiers in a program's source code. A semantic action puts information about identifier $x$ into the symbol table, when the declaration of $x$ is analysed. Subsequenlty, a semantic action associated with a production that involves an identifier gets information about the identifier from the symbol table.
 
-The scope of a declaration is the portion of a program to which the declaration applies. In synchroniser code state and store variables are visible for all states and transitions. State expression aliases and pattern-matched variables are visible only within the active transition. We have implemented scopes by setting up a root symbol table for state and store variables and a separate symbol table for each transition and chaining them. The chaining of the symbol tables is illustrated in Fig. \ref{fig:symtab_chain}.
+The scope of a declaration is the portion of a program to which the declaration applies. In synchroniser code state and store variables are visible for all states and transitions. State expression aliases and pattern-matched variables are visible only within the active transition. We have implemented scopes using a chained symbol table approach described in \cite{dragonbook}. We set up a root symbol table for state and store variables and separate symbol tables for each transition. The tables are chained as illustrated in Fig. \ref{fig:symtab_chain}.
 
   \begin{figure}[h!]
   \centering
@@ -462,35 +462,82 @@ The scope of a declaration is the portion of a program to which the declaration 
   \label{fig:symtab_chain}
   \end{figure}
 
-The implementation of a chained symbol table is described in \cite{dragonbook}.
+The symbol table implementation supports three operations: create a new symbol table, put a new entry in the table and get an entry for an identifier by searching the chain of tables starting with the table for the current transition. We refer to these operations as \emph{NewSymtab}(symtab), symtab.\emph{put}(\emph{ID, value}) and symtab.\emph{get}(\emph{ID}). The pseudo-code implementations of symtab.\emph{get} and symtab.\emph{put} are given in Fig. \ref{symtab_get} and Fig. \ref{symtab_put} respectively.
+
+\begin{figure}[h!]
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+\Function{get}{$symtab, id$}
+  \While{$symtab \; is \; not \; void$}
+    \State $tmp\gets get(symtab, id)$
+    \If{$tmp$}
+      \State \textbf{return} \emph{tmp}
+    \Else
+      \State $symtab\gets previous(symtab)$\Comment{\emph{previous(symtab)} returns a symbol table of the most-closely outer scope}
+    \EndIf
+  \EndWhile
+  \State \textbf{return} \emph{not\_found}
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
+}
+\caption{Getting an entry for an identifier from the chained symbol table\label{symtab_get}}
+\end{figure}
+
+
+\begin{figure}[h!]
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+\Function{put}{$symtab$, $id$, $value$}
+  \State $tmp\gets get(symtab, id)$
+  \If{$not \; tmp$}
+    \State $symtab\gets (id, value)$
+  \Else
+    \State $duplicates\_error$
+  \EndIf
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
+}
+\caption{Putting a new entry in the symbol table\label{symtab_put}}
+\end{figure}
+
+
+
 %Chaining of symbol tables results in a tree structure (probably we can simplity it somehow, because we do not really need a tree of scopes).
 
 %The symbol table contains types and (possibly) locations. Builing of a symbol table Dragon book p.90.
 
-%  \subsubsection{Syntax-driven Type Inference}
-%Special language constructs simplify type inference (probably it's not a good word here).
-%
-%If $x$ or $y$ are used in a state expression, their type is assigned to Int.
-%
-%A state expression is specified in brackets. Everything in state expression is integer.
-%If an assignment is being parsed and no brackets were specified in assignment expression, then it is a store expression.
 
-
-\subsection{Semantic analysis}
-  \paragraph{Semantic analyser}
-%Static checking.
-In addition to creating a intermediate representation, a compiler fromt end checks that the source program follows the syntactic and semantic rules of the course language. This checking is called static checking. Static checking is done by compiler. It assures that certain kinds of programming errors, including type mismatched, are detected and reported during compilation.
+\subsection{Semantic Analysis}
+In addition to creating a intermediate representation, a compiler front end checks that the source program follows the syntactic and semantic rules of the source language. This checking is called static checking. Static checking is done by compiler. It assures that certain kinds of programming errors, including type mismatched, are detected and reported during compilation.
 
 Static checks are consistency checks that are done during compilation. Not only do they assure that a program can be compiled successfully, but they also catch programming errors early. Static checking includes:
 \begin{itemize}
 \item Syntactic checking. Constraints such as an identifier is declared at most once in a scope (TODO: more)
-
-Reserved words $nil$ and $this$ can't be identifiers
-
 \item Type checking. The type rules of a language assure that an operator or function is applied to the right number and type of operands.
+\end{itemize}
+
+  \subsubsection{Syntactic Checking}
 
 \emph{put} checks if the symbol was already defined.
 
+\begin{figure}[h!]
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}
+\Function{init}{}
+    \State $InChantab\gets NewSymtab(void)$
+    \State $OutChantab\gets NewSymtab(void)$
+    \State $RootSymtab\gets NewSymtab(void)$
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
+}
+\caption{Initialisation of symbol tables}
+\end{figure}
 
 %\begin{figure}[h!]
 \begin{sidewaystable}
@@ -555,12 +602,18 @@ Production & Semantic Action\\
 \iangled{trans\_stmt} ::=
 
 ~~\iangled{trans\_name} [\tangled{.} \iangled{condition}] [\tangled{\&} \iangled{int\_exp} ] \iangled{actions}
+} &\\
 
+\hline
+
+\parbox{0.5\textwidth}{
 \iangled{trans\_name} ::= \iangled{ID}
 } & \parbox{0.5\textwidth}{
-\emph{if not} InChantab.\emph{get}(\iangled{trans\_name})
+\emph{if not} InChantab.\emph{get}(\iangled{ID})
 
 ~~\emph{error}
+
+Symtab = NewSymtab(\emph{RootSymtab})
 
 Symtab.\emph{put}(\tangled{this}, \emph{type=void})
 }\\
@@ -628,10 +681,89 @@ tmp = OutChantab.\emph{get}(\iangled{ID})
 \hline
 
 \end{tabular*}
-\caption{Type checking scheme}
+\caption{Symbol tables filling and duplicate declaration checking}
 \end{sidewaystable}
 %\end{figure}
 
+Other checks:
+\begin{enumerate}
+\item Reserved words $nil$ and $this$ can't be identifiers
+
+\item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of one of the input channels. $p$ is not allowed anywhere in state expressions.
+  \begin{itemize}
+  \item (a:p | b:p+1) - allowed
+  \item (a:p | b:0) - allowed
+  \item (a:p | b:r) - allowed
+  \item (a:p | b:r+1) - NOT allowed
+  \end{itemize}
+The special depth $-1$ indicated that the channel is not used. Therefore, if it is an input channel, all the transitions reading from it can be removed. If it is an output channel, and the transition that sends to this channel is valid, then an error must occur.
+
+!!Probably avoid writing a visitor!! Visitor for ports that returns their depths which are IDs.
+For the input and output channels sets that are returned by the visitor are equal.
+Do we really need visitor for it?
+
+Symtab: Check that transitions in states are made on the specified in signature input channels and messages are sent on the specified output channels.
+
+\item State variables.
+State variables are in global scope.
+
+int(n) a, b, c; n denotes only the value range of a state variable. It decreases the number of possible states of a synchroniser. $a$, $b$ and $c$ must always be within range $[0; 2^{n}-1]$ (int is unsigned). At low level state variables are machine- and target language- dependent integers.
+
+The translation scheme in Fig. \ref{std} presents state variable types and their ranges.
+
+(Table: grammar rule - type/width, p.375 Dragon book).
+\begin{figure}[h!]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+Type & Values\\
+\hline
+int(n) & $[0; 2^{n}-1] \cap \mathbb{Z}$\\
+\hline
+enum($a_1$, $a_2$, $\dots$ $a_n$) & $[0; n-1] \cap \mathbb{Z}$\\
+\hline
+enum($a_1=N_1$, $a_2=N_2$, $\dots$ $a_n=N_n$) & $N_1$, $N_2$, $\dots$ $N_n$\\
+\hline
+\end{tabular}
+\caption{Computing types and their value ranges}
+\label{std}
+\end{figure}
+
+(TODO: Probably it is a static check that can be done right from parser)
+
+Check if the range condition is valid at least for assignments (int(1) x = 10 is not good, should issue a warning, check what would be assigned to x in C). For the state expressions that evaluate during the execution of the synchroniser it's probably ok to delegate the overflow checks to the C compiler.
+
+\item State expressions.
+  \begin{itemize}
+  \item Patterns $(x || t)$ and aliases for state expressions. $x$ and $t$ are in local scope of the active transition.
+
+$x$ and $t$ are read-only.
+
+Probably should not differentiate between pattern variables and aliases. For state and store variables there's a differentiation because we need to know what is included in states of synchroniser (state vars) and what is not (store vars).
+
+If $x$ is used in a state expression, it is integer (has the term 'number'). Tail $t$ can't be used in a state expression; $t$ is always at least a record ($t = (name: value)$).
+
+  \item The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
+
+  \end{itemize}
+
+
+\item Store variables
+Store variables are typed by CAL terms.
+The type of a store variable is determined on the first assignment to it.
+
+\item Store expressions
+The result has a valid CAL term.
+If the right-hand side of an assignment is not in brackets, it is a store expression.
+
+\end{enumerate}
+
+    \paragraph{Tests}
+Uses standard python unittest module.
+Expands AST into nested list.
+
+
+  \subsubsection{Type Checking}
 
 \begin{figure}[h!]
 %\begin{sidewaystable}
@@ -673,6 +805,10 @@ tmp = Symtab.\emph{get}(\iangled{dest})
 tmp = Symtab.\emph{get}(\iangled{dest})
 
 \emph{if not} tmp
+
+~~\emph{error}
+
+\emph{if} tmp.\emph{type == int}
 
 ~~\emph{error}
 
@@ -759,6 +895,7 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 \end{figure}
 
 
+Define the $||$ operation for data.
 
 \begin{figure}[h!]
 %\begin{sidewaystable}
@@ -810,7 +947,7 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 \hline
 
 \parbox{0.5\textwidth}{
-\iangled{item} ::= \tangled{\'} \iangled{ID}
+\iangled{item} ::= \tangled{'} \iangled{ID}
 } & \parbox{0.5\textwidth}{
 tmp = Symtab.\emph{get}(\iangled{ID})
 
@@ -852,87 +989,10 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 
 
 If an identifier was met and it is already in the current scope of symbol table, it must have the same type (int or data) as before.
-\end{itemize}
 
- Architecture of the analyser. Pattern visitor?
-
-
-  \paragraph{Checks}
-\begin{enumerate}
-\item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of one of the input channels. $p$ is not allowed anywhere in state expressions.
-  \begin{itemize}
-  \item (a:p | b:p+1) - allowed
-  \item (a:p | b:0) - allowed
-  \item (a:p | b:r) - allowed
-  \item (a:p | b:r+1) - NOT allowed
-  \end{itemize}
-The special depth $-1$ indicated that the channel is not used. Therefore, if it is an input channel, all the transitions reading from it can be removed. If it is an output channel, and the transition that sends to this channel is valid, then an error must occur.
-
-!!Probably avoid writing a visitor!! Visitor for ports that returns their depths which are IDs.
-For the input and output channels sets that are returned by the visitor are equal.
-Do we really need visitor for it?
-
-Check that transitions in states are made on the specified in signature input channels and messages are sent on the specified output channels.
-
-\item State variables.
-State variables are in global scope.
-
-int(n) a, b, c; n denotes only the value range of a state variable. It decreases the number of possible states of a synchroniser. $a$, $b$ and $c$ must always be within range $[0; 2^{n}-1]$ (int is unsigned). At low level state variables are machine- and target language- dependent integers.
-
-The translation scheme in Fig. \ref{std} presents state variable types and their ranges.
-
-(Table: grammar rule - type/width, p.375 Dragon book).
-\begin{figure}[h!]
-\centering
-\begin{tabular}{|c|c|}
-\hline
-Type & Values\\
-\hline
-int(n) & $[0; 2^{n}-1] \cap \mathbb{Z}$\\
-\hline
-enum($a_1$, $a_2$, $\dots$ $a_n$) & $[0; n-1] \cap \mathbb{Z}$\\
-\hline
-enum($a_1=N_1$, $a_2=N_2$, $\dots$ $a_n=N_n$) & $N_1$, $N_2$, $\dots$ $N_n$\\
-\hline
-\end{tabular}
-\caption{Computing types and their value ranges}
-\label{std}
-\end{figure}
-
-(TODO: Probably it is a static check that can be done right from parser)
-
-Check if the range condition is valid at least for assignments (int(1) x = 10 is not good, should issue a warning, check what would be assigned to x in C). For the state expressions that evaluate during the execution of the synchroniser it's probably ok to delegate the overflow checks to the C compiler.
-
-\item State expressions. Probably it is all static check as well.
-  \begin{itemize}
-  \item Patterns $(x || t)$ and aliases for state expressions. $x$ and $t$ are in local scope of the active transition.
-
-(TODO: think if it should be restricted). $x$ and $t$ musn't be declared global - otherwise it is an error??
-
-$x$ and $t$ are read-only.
-
-Probably should not differentiate between pattern variables and aliases. For state and store variables there's a differentiation because we need to know what is included in states of synchroniser (state vars) and what is not (store vars).
-
-If $x$ is used in a state expression, it is integer (has the term 'number'). Tail $t$ can't be used in a state expression; $t$ is always at least a record ($t = (name: value)$).
-
-  \item The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
-
-  \end{itemize}
+Architecture of the analyser. Pattern visitor?
 
 
-\item Store variables
-Store variables are typed by CAL terms.
-The type of a store variable is determined on the first assignment to it.
-
-\item Store expressions
-The result has a valid CAL term.
-If the right-hand side of an assignment is not in brackets, it is a store expression.
-
-\end{enumerate}
-
-    \paragraph{Tests}
-Uses standard python unittest module.
-Expands AST into nested list.
 
 
 \subsection{Code optimisation}
@@ -961,7 +1021,10 @@ In the implementation we restrict to choices and records.
 
 None indicates that it is a term variable.
 
+
 Input channels: Fig. \ref{a}.
+We have types of 'this' for each output channel.
+Need to walk the transitions to find all 'this' types that belong to the same channel and then unify them.
 \begin{figure}[h!]
 \begin{lstlisting}
 //term: None (term variable), Int, Record, Choice
@@ -992,6 +1055,9 @@ a.?v(x,y||t) {
 \end{figure}
 
 Output channels: Fig. \ref{b}.
+How is the type of the output channel computed? Give algorithm for 'send' clause.
+Find all sends to the particular channel.
+Walk the variables in every 'send' clause (their types are know) and unify them.
 \begin{figure}[h!]
 \begin{lstlisting}[frame=single]
 //record union with label 'x' collision: {x:type_1, y:...} + {x:type_2, z:...} = {x:union(type_1,type_2), y:..., z:...}
