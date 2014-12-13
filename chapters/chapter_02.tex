@@ -312,7 +312,7 @@ The variable $n$ does not have to be declared and is considered alias for the in
   \subsubsection{Triggering of a transition}
 The channel name on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available. Whether a transition takes place depends on the channel status and optionally the content of the messages.
 
-When a message is received on a channel, it can be matched with a pattern in order to extract parameters needed to select a specific transition. In line 3 of Fig. \ref{sync_trans} it is checked whether a message received from the input channel $a$ is a unique choice. Then the unique record is checked whether it contains a label $x$. If it does, the contents of $x$ are stored in a temporary variable $x$. The tail of the message, i.e. all label-term pairs except for the term labeled $x$, is stored in a temporary variable $t$. Both $x$ and $t$ are read-only and available until the state machine makes the next move.
+When a message is received on a channel, it can be matched with a pattern in order to extract parameters needed to select a specific transition. In line 3 of Fig. \ref{sync_trans} it is checked whether a message received from the input channel $a$ is a unique choice. Then the unique record is checked whether it contains a label $x$. If it does, the contents of $x$ are stored in a temporary variable $x$. The tail of the message, i.e. all label-term pairs except for the term labeled $x$, is stored in a temporary variable $t$. Both $x$ and $t$ are available until the state machine makes the next move. %read-only?
 
 %TODO: Fix; everything in $.?v(.... || tail)$ before $||$ are integers.
 \begin{figure}[h!]
@@ -413,7 +413,7 @@ on-elseon execution order, dead $elseon$ code with $\langle chan \rangle .else$
 \section{The implementation of the $aksync$ compiler}
 In this section we describe the implementation of the \ak\ synchroniser compiler $aksync$. At the current stage of the \ak\ software stack development the $aksync$ compiler is highly integrated into the \ak\ runtime system prototype. Like the runtime system the $aksync$ compiler is implemented in Python. It generates an intermediate representation of the synchroniser program that is passed to the synchroniser runtime.
 
-Lexical and syntax analysers are implemented using PLY \cite{ply} - an implementation of lex and yacc parsing tools for Python. Semantic analyser performs syntactic and type checking. Code optimiser is a framework for writing optimisation passes, which currently has only dead code elimination. Code generator emits synchroniser's runtime data structure and derives synchroniser's CAL passport.
+Lexical and syntax analysers are implemented using PLY \cite{ply} - an implementation of lex and yacc parsing tools for Python. Semantic analyser performs syntactic and type checking. Code generator emits synchroniser's runtime data structure and derives synchroniser's CAL passport.
 
 
 \subsection{Lexical analysis}
@@ -462,7 +462,7 @@ The scope of a declaration is the portion of a program to which the declaration 
   \label{fig:symtab_chain}
   \end{figure}
 
-The symbol table implementation supports three operations: create a new symbol table, put a new entry in the table and get an entry for an identifier by searching the chain of tables starting with the table for the current transition. We refer to these operations as \emph{NewSymtab}(symtab), symtab.\emph{put}(\emph{ID, value}) and symtab.\emph{get}(\emph{ID}). The pseudo-code implementations of symtab.\emph{get} and symtab.\emph{put} are given in Fig. \ref{symtab_get} and Fig. \ref{symtab_put} respectively.
+The symbol table implementation supports three operations: create a new symbol table, put a new entry in the table and get an entry for an identifier by searching the chain of tables starting with the table for the current transition. Later we refer to these operations as \emph{NewSymtab}(symtab), symtab.\emph{put}(\emph{ID, value}) and symtab.\emph{get}(\emph{ID}). The pseudo-code implementations of symtab.\emph{get} and symtab.\emph{put} are given in Fig. \ref{symtab_get} and Fig. \ref{symtab_put} respectively.
 
 \begin{figure}[h!]
 \noindent\fbox{%
@@ -512,11 +512,11 @@ The symbol table implementation supports three operations: create a new symbol t
 
 
 \subsection{Semantic Analysis}
-In addition to creating a intermediate representation, a compiler front end checks that the source program follows the syntactic and semantic rules of the source language. This checking is called static checking. Static checking is done by compiler. It assures that certain kinds of programming errors, including type mismatched, are detected and reported during compilation.
+In addition to creating an intermediate representation, a compiler front end checks that the source program follows the syntactic and semantic rules of the source language. This checking is called static checking. It assures that certain kinds of programming errors, including type mismatched, are detected and reported during compilation.
 
-Static checks are consistency checks that are done during compilation. Not only do they assure that a program can be compiled successfully, but they also catch programming errors early. Static checking includes:
+Static checking includes:
 \begin{itemize}
-\item Syntactic checking. Constraints such as an identifier is declared at most once in a scope (TODO: more)
+\item Syntactic checking. Constraints such as an identifier is declared at most once in a scope
 \item Type checking. The type rules of a language assure that an operator or function is applied to the right number and type of operands.
 \end{itemize}
 
@@ -538,6 +538,9 @@ Static checks are consistency checks that are done during compilation. Not only 
 }
 \caption{Initialisation of symbol tables}
 \end{figure}
+
+
+The attribute type is added to each entry in the symbol table.
 
 %\begin{figure}[h!]
 \begin{sidewaystable}
@@ -645,7 +648,7 @@ Symtab.\emph{put}(\tangled{this}, \emph{type=void})
 
 tmp = Symtab.\emph{get}(\tangled{this})
 
-tmp.\emph{type} = \texttt{\{ \iangled{$p_1$}:\emph{void}, \dots \iangled{$p_n$}:\emph{void} \}}, where \emph{$p_1$, \dots $p_n$} are elements of \iangled{id\_list}
+tmp.\emph{type} = \texttt{\{ \tangled{$p_1$}:\emph{void}, \dots \tangled{$p_n$}:\emph{void} \}}, where \emph{$p_1$, \dots $p_n$} are elements of \iangled{id\_list}
 
 \emph{if} \iangled{tail}
 
@@ -667,18 +670,18 @@ tmp = OutChantab.\emph{get}(\iangled{ID})
 }\\
 
 \hline
-
-\parbox{0.5\textwidth}{
-\iangled{goto\_stmt} ::= \tangled{goto} \iangled{id\_list} \tangled{;}
-} & \parbox{0.5\textwidth}{
-\emph{foreach} \texttt{id} \emph{in} \iangled{id\_list}
-
-~~\emph{if not} InChantab.\emph{get}.(\texttt{id})
-
-~~~~\emph{error}
-}\\
-
-\hline
+% goto is a state list, not a chan list
+%\parbox{0.5\textwidth}{
+%\iangled{goto\_stmt} ::= \tangled{goto} \iangled{id\_list} \tangled{;}
+%} & \parbox{0.5\textwidth}{
+%\emph{foreach} \texttt{id} \emph{in} \iangled{id\_list}
+%
+%~~\emph{if not} InChantab.\emph{get}.(\texttt{id})
+%
+%~~~~\emph{error}
+%}\\
+%
+%\hline
 
 \end{tabular*}
 \caption{Symbol tables filling and duplicate declaration checking}
@@ -687,6 +690,8 @@ tmp = OutChantab.\emph{get}(\iangled{ID})
 
 Other checks:
 \begin{enumerate}
+\item Check if all gotos point to existing states
+
 \item Reserved words $nil$ and $this$ can't be identifiers
 
 \item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of one of the input channels. $p$ is not allowed anywhere in state expressions.
@@ -737,7 +742,7 @@ Check if the range condition is valid at least for assignments (int(1) x = 10 is
   \begin{itemize}
   \item Patterns $(x || t)$ and aliases for state expressions. $x$ and $t$ are in local scope of the active transition.
 
-$x$ and $t$ are read-only.
+%$x$ and $t$ are read-only.
 
 Probably should not differentiate between pattern variables and aliases. For state and store variables there's a differentiation because we need to know what is included in states of synchroniser (state vars) and what is not (store vars).
 
@@ -764,6 +769,47 @@ Expands AST into nested list.
 
 
   \subsubsection{Type Checking}
+Static type checking is the process of verifying the type safety of a program based on analysis of the program's source code. If a program passes a static type checker, then the program is guaranteed to satisfy some set of type safety properties for all possible inputs.
+
+The design of a type checker is based on information about the syntactic constructs in the language, the notion of types and the rules for assigning types to language constucts. The type of a language construct is denoted by a type expression. Informally, a type expression is either a basic type or is formed by applying an operator called a type constructor to other type expressions. A collection of rules for assigning type expressions to language constructs is called a type system.
+
+%A language is strongly typed if a compiler can garantee that the programs it accepts will execute without type errors.
+%The language in which identifiers must be declared before they are used.
+The communication protocol of the \ak\ runtime system prototype supports only records. We implement the type system of the synchroniser language taking this fact into account. The basic types in the synchroniser language are integers and CAL variable terms. Integer is the type of state variables. Variable terms are building blocks for the only constructed type in the synchroniser language - a record. A record is constructed by the catenation of two records. The pseudo-code of the record constructor $||$ is given in Fig. \ref{rec_construc}. The record constructor is obviously commutative and associative.
+
+\begin{figure}[h!]
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+\Function{$||$}{$r_1, \; r_2$}
+  \If{$len(r_1)\le len(r_2)$}
+    \State $r_{iter}\gets r_1$
+    \State $r\gets r_2$
+  \Else
+    \State $r_{iter}\gets r_2$
+    \State $r\gets r_1$
+  \EndIf\Comment{\emph{$r$ is the record that contains fewer label-value pairs}}
+
+  \For{\textbf{each} \emph{label-value pair (l,v) in} $r_{iter}$}
+    \If{$r(l)$}\Comment{\emph{if label l exists in r}}
+      \State $r(l)\gets union(r(l),v)$
+    \Else
+      \State $r(l)\gets v$
+    \EndIf
+  \EndFor
+  \State \textbf{return r}
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
+}
+\caption{The record type constructor $||$\label{rec_construc}}
+\end{figure}
+
+The case when a label-value pair labeled $l$ exists in both operand records $r_1$ and $r_2$ is indicated with $union(r_1(l),r_2(l))$. The CAL solver resolves which option to take during the constraint aggregation pass in the \ak\ compiler.
+%When labels intersect, it is the deal for CAL solver to resolve with option to take (it should consider flow inheritance).
+
+We describe the type systems in terms of grammar productions and corresponding semantic actions. The type systems for state and store expressions is given in Fig. \ref{ts_int_exp} and Fig. \ref{ts_data_exp} respectively. The synthesized attribute \emph{type} for an expression \iangled{E} gives the type of the expression assigned by the type system for the expression generated by \iangled{E}. The type system for statements is given in Fig. \ref{ts_stmt}. It assures that the left hand side can be assigned to.
+
 
 \begin{figure}[h!]
 %\begin{sidewaystable}
@@ -818,7 +864,7 @@ tmp.\emph{type} = \iangled{data\_exp}.\emph{type}
 \hline
 
 \end{tabular*}
-\caption{Type system for statements}
+\caption{Type system for statements\label{ts_stmt}}
 %\end{sidewaystable}
 \end{figure}
 
@@ -890,12 +936,10 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 \hline
 
 \end{tabular*}
-\caption{Type system for integer expressions}
+\caption{Type system for state expressions\label{ts_int_exp}}
 %\end{sidewaystable}
 \end{figure}
 
-
-Define the $||$ operation for data.
 
 \begin{figure}[h!]
 %\begin{sidewaystable}
@@ -983,29 +1027,24 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 \hline
 
 \end{tabular*}
-\caption{Type system for data expressions}
+\caption{Type system for store expressions\label{ts_data_exp}}
 %\end{sidewaystable}
 \end{figure}
 
-
-If an identifier was met and it is already in the current scope of symbol table, it must have the same type (int or data) as before.
-
-Architecture of the analyser. Pattern visitor?
+%If an identifier was met and it is already in the current scope of symbol table, it must have the same type (int or data) as before.
 
 
-
-
-\subsection{Code optimisation}
-Code optimiser is a framework for writing optimisation passes, which currently has only dead code elimination. 
-
-  \paragraph{Dead code elimination}
-\begin{itemize}
-\item Remove unreachable states of an automaton (when there's no state variables involved).
-
-\item Remove unreachable transitions based on Section Execution order.
-
-\item Remove unused state, store variables and assignments (this may require some simple def-use analysis, probably can put it into symbol tables).
-\end{itemize}
+%\subsection{Code optimisation}
+%Code optimiser is a framework for writing optimisation passes, which currently has only dead code elimination. 
+%
+%  \paragraph{Dead code elimination}
+%\begin{itemize}
+%\item Remove unreachable states of an automaton (when there's no state variables involved).
+%
+%\item Remove unreachable transitions based on Section Execution order.
+%
+%\item Remove unused state, store variables and assignments (this may require some simple def-use analysis, probably can put it into symbol tables).
+%\end{itemize}
 
 
 \subsection{Code generation}
@@ -1084,6 +1123,8 @@ a.(x,y||t) {
 
 
 \section{Discussion}
+Optimisations based on execution order: remove unreachable transitions.
+
 MDL is wider than what the presented synchroniser can synchronise. TODO: give examples. However, it need to be elaborated with the real world applications of \ak\ whether it is useful to implement it in synchronisers.
 
 Decide how to do flow inheritance in synchronisers. This will be done outside of synchronisers. Need to somehow specify which fields are inherited and which are not. In synchroniser transitions we can pick fields of an accepted message, with ehich we want to do something in synchroniser. However, there may be many fields in the message and some of them do not need to be inherited. In theory we could pick all the fields that we want to inherit along with the fields we want to work with, and them concat them and send them to then output channel. But there may be too many to specify manually for eack transition in the synchroniser caused by the channel.
