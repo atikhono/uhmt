@@ -469,7 +469,7 @@ The symbol table implementation supports three operations: create a new symbol t
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
 \Function{get}{$symtab, id$}
-  \While{$symtab \; is \; not \; void$}
+  \While{$symtab \; is \; not \; nil$}
     \State $tmp\gets get(symtab, id)$
     \If{$tmp$}
       \State \textbf{return} \emph{tmp}
@@ -485,17 +485,21 @@ The symbol table implementation supports three operations: create a new symbol t
 \caption{Getting an entry for an identifier from the chained symbol table\label{symtab_get}}
 \end{figure}
 
+The synchroniser language restricts the reserved words to be identifiers (Appendix \ref{sync_kw}). An identifier is checked whether it is reserved when putting the entry in the symbol table.
 
 \begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
 \Function{put}{$symtab$, $id$, $value$}
+  \If{\emph{id is reserved}}
+    \State \emph{error}
+  \EndIf
   \State $tmp\gets get(symtab, id)$
   \If{$not \; tmp$}
     \State $symtab\gets (id, value)$
   \Else
-    \State $duplicates\_error$
+    \State \emph{error}
   \EndIf
 \EndFunction
 \end{algorithmic}
@@ -533,9 +537,9 @@ The attribute \emph{type} is added to each entry in the symbol table. State vari
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}
 \Function{init}{}
-    \State $InChantab\gets NewSymtab(void)$
-    \State $OutChantab\gets NewSymtab(void)$
-    \State $RootSymtab\gets NewSymtab(void)$
+    \State $InChantab\gets NewSymtab(nil)$
+    \State $OutChantab\gets NewSymtab(nil)$
+    \State $RootSymtab\gets NewSymtab(nil)$
 \EndFunction
 \end{algorithmic}
 \end{minipage}%
@@ -555,11 +559,15 @@ Production & Semantic Action\\
 \hline
 
 \parbox{0.5\textwidth}{
-\iangled{sync} ::= \tangled{synch} \iangled{ID} \tangled{(} \iangled{input} [\tangled{,} \iangled{input}]*
+\iangled{synch} ::= \tangled{synch} \iangled{ID} \tangled{(} \iangled{input} [\tangled{,} \iangled{input}]*
 
 ~~\tangled{|} \iangled{output} [\tangled{,} \iangled{output}]* \tangled{)} \tangled{\{} \iangled{decl}* \iangled{state}$^+$ \tangled{\}}
-} &\\
+} & \parbox{0.5\textwidth}{
+/* \emph{synch} holds the abstract syntax tree of the processed source code.  */
+}\\
+
 \hline
+
 \parbox{0.5\textwidth}{
 \iangled{input} ::= \iangled{chan} [\tangled{:} (\iangled{ID} $\mid$ \iangled{NUMBER})]
 
@@ -691,27 +699,55 @@ tmp = OutChantab.\emph{get}(\iangled{ID})
 \end{sidewaystable}
 %\end{figure}
 
+%Check if all gotos point to existing states
+The synchroniser compiler checks if the transition diagram of a synchroniser is closed. The algorithm given in Fig. \ref{goto_check} walks the abstract syntax tree \emph{synch} and constructs two sets: the set of the synchroniser state labels \emph{StateSet} and the set of the goto labels \emph{GotoSet}. The set $GotoSet \setminus StateSet$ contains goto labels that point to non-existent states. If this set is not empty the compilation fails with an error. The set $StateSet \setminus (GotoSet \cup \tangled{start})$ contains unreachable states that are eliminated. The algorithm also checks if the labels of the synchroniser states are unique.
+
+A synchroniser program must have the state labeled \tangled{start}. The existence of this state is checked once the $StateSet$ is constructed.
+
+\begin{figure}[h!]
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+\Function{get\_states}{$synch$}
+  \State $StateSet\gets []$
+  \State $GotoSet\gets []$
+  \For{\textbf{each} \emph{state in state\_list(sync)}}
+    \If{$label(state) \in StateSet$}
+      \State \emph{error}\Comment{The state label is not unique}
+    \Else
+      \State $s\gets s$ \textbf{..} $label(state)$
+    \EndIf
+
+    \For{\textbf{each} \emph{trans in trans\_list(state)}}
+      \For{\textbf{each} \emph{gotostate in goto\_list(trans)}}
+        \If{$gotostate \notin GotoSet$}
+          \State $GotoSet\gets GotoSet$ \textbf{..} $gotostate$
+        \EndIf
+      \EndFor
+    \EndFor
+  \EndFor
+  \State \textbf{return} \emph{(StateSet, GotoSet)}
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
+}
+\caption{Construction of \emph{StateSet} and \emph{GotoSet}\label{goto_check}}
+\end{figure}
 
 
-\begin{enumerate}
-\item
-Reserved words $nil$ and $this$ can't be identifiers
+%The synchroniser language supports configurable channel depth for input and output channels. If an input channel has the configurable depth, the depth of an output channel may be specified as an integer shift to the input channel depth. In other cases the shift is not needed.
+
+%Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of one of the input channels. $p$ is not allowed anywhere in state expressions.
+%  \begin{itemize}
+%  \item (a:p | b:p+1) - allowed
+%  \item (a:p | b:0) - allowed
+%  \item (a:p | b:r) - allowed
+%  \item (a:p | b:r+1) - NOT allowed
+%  \end{itemize}
+%The special depth $-1$ indicated that the channel is not used. Therefore, if it is an input channel, all the transitions reading from it can be removed. If it is an output channel, and the transition that sends to this channel is valid, then an error must occur.
 
 
-\item Check if all gotos point to existing states
-
-
-\item Channel signature. If the output channel depth is in the form of depth expression $p+integer$, then $p$ should be the depth of one of the input channels. $p$ is not allowed anywhere in state expressions.
-  \begin{itemize}
-  \item (a:p | b:p+1) - allowed
-  \item (a:p | b:0) - allowed
-  \item (a:p | b:r) - allowed
-  \item (a:p | b:r+1) - NOT allowed
-  \end{itemize}
-The special depth $-1$ indicated that the channel is not used. Therefore, if it is an input channel, all the transitions reading from it can be removed. If it is an output channel, and the transition that sends to this channel is valid, then an error must occur.
-
-
-\item State variables ranges.
+State variables ranges.
 int(n) a, b, c; n denotes only the value range of a state variable. It decreases the number of possible states of a synchroniser. $a$, $b$ and $c$ must always be within range $[0; 2^{n}-1]$ (int is unsigned). At low level state variables are machine- and target language- dependent integers.
 
 The translation scheme in Fig. \ref{std} presents state variable types and their ranges.
@@ -737,8 +773,6 @@ enum($a_1=N_1$, $a_2=N_2$, $\dots$ $a_n=N_n$) & $N_1$, $N_2$, $\dots$ $N_n$\\
 Check if the range condition is valid at least for assignments (int(1) x = 10 is not good, should issue a warning, check what would be assigned to x in C). For the state expressions that evaluate during the execution of the synchroniser it's probably ok to delegate the overflow checks to the C compiler.
 
 %The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
-
-\end{enumerate}
 
 
     \paragraph{Tests}
