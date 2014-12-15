@@ -197,15 +197,13 @@ The input channels are required to have the bracketing depths specified in the s
 The output channels of a synchroniser are guaranteed to have the bracketing depths specified in the channel signature. Thus, the synchroniser $min$ must send messages to the output channel $c$ at the depth 2 and optionally at the depths $0$, $1$. The output channel $d$ must have the bracketing depth $p+1$ that is the depth of the input channel $b$ increased by $1$.
 
 
-%% TODO Move all the type details to the implementation details
-%% TODO The width of int type is declared explicitly to reduce the number of potential states of automata.
+%% The width of int type is declared explicitly to reduce the number of potential states of automata.
   \subsubsection{Variable declaration}
-%% Add about state and store variables initialisation.
+%% TODO! Add about state and store variables initialisation.
 %% state int(8) a, b=1, c=8; // assignes a=0 b=1 c=9
 %% enum (a,b,c) foo, bar=a;  // assignes foo=0 bar=a
 The beginning of state variables declaration is indicated by the keyword $state$. A state variable may be either a unsigned integer of the constant width or a C-style enumeration. State and store variables names are user-defined indentifiers. A user-defined identifier is an ASCII string that follows the C convention.
 
-%% TODO Should move width determining to the implementation detail
 Line 1 in Fig. \ref{sync_statevar} declares state variables $a$, $b$, $c$ of width 4. Thus, all three variables are declared to have integer values in the range $[0; 15]$. Generally, a state variable of width $n$ has integer values in the range $[0; 2^{n}-1]$.
 
 The state variable $foo$ that is declared in the line 2 in Fig. \ref{sync_statevar} can only be assigned the values $d$, $e$ and $f$ specified in the enumeration. The enumeration values are integer constants. If the values are not specified explicitly, they are assigned consequtive positive integers starting with 0.
@@ -775,7 +773,7 @@ For state expressions that evaluate to integer values we can check if the comput
 
 %TODO fix!
     \paragraph{Tests}
-We have developed the testing package for the semantic analyser. It uses standard python unittest module. The testing is based on expanding the abstract syntax tree into a nested list.
+We have developed the testsuite for the semantic analyser. It uses the standard python unit testing framework \emph{unittest}. The testing is based on expanding the abstract syntax tree into a nested list and comparing the result with the expected value.
 
 
   \subsubsection{Type Checking\label{type_check}}
@@ -1064,78 +1062,125 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 
 
 \subsection{Code generation}
-  \paragraph{Synchroniser runtime code}
+  \subsubsection{Synchroniser runtime code}
 %Give a class diagram?
 %Generator architecture - node visitor
 
-  \paragraph{Synchroniser passport}
-A synchroniser can impose some restriction on the type of messages it accepts.
-In the implementation we consider that only choices travel between channels (it is unclear what is a unification of lists, how to order the elements in the resulting list).
+  \subsubsection{Synchroniser passport}
+Synchronisers rely on both TPL and CAL for their definition. The CAL aspects of a synchroniser are confined to the CAL terms for its input and output channels. Those terms are not straightforward since they have to be fairly generic to match the broadest possible formats of producer and consumer messages involved in the act of synchronisation. On the other hand, the synchroniser passport is produced solely on the basis of the synchroniser code, exclusively by program analysis; the programmer does not supply an explicit passport for this.
 
-In the implementation we restrict to choices and records.
+The first thing that requires CAL is the input interface. As already mentioned before, the communication protocol of the \ak\ runtime system prototype supports only records. However, a record can be marked as belonging to some variant. The use of a variant on a channel in any transition on that channel immediately associates the \emph{choice} term structure with it. For example, a channel $a$ that is tested on variants \textbf{?}\emph{v} and \textbf{?}\emph{w} in transitions has a term comparable with \textbf{(:} \tangled{v}:\emph{\$vterm}, \tangled{w}:\emph{\$wterm} $||$ \emph{\$tail} \textbf{:)}, where the variables \emph{\$vterm} and \emph{\$wterm} represent the terms for variants \emph{v} and \emph{w} and \emph{\$tail} represents the choice term that contains the rest of variants. If a choice is known to carry a single variant, the variant is labeled \emph{uniq}. A transition that does not specify a variant label expects a unique message variant.
 
-None indicates that it is a term variable.
+The symbol table for synchroniser transition maintains the special entry \tangled{this}. This entry keeps the term of the message that is accepted by the transition. The algorithm in Fig. \ref{input_term} walks the synchroniser transitions and constructs the CAL input term for the synchroniser.
 
-
-Input channels: Fig. \ref{a}.
-We have types of 'this' for each output channel.
-Need to walk the transitions to find all 'this' types that belong to the same channel and then unify them.
 \begin{figure}[h!]
-\begin{lstlisting}
-//term: None (term variable), Int, Record, Choice
-a.(x,y||t) {
-  //x - is a value not a pair. In a store expression of in a send it must be 'x
-  //term(x) = None
-  //term(y) = None
-  //term(this) = { x:term(x), y:term(y) | $t }
-  //term(a) = (: uniq:term(this) :)
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+\Function{input\_term}{$synch$}
+  \State $CondDict\gets nil$
 
-  set n = [x];
-  //term(x) = Int
-  //term(this) = { x:term(x), y:term(y) | $t }
+  \For{\textbf{each} \emph{state in state\_list(sync)}}
+    \For{\textbf{each} \emph{trans in trans\_list(state)}}
+      \State $cond\gets get\_condition(trans)$
+      \If{$port \in CondDict$}
+        \State $CondDict(port)\gets CondDict(port)$ \textbf{..} $cond$
+      \Else
+        \State $CondDict\gets CondDict$ \textbf{..} $(port,\:cond)$
+      \EndIf
+    \EndFor
+  \EndFor
+
+  \State $InputTerm\gets nil$
+
+  \For{\textbf{each} \emph{(port,cond\_set) in CondDict}}
+    \State $PortTerm\gets nil$
+
+    \For{\textbf{each} \emph{cond in cond\_set}}
+      \State $variant\gets get\_variant(cond)$
+      \State $this\gets$ Symtab.\emph{get}(\tangled{this})
+      
+      \If{\emph{variant is unique}}
+        \If{$PortTerm \neq nil$}
+          \emph{error}
+        \EndIf
+        \State $PortTerm\gets$ \textbf{(:} \tangled{uniq}:\emph{this} \textbf{:)}
+        \State \textbf{break}
+      \Else
+        \State $PortTerm\gets PortTerm \; || \; this$
+      \EndIf
+    \EndFor
+
+    \State $InputTerm\gets InputTerm$ \textbf{..} $(port,\:PortTerm)$
+  \EndFor
+
+  \State \textbf{return} \emph{InputTerm $||$ \emph{\$tail}}
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
 }
-
-a.?v(x,y||t) {
-  //term(x) = None
-  //term(y) = None
-  //term(this) = { x:term(x), y:term(y) | $t }    //why not a list/tuple/choice as well?
-  //term(a) = (: v:term(this) | $a_t :)           //because it's unclear how to unify ordered structures?
-
-  set n = [x];
-  //term(x) = Int
-  //term(a) = (: v:{ x:term(x), y:term(y) | $t } | $a_t :)
-}
-\end{lstlisting}
-\label{a}
+\caption{Construction of the synchroniser input term\label{input_term}}
 \end{figure}
 
-Output channels: Fig. \ref{b}.
-How is the type of the output channel computed? Give algorithm for 'send' clause.
-Find all sends to the particular channel.
-Walk the variables in every 'send' clause (their types are know) and unify them.
+Since a choice is in fact a collection of label-record pairs, the constructor $||$ (Fig. \ref{rec_construc}) can be applied for choices. When \emph{InputTerm} contains a label-value pair (\tangled{v},\:$value$) and the label \tangled{v} occurs in another transition, the union $||$ of these two choices results in the following:
+\begin{IEEEeqnarray}{rCl}
+& union \: (\textbf{(:}\: \tangled{v}:\$vterm_1 \;|\; \$tail_1 \:\textbf{:)}, \; \textbf{(:}\: \tangled{v}:\$vterm_2 \;|\; \$tail_1 \:\textbf{:)})\nonumber\\
+=& \textbf{(:}\: \tangled{v}:union \: (\$vterm_1,\:\$vterm_2) \;|\; (\$tail_1 \;||\; \$tail_2) \:\textbf{:)}\nonumber
+\end{IEEEeqnarray}
+
+
+Now consider the output interface. The algorithm in Fig. \ref{output_term} collects the dispatches for every output channel and combines them into the output term of every synchroniser output channel.
+
 \begin{figure}[h!]
-\begin{lstlisting}[frame=single]
-//record union with label 'x' collision: {x:type_1, y:...} + {x:type_2, z:...} = {x:union(type_1,type_2), y:..., z:...}
-//python's dict.update(...)
-a.(x,y||t) {
-  //term(x) = None
-  //term(y) = None
-  //term(this) = { x:term(x), y:term(y) | $t }
-  //term(a) = (: uniq:term(this) :)
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+\Function{output\_term}{$synch$}
+  \State $DispatchDict\gets nil$
 
-  set ma = (this || id:y);
-  //term(ma) = term(this) || id:term(y) =
-             = { x:term(x), y:term(y), id:term(y) | $t }
+  \For{\textbf{each} \emph{state in state\_list(sync)}}
 
-  send ?v(ma || n:x) => c, send this => d;
-  //term(c) = (: v:(term(ma) || n:x) | $c_t :) =
-            = (: v:{ x:term(x), y:term(y), id:{ y:term(x) }, n:term(x) | $t } | $c_t :)
+    \For{\textbf{each} \emph{trans in trans\_list(state)}}
+      \State $send\gets get\_send(trans)$
+      \State $(msg,\:port)\gets (get\_msg(send),\:get\_port(send)$
+      \If{$port \in DispatchDict$}
+        \State $DispatchDict(port)\gets DispatchDict(port)$ \textbf{..} $msg$
+      \Else
+        \State $DispatchDict\gets DispatchDict$ \textbf{..} $(port,\:msg)$
+      \EndIf
+    \EndFor
+  \EndFor
 
-  //term(d) = (: uniq:term(this) :)
+  \State $OutputTerm\gets nil$
+
+  \For{\textbf{each} \emph{(port,msg\_set) in DispatchDict}}
+    \State $PortTerm\gets nil$
+    \For{\textbf{each} \emph{msg in msg\_set}}
+      \If{\emph{msg is MsgData}}\Comment{\emph{msg matches} [\tangled{?}\iangled{ID}]\iangled{data}}
+        \State $(variant,\:data)\gets (get\_variant(msg),\:get\_data(msg))$
+        \For{\textbf{each} \emph{item in data}}
+          \If{\emph{item is ItemVar or item is ItemPair}}\Comment{\emph{item is either 'id or id:value}}
+            \State $(lhs,\:rhs)\gets expand(item)$
+            \State $PortTerm\gets PortTerm \;||\; $\textbf{\{}\emph{lhs:type(rhs)}\textbf{\}}
+          \Else\Comment{\emph{item is either this or id}}
+            \State $PortTerm\gets PortTerm \;||\; type(id)$
+          \EndIf
+        \EndFor
+      \EndIf
+    \EndFor
+    \State $OutputTerm\gets OutputTerm$ \textbf{..} $(port,\:PortTerm)$
+  \EndFor
+
+  \State \textbf{return} \emph{OutputTerm $||$ \emph{\$tail}}
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
 }
-\end{lstlisting}
-\label{b}
+\caption{Construction of the synchroniser output term\label{output_term}}
 \end{figure}
+
+The function $type(id)$ performs the symbol table lookup and returns the \emph{type} attribute value for the \tangled{id} entry.
+
 
 
 \section{Discussion}
