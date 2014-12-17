@@ -15,7 +15,7 @@ In absence of environment for experiments and example applications artificial lo
 %2) Начальные размеры каналов
 
 \section{Statistical model}
-Let $S = (\Phi, \; \Pi)$, where $\Phi = (A \subseteq C \times P, \; S, \; T)$, $\Pi \: : \: S \times \Omega \to V$ be a synchroniser with $|C| = m$ input channels, $|\Omega| = n$ output channels and $T$ transtion matrix. All channels $c_{i}, \: i = 1,m$ and $\omega_{i}, \: i=1,n$ are finite FIFO-queues having lengths $L^{(in)}_{i}, \: i = 1,m$ and $L^{(out)}_{i}, \: i=1,n$ as shown in Fig. \ref{fig:stat_mod}.
+Let $S = (\Phi, \; \Pi)$, where $\Phi = (A \subseteq C \times P, \; S, \; T)$, $\Pi \: : \: S \times \Omega \to V$ be a synchroniser with $|C| = m$ input channels, $|\Omega| = n$ output channels and the transtion matrix $T$. All channels $c_{i}, \: i = 1,m$ and $\omega_{i}, \: i=1,n$ are finite FIFO-queues that have lengths $L^{(in)}_{i}, \: i = 1,m$ and $L^{(out)}_{i}, \: i=1,n$ as shown in Fig. \ref{fig:stat_mod}.
 
 % Inkscape figure
   \begin{figure}[h] %here!
@@ -27,16 +27,16 @@ Let $S = (\Phi, \; \Pi)$, where $\Phi = (A \subseteq C \times P, \; S, \; T)$, $
   \end{figure}
 
 %Explaining basic structure of channel and input channel producer properties
-Every input channel $c_{i}, \; i = 1,m$ is connected to a producer process $P_{i}$ that sends to this channel on average of $T_{i}$ messages per time unit with an independent jitter (i.e. standard deviation) $j_{i}$. $T_{i}$ may also be interpreted as the throughtput of the $i$-th producer. The output parameters of the synchroniser $T_{i}$ and $j_{i}, \; i=1,n$ assume that the channel $c_{i}$ has infinite length.
+Every input channel $c_{i}, \; i = 1,m$ is connected to a producer $P_{i}$ that sends to this channel on average of $T_{i}$ messages per unit time with an independent jitter (i.e. standard deviation) $j_{i}$. $T_{i}$ may also be interpreted as the throughtput of the $i$-th producer. The output parameters of the synchroniser $T_{i}$ and $j_{i}, \; i=1,n$ assume that the channel $c_{i}$ has infinite length.
 
 %Explaining synchroniser consuming characteristics
-When messages are placed on a synchroniser's input queue they may or may not be consumed immediately. In some states the synchroniser may block the input channel. Let $T'_{i}, \: i=1,m$ be the average number of messages accepted by the synchroniser per time unit and $j'_{i}$ the standard deviation of $T'_{i}$.
+When messages are placed on a synchroniser's input queue they may or may not be consumed immediately. In some states the synchroniser may block the input channel. Let $T'_{i}, \: i=1,m$ be the average number of messages accepted by the synchroniser per unit time and $j'_{i}$ the standard deviation of $T'_{i}$.
 
 %Synchroniser producing characteristics
 A synchroniser is the producer for its output queues $\omega_{i}, \: i=1,n$. Let $T'_{i}, \: i=1,n$ be the average number of messages sent by the synchroniser to the output channel $\omega_{i}$ per unit time and $j'_{i}$, again, the standard deviation of $T'_{i}$.
 
 %Ouptut channels consumers
-The synchroniser's output channels are connected to processes $C_{i}, \: i=1,n$ that consume messages from these channels. Let $T_{i}, \: i=1,n$ be the average number of messages consumed by the process $C_{i}$ per time unit and $j'_{i}$ the standard deviation of $T_{i}$.
+The synchroniser's output channels are connected to processes $C_{i}, \: i=1,n$ that consume messages from these channels. Let $T_{i}, \: i=1,n$ be the average number of messages consumed by the process $C_{i}$ per unit time and $j'_{i}$ the standard deviation of $T_{i}$.
 
 %problem statement
 \begin{problem}Find relations between $(T_{i}, \: j_{i})$, $(T'_{i}, \: j'_{i}), \: i=1,m+n$, $L^{in}_{i}, \: i=1,m$ and $L^{out}_{i}, \: i=1,m$.
@@ -137,7 +137,10 @@ We break down the problem into parts:
   \end{enumerate}
 
 
+Stability condition $\frac{\lambda_{arr}}{\lambda_{dep}} < 1$.
 \section{Relevant work}
+
+
 Queueing theory, queueing networks with blocking
 -Poisson
 -Non-poisson

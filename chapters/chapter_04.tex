@@ -3,11 +3,12 @@
 
 In this chapter we discuss the role of synchronisers in wiring patterns based on a replicated operand network.
 
-The replication combinator creates conceptually infinite number of copies of its component, which may be either a box or a net, and connects them in series. Replication is demand-driven, hence replicas are created dynamically in runtime and do not necessarily require significant resouces since \ak\ boxes are stateless and synchronisers require no resouces in their start state.
+The replication combinator creates conceptually infinite number of copies of its component, which may be either a box or a net, and connects them in series. Replication is demand-driven, hence replicas are created dynamically in runtime and do not necessarily require significant resouces since \ak\ boxes are stateless and synchronisers require no resouces in their start state. %in start state a synchroniser resets all its store variables
 
 \ak\ proposes an elegant way to produce the output of the infinite chain of replicas. Despite its elegance, we argue the convenience of the approach and propose another one, which, in our opinion, is more convenient and easier to use.
 
 % TODO: I don't like the reason. Why was the reverse fixed point introduced?
+% reverse fixed point is the basic optimisation that preserves growth of the replicas chain.
 As the chain of replicas evolves, it may be the case that some replicas in the head of the chain are active yet they just transmit messages without a change. \ak\ is commited to detect such replicas and optimise the connection so that the data are sent directly to a replica that is ready to process it. 
 
 The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{rfp} we explain why both cases are relevant to synchroniser analysis and give formal definitions. In section \ref{ffp_discussion} we discuss the original approach to the output of the infinite chain of replicas and in section \ref{approach} we propose another one. In section \ref{fp_detect} we provide detection algoritms for both cases.
@@ -16,7 +17,7 @@ The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{
     \section{Fixed Point}
 A replica is inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running. Indeed the cost of replication is only felt when the replicas are active, which is the case when the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
 
-The replication combinators in S-Net require a specification of termination pattern. The termination mechanism in S-Net is based on the record subtyping provided by the S-Net type system. Processing of a record in the replication pipeline terminates when the record is a subtype of the specified pattern and then the record leaves the pipeline through the output stream. \ak\ attempts to provide a termination mechanism that does not require to explicitly specify termination rules in the \ak\ application code. This mechanism is based on the concept of a fixed point. In mathematics, a fixed point of a function is an element of the function's domain that is mapped to itself by the function. Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net.
+The replication combinators in S-Net require a specification of termination pattern. The termination mechanism in S-Net is based on the record subtyping provided by the S-Net type system. Processing of a record in the replication pipeline terminates when the record is a subtype of the specified pattern and then the record leaves the pipeline through the output stream. \ak\ attempts to provide a termination mechanism that does not require to explicitly specify termination rules in the \ak\ application code. This mechanism is based on the concept of a fixed point. In mathematics, a fixed point of a function is an element of the function's domain that is mapped to itself by the function. Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net. (NOT TRUE, FIX)
 
 %TODO!! Explain that synchroniser analysis is relevant to fix-point resolution
 In order to utilize the fixed point the \ak\ compiler must be able to detect it. Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or the network topology of a net. It means that the net graph must have at least one path that goes exclusively via synchronisers (TODO fix) or straight through the net without traversing any box.
@@ -275,6 +276,12 @@ The reverse fixed point optimises an input connection that has to cascade throug
 %pic
 
 
+    \subsection{Discussion}
+Order of messages in the reverse fixed point may be changed, because a message may put the replica into the reverse fixed-point state and go for processing into this replica. In this case the messages that came to the replica that is in the reverse fixed-point state may overcome the message processed in the replica. This changes the order of messages. If the progrmmer wants to preserve the order, he must mind it. It may be fixed by creating a separate channel for RFP messages and putting a synchroniser that blockes the RFP channel while there's no message from the output channel (this is for operand network with one input channel, with two it can be more dificult if there're races between the channels that wire replicas).
+
+The replication combinator is just a wiring pattern that does not have to guarantee race-safety. For example, if the operand network is not race-safe, the star is not race-safe as well.
+
+
     \subsection{Reverse Fixed Point Detection\label{rfp_detect}}
 %%% Synch state conditions for the reverse fixpoint state
 A message is not changed by the synchroniser in some state when:
@@ -294,3 +301,4 @@ This chosen structure can be build in the net parser of from the net compiler in
 Then we need to represent a set of possible paths in this hypergraph that only contain synchronisers. And a traversal of the hypergraph to find all these paths.
 
 Then we analyse every synchroniser in each path for the satisfiability of fix point conditions.
+

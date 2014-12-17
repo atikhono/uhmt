@@ -1,23 +1,31 @@
 \chapter{Introduction}
-For years, processor manufacturers have delivered increases in clock rates, so that single-threaded code executed faster on newer processor without any modifications. While manufacturing technology still improves, physical limitations of semiconductor-based electronics have become a major concern of design. In order for the processors to continue to improve in performance, multi-core design has become necessary \cite{sutter}.
+For years, processor manufacturers have delivered increases in clock rates. While manufacturing technology still improves, physical limitations of semiconductor-based electronics have become a major concern of design. In order for the processors to continue to improve in performance, multi-core design has become necessary.
 
-Unlike the increase in clock frequency for previous-generation processors, this shift in hardware design does not provide automatic benefits for software. The improvement in performance gained by the use of a multi-core processor depends significantly on the programming concepts, tools and infrastructure used for software implementation. Some parallel programming models such as OpenMP \cite{openmp}, MPI \cite{mpi}, Cilk Plus \cite{cilk} were developed for multi-core platforms. However, in most cases these models require massive software re-engineering to take advantage of multi-core processing.
+Unlike the increase in clock frequency, increasing the number of processor cores does not provide automatic benefits for conventional programs. Parallel programming in the conventional style is difficult because computation is mixed with concurrency management, which includes ensuring the correct sequencing of the interactions between different computational executions, and coordinating access to resources that are shared among executions. One of the approaches that addresses the issue of mixed computation and coordination is to separate these concerns. The approach requires explicit parallelisation of an application and specification of component communication in so-called coordination language.
 
-The main challenge in engineering of correct concurrent code is managing concurrency. Concurrency management includes ensuring the correct sequencing of the interactions between different computational executions, and coordinating access to resources that are shared among executions. The complexity comes from the fact that these actions are mixed with computations.
+The concept of a new coordination language \ak\ is described in \cite{astrakahn}. The language defines the coordination behaviour of networks of asynchronous components (boxes) and their orderly interconnection via stream-carrying channels. The \ak\ computation model is based on Kahn process networks, where processes communicate via unbounded FIFO channels. However, in real-world applications, a large number of concurrent processes and their communication facilities share a very limited amount of resources. In order to deal with the issue of application progress, \ak\ attempts to provide a self-regulatory concurrency mechanism based on the concept of communication pressure. Concurrency regulation supposes that several copies of a box may run in parallel, thus \ak\ requires boxes to keep no state. A stateless box knows nothing about synchronisation, therefore data must be synchronised before they are sent to a box. \ak\ provides a synchronisation facility -- a synchroniser -- that is able to store received data and retrieve them for the sole purpose of sending them on, either as they are, or combined with other stored or received data and with trivial data extensions computed by the synchroniser itself.
+% ak achieves separation of coordination and synchronisation concerns as well
 
-Software parallelization is a significant topic of ongoing research. One of the research directions that addresses issues of efficient multi-core programming and difficult concurrency management is coordination programming. The idea of coordination programming is to represent a program as a set of computational processes and to specify relations between them in special coordination language. Potentially, this model allows execution of every single process on a dedicated processor core. However, in real-world applications, a large number of concurrent processes and their communication facilities have to share a very limited amount of resources. Thus, the issue of application progress becomes quite complicated. In order to boost application performance a programmer has to tune it manually.
-
-A new programming language called Astra\emph{Kahn} is described in \cite{astrakahn}. Astra\emph{Kahn} attempts to combine coordination programming with stream processing to provide a self-regulatory concurrency mechanism. The goal of the project is to provide an environment for development of scalable concurrent applications that does not require manual tuning efforts.
+Boxes are connected to the streaming network with one or two input channels and one or more output channels. Synchronisers may have many input channels. Streaming networks in \ak\ are expressed with four wiring patterns, namely serial and parallel composition, wrap-around connection and serial replication.
 
 
     \section{Motivation}
-The long-term goal of the Astra\emph{Kahn} project is to provide an environment for development of scalable concurrent applications that does not require manual tuning efforts. An Astra\emph{Kahn} approach to adaptive concurrency relies on the concept of communication pressure propagation across a network. Since pressure propagation directly affects proliferation levels of certain vertices, effectiveness of concurrency self-regulation depends largely on correctness of pressure propagation strategy. An important part of this strategy is pressure propagation through synchronisers because, unlike other vertices in Astra\emph{Kahn}, they induce negative pressure that represents a demand for messages in a certain part of a network.
+%write about the state of the project. the runtime system needs to be developed before the regulation research.
+The \ak\ project is now in its initial state and there is yet no implementation. The playground environment need to be developed for the research towards the self-regulation.
 
-This project is focused on synchroniser analysis and development of supporting tools. Since the synchroniser is programmed in a dedicated language, a compiler for this language is needed. Target architecture assembly generation is of no concern within the project, thus, the compiler translates a given source code into a C program and then calls available C compiler to generate an executable file. Also, the compiler provides various syntactic and semantic checks.
+The aim of this thesis is to identify the role of the synchroniser analysis in the project. It includes implementation of the \ak\ synchroniser and integration of the implementation into the runtime system prototype. The output form the infinite replication relies on the synchroniser analysis.
 
-In order to propagate pressure through a synchroniser, Astra\emph{Kahn} coordinator needs to know its \emph{transfer function}. The transfer function describes relations between demands of messages on a synchroniser's input and output channels. Derivation of the transfer function is a concern of static analysis, in particular, execution path analysis. Because synchronisers are non-deterministic, there may be potentially an infinite number of possible execution paths and therefore more than one transfer function. It may be impossible to determine an exact execution path at compile time, because it may depend on incoming message content. If synchroniser has an inner loop, the transfer function must consider the number of iterations in this loop. Thus, transfer function derivation relates to induction variable analysis.
+%explain about pressure propagation and statistics
+The long-term goal of the \ak\ project is to provide an environment for development of scalable concurrent applications that do not require manual tuning efforts. Though the adaptive self-regulation mechanism is not known to propose something for synchronisers, we try to review the possible strategies for the pressure propagation through synchroniser.
 
-These issues are subject to synchroniser analysis in the project. Once a set of transfer functions is obtained, it is up to TPL how to choose a particular transfer function and propagate pressure through a synchroniser. Also, synchroniser analysis includes passport generation for Constraint Aggregation Layer.
+
+%An Astra\emph{Kahn} approach to adaptive concurrency relies on the concept of communication pressure propagation across a network. Since pressure propagation directly affects proliferation levels of certain vertices, effectiveness of concurrency self-regulation depends largely on correctness of pressure propagation strategy. An important part of this strategy is pressure propagation through synchronisers because, unlike other vertices in Astra\emph{Kahn}, they induce negative pressure that represents a demand for messages in a certain part of a network.
+
+%This project is focused on synchroniser analysis and development of supporting tools. Since the synchroniser is programmed in a dedicated language, a compiler for this language is needed. Target architecture assembly generation is of no concern within the project, thus, the compiler translates a given source code into a C program and then calls available C compiler to generate an executable file. Also, the compiler provides various syntactic and semantic checks.
+
+%In order to propagate pressure through a synchroniser, Astra\emph{Kahn} coordinator needs to know its \emph{transfer function}. The transfer function describes relations between demands of messages on a synchroniser's input and output channels. Derivation of the transfer function is a concern of static analysis, in particular, execution path analysis. Because synchronisers are non-deterministic, there may be potentially an infinite number of possible execution paths and therefore more than one transfer function. It may be impossible to determine an exact execution path at compile time, because it may depend on incoming message content. If synchroniser has an inner loop, the transfer function must consider the number of iterations in this loop. Thus, transfer function derivation relates to induction variable analysis.
+
+%These issues are subject to synchroniser analysis in the project. Once a set of transfer functions is obtained, it is up to TPL how to choose a particular transfer function and propagate pressure through a synchroniser. Also, synchroniser analysis includes passport generation for Constraint Aggregation Layer.
 
 
     \section{Contribution}
@@ -26,9 +34,9 @@ The contribution of the research is a technique for pressure propagation through
 
     \section{Outline}
 
+
+
 \chapter{Theoretical Background}
-
-
     \section{Stream Processing}
 Stream processing research, particularly the study of stream processing systems, has a long history. In general, a stream processing system can be described as a system comprised of a set of processing components that compute in parallel and communicate data via channels. Channels pass data as infinite sequences; these infinite sequences are referred to as streams.
 
@@ -117,6 +125,8 @@ The TPL defines:
 \paragraph{Boxes}
 Boxes are stateless functions that read messages from one (or in some cases two) input channels. Boxes read an input message, do some computation and send messages to output channels.
 
+Boxes are classified
+
 It should be noted that all vertices are pure stream- to-stream prefix-monotonic functions that map the totality of their input streams to the totality of their output streams.
 
 boxes are specified in a
@@ -185,19 +195,65 @@ Data on streams in \ak\ are organised as choices of records.
 
 %Optionally: synchronisers can be used for monitoring of network
 
-
-\chapter{Related Work}
-Approaches to synchronisation.
-Synchronisation facilities in coordination languages.
-
-Linda (which is the first coordination language) does not separate concepts of coordination and synchronisation. The synchronisation is specified right in the application code.
-MPI is (probably) quite the same.
+%Kahn's fixed-point semantics:
+%A network of continous functions is continous
+\chapter{Theoretical Background and Related Work}
+In this chapter we provide relevant theoretical background in coordination programming and streaming process networks. Particularly, we focus on the approaches to synchronisation in coordination languages. Then, we explain the concepts of \ak\ in more detail and relate it to KPNs and \ak\'s predecessor S-Net.
 
 
-Which languages separate synchronisation from coordination?
+%Approaches to synchronisation.
+%Synchronisation facilities in coordination languages.
+
+    \section{Coordination Programming}
+The coordination paradigm offers a promising way to address some issues related to the development of efficient parallel systems. Programming a parallel system can be seen as the combination of two activities: the actual computing part comprising a number of processes that manipulate data and a coordination part that is responsible for the communication between the processes.
+
+Basically, coordination is managing dependencies between components. Since the computation is completely separated from the coordination activity, the processes that comprise the former are seen as black boxes. Hence, the actual programming languages used to write the computational code do not play important role in setting up the coordination scheme. Thus, the concept of coordination is closely related to heterogenity.
+
+Existing coordination technologies are described in details in the survey (TODO) by G. Papadopoulos and F. Arbab. They argue that these models fall into two major categories of coordination programming, namely either data-driven or control-driven.
+
+\begin{enumerate}
+\item Data-driven
+based on the notion of shared dataspace.
+Processes that from the computation retrieve or write to the Shared dataspace
+Shared dataspace plays the dual role, being a global data repository and an interprocess communication system.
+
+Examples: Linda
+%Linda (which is the first coordination language) does not separate concepts of coordination and synchronisation. The synchronisation is specified right in the application code.
+Some of members of this family use the message-passing based mechanism (MPI).
+
+\item control-driven
+channel-based
+
+Most of the family member share the concept of a separate coordination language (oppsed to the data-driven models where the set of coordination primitives is used in conjunction with the host language)
+A coordination language offers facilities for controlling synchronisation, communication, creation and termination of computing components.
 
 Reo: typed channels. A channel is a synchronisation primitive
 Channel are combined in complex connectors.
-Unlike S-Net or \ak\ Reo connectors never combine (or process) messages.
+Unlike S-Net or \ak\, Reo connectors never combine (or process) messages.
 
-S-Net: SISO, synchrocell
+\end{enumerate}
+
+
+
+Stream processing:
+
+Stream processing system is a system comprised of a collection of modules that compute in parallel, and that communicate data via channels. SPS modules are ususally divided into three classes: sources that pass data into the systems, filters that perform some atomic computation, and sinks that pass data frmo the system. SPSs are usually visualised as directed graphs.
+
+Dataflow process networks are a special case of KPNs.
+
+Synchronous dataflow is a restriction of Kahn process networks, nodes produce and consume a fixed number of data items per firing. Filters that compute in a synchroniser manner with respect to other filters.
+
+From operational point of view the dataflow model of computation is divided into two basic froms:
+data-driven (filters compute depending upon the availability of data at their inputs), and demand-driven (filters request data on the input lines when they wish to compute).
+
+
+
+%%%%%%%
+SISO
+S-Net + synchrocells, StreamIt + 3 recursive language constructs (avoiding of synchronisation).
+Synchrocell - barrier synchronisation
+
+
+Which languages separate synchronisation from coordination?
+Reo does not.
+S-Net does.
