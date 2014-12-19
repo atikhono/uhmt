@@ -3,7 +3,8 @@ For years, processor manufacturers have delivered increases in clock rates. Whil
 
 Unlike the increase in clock frequency, increasing the number of processor cores does not provide automatic benefits for conventional programs. Parallel programming in the conventional style is difficult because computation is mixed with concurrency management, which includes ensuring the correct sequencing of the interactions between different computational executions, and coordinating access to resources that are shared among executions. One of the approaches that addresses the issue of mixed computation and coordination is to separate these concerns. The approach requires explicit parallelisation of an application and specification of component communication in so-called coordination language.
 
-The concept of a new coordination language \ak\ is described in \cite{astrakahn}. The language defines the coordination behaviour of networks of asynchronous components (boxes) and their orderly interconnection via stream-carrying channels. The \ak\ computation model is based on Kahn process networks, where processes communicate via unbounded FIFO channels. However, in real-world applications, a large number of concurrent processes and their communication facilities share a very limited amount of resources. In order to deal with the issue of application progress, \ak\ attempts to provide a self-regulatory concurrency mechanism based on the concept of communication pressure. Concurrency regulation supposes that several copies of a box may run in parallel, thus \ak\ requires boxes to keep no state. A stateless box knows nothing about synchronisation, therefore data must be synchronised before they are sent to a box. \ak\ provides a synchronisation facility -- a synchroniser -- that is able to store received data and retrieve them for the sole purpose of sending them on, either as they are, or combined with other stored or received data and with trivial data extensions computed by the synchroniser itself.
+%ak is motivated by KPNs
+The concept of a new coordination language \ak\ is described in \cite{astrakahn}. The language defines the coordination behaviour of asynchronous components (boxes) and their orderly interconnection via stream-carrying channels. The \ak\ computation model is based on Kahn process networks, where processes communicate via unbounded FIFO channels. However, in real-world applications, a large number of concurrent processes and their communication facilities share a very limited amount of resources. In order to deal with the issue of application progress, \ak\ attempts to provide a self-regulatory concurrency mechanism based on the concept of communication pressure. Concurrency regulation supposes that several copies of a box may run in parallel, thus \ak\ requires boxes to keep no state. A stateless box knows nothing about synchronisation, therefore data must be synchronised before they are sent to a box. \ak\ provides a synchronisation facility -- a synchroniser -- that is able to store received data and retrieve them for the sole purpose of sending them on, either as they are, or combined with other stored or received data and with trivial data extensions computed by the synchroniser itself.
 % ak achieves separation of coordination and synchronisation concerns as well
 
 Boxes are connected to the streaming network with one or two input channels and one or more output channels. Synchronisers may have many input channels. Streaming networks in \ak\ are expressed with four wiring patterns, namely serial and parallel composition, wrap-around connection and serial replication.
@@ -106,9 +107,108 @@ S-Net provides a special kind of box, called a synchrocell, that implements barr
 
 %Optionally: synchronisers can be used for monitoring of network
     \section{\ak\ Approach to Streaming Networks}
+%In this section we present the concepts of a new coordination language \ak\.
+\ak\ is an attempt to combine coordination programming with stream processing in order to provide a component system with concurrency self-regulation. \ak\ defines the coordination behaviour of fully asynchronous components (boxes) and their orderly interconnection via stream-carrying bounded FIFO channels. Streams in \ak\ are typed and data on streams are organised as variant records of label-value pairs. Each record constitutes a message.
+
+Like S-Net, \ak\ provides a facility for stream synchronisation in a form of a special component called a synchroniser. The behaviour of a synchroniser is not fixed; instead, it is defined in a dedicated language that is a part of \ak\ paradigm. An \ak\ box is not SISO. Usually it has a single input channel, however, the number of output channels is not restricted. In order to allow the dynamic reconfiguration of \ak\ networks, a box is required to have no state, which it can maintain between two consecutive activations. Since a box is stateless, it does not know to what extent to synchronise the messages it sends to the output channels; this part of work is done by synchronisers. In addition, a synchroniser is not just a tool that is able combine and store received messages; it can compute some trivial message extensitons. With synchronisers, \ak\ achieves a separation of computation and coordination concerns.
+
+%wiring
+\ak\ imposes structuring on streaming networks with a total of four combinators, namely the serial connection, the parallel connection, the wrap-around connection and the serial replication. Network combinators may take either boxes or networks as their operands, hence the network construction is an inductive proccess. 
+
+In the following sections the concepts of \ak\ are explained in more detail.
+
+
+    \subsubsection{Channels}
+A channel carries a segmented stream that consists of message sequences and these sequences may in turn consist of sequences in their own right. In order to mark the beginning and the end of a sequence, \ak\ supports a special kind of message called a segmentation mark.
+
+Segmentation marks can be thought of as brackets. \ak\ requires that a sequence can only consist of elements of the same nature, therefore further into the sequence brackets can occur in the following combination:
+\[
+\underbrace{)\ldots)}_k \underbrace{(\ldots(}_k\,,
+\]
+where $k \le d$, and $d$ is the number of opening brackets in the beginning of the stream. This combination is denoted as a segmentation mark $\sigma_k$. The bracketing depth $d \ge 0$ characterises the stream-carrying channel\footnote{Indeed, the bracketing depth of a channel that would carry the stream of message lists
+\[
+(((\;a\underbrace{)(}_{\sigma_1}b\underbrace{))((}_{\sigma_2}c\underbrace{)(}_{\sigma_1}d\;)))
+\]
+is 3}. Each message on a given channel is under all circumstances found between the same number of brackets, hence the bracketing depth is static.
+
+
+    \subsubsection{Boxes}
+Boxes are the atomic building blocks of \ak\ networks that actually perform the computation. An \ak\ box is deterministic in a sense that for every partial input stream it produces a deterministic output stream\footnote{For a function $f(x): \mathcal{I} \to \mathcal{O}$, where $\mathcal{I}$ is the totality of $f(x)$ input streams and $\mathcal{O}$ is the totality of $f(x)$ output streams, $\forall p \in \mathcal{I} \land \forall t:p \cup t \in \mathcal{I} \: : \; f(p \:||\: t) = f(p) \:||\: f(t)$}.
+
+Conceptually, boxes can be specified in any conventional programming language, however, they are subject to a contract that defines acceptable behaviour for boxes. Any guarantees that \ak\ makes\footnote{E.g. regarding the concurrency self-regulation} are subject to the fulfilment of the contract on behalf of all the boxes. The interface between a box and the \ak\ runtime system is defined by the \ak\ Box-API for each supported box language.
+
+\ak\ declares three box categories with respect to their algebraic properties and effect of channel segmentation\footnote{The box code does not see the segmentation marks; instead it is declared as having a certain type of bracketing behaviour so that the coordinator can take care of the brackets}:
+\begin{itemize}
+\item Transductor
+
+\item Inductor
+
+\item Reductor. There exist five type of reductor
+\end{itemize}
+
+
+
+\paragraph{Synchronisers}
+Synchronisers are vertices that can have any number of input channels. Synchronisers have an internal state and generally accept messages from each input channel in some states, while in any of the other states the channel is blocked until a state transition brings the synchroniser to a state in which messages from the channel are accepted, thus unblocking it. Synchronisers are able to store received messages and retrieve them for the sole purpose of sending them on, either as they are, or combined with other stored or received messages and with trivial message extensions computed by the synch itself. The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one. In other words, a synchroniser is a finite state machine for joining messages and sending them on to its output channels.
+
+source of nondeterminism
+
+
+
+\paragraph{Network Composition}
+% TODO 4 or 5 wiring patterns?
+
+Wiring patterns form a small set: only 5 in total, describing connections between
+nodes in a hierarchical way. A pattern is applied to its operand networks, either vertices or groups of nodes already wired up with some wiring patterns. The pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result. Four out of five patterns are finite, applicable to one or two operands. The fifth one is infinite as it infinitely replicates the single operand network and wires up an infinite chain. That last pattern can also be dynamic, in the sense that the wiring takes place step-by-step at run time, which is the most complex topological and regulatory behaviour available in TPL.
+
+AstraKahn provides a small set of wiring patterns which is sufficient to achieve arbitrary wiring of the vertices.
+- The serial connection
+- The parallel connection
+- The wrap-around connection
+
+- Infinite star combinator
+
+every connection that is not serial is a source of non-determinism. non-determinism comes from non-deterministic mergers.
+
+The construction of networks in AstraKahn is hierarchical: vertices are combined into a subnetwork, which in turn can act as a vertex in a larger network, etc.
+
+
+\paragraph{The type system of \ak\ }
+
+Streams in \ak\ are typed. Data on streams are organised as variant records of label-value pairs. 
+
+
+the role of the CAL in AstraKahn is similar to the role
+of the type system in a conventional (non-coordination) programming language. The CAL is, in a way, a universal type system in the sense that it does not fix the structure and meaning of the type assertions that boxes may choose to import and export. It instead provides a constraint programming framework in which a wide variety of assertions can be formulated. It relies on general-purpose constraint solving as a means of type checking, type inference and most general subtyping.
+
+In data communication the static correctness of the channel demands that the statically guaranteed properties of an output message be sufficient to satisfy the static requirements of its recipients.
+a vertex is both an originator of its output messages and the recipient of the input ones, and since the input constraints are the necessary condition for the vertex to operate correctly and hence to guarantee the output properties, the vertex can be abstracted with
+respect to its data-transformation behaviour as an implicative statement p ⇒ P. Here p is the conjunction of all the requirements and P is the conjunction of all the guarantees. We will call these implications box passports.
+
+A box is represented as a combination of a source code and a triad of the box name, box category and CAL passport. An AstraKahn compiler performs its first (Constraint Aggregation or CA) pass by only taking the above-mentioned triad and the coordination program written in AstraKahn/TPL. During the CA pass, the topology of the network is extracted from the AstraKahn program, the properties of the synchronisers with respect to input terms (i.e. their “passports” if they had one) are inferred from each synchroniser program, and the process of juxtaposition and constraint solving is performed to instantiate all term variables. As a side effect, a proof is obtained that the constraint system is satisfiable, which indicates that all components have received sufficient assurances to guarantee their output, and consequently the whole program that will be generated next is consistent and type correct.
+
+CAL is based on the Message Definition Language (MDL) which is a language of abstract terms that are built recursively from the ground up. Structurally they are symbolic trees with the following kinds of leaf:
+-symbol
+-number
+-string
+-variable
+-flag
+
+Terms are built recursively using the following types of constructors:
+-tuple
+-list
+-record
+-choice
+-switch
+
+
+Data on streams in \ak\ are organised as choices of records.
+
+
+%Change the title
+    \section{Relation to KPN}
 The \ak\ computation model is based on Kahn's model of process networks. Program in Atra\emph{Kahn} is represented as a directed graph of computational processes connected with edges that are stream-carrying channels.
 
-% Relation to KPNs
 What properties of KPNs do \ak\ inherit? What are the differences?
 
 
@@ -144,86 +244,13 @@ The TPL defines:
 
 
 
-\paragraph{Boxes}
-Boxes are stateless functions that read messages from one (or in some cases two) input channels. Boxes read an input message, do some computation and send messages to output channels.
-
-Boxes are classified
-
-It should be noted that all vertices are pure stream- to-stream prefix-monotonic functions that map the totality of their input streams to the totality of their output streams.
-
-boxes are specified in a
-box programming language and are subject to a box contract. The contract sets out acceptable behaviour for a box and is partly cooperative (i.e. cannot be inforced, but any guarantees that AstraKahn makes are subject to the fulfilment of the contract on behalf of all the boxes) and partly enforceable. AstraKahn accepts any box programming language that enables the programmer to fulfil the contract. The interface between a box and the AstraKahn run-time system for any valid implementation is defined by the AstraKahn Box-API for each supported box language.
-
-
-
-\paragraph{Synchronisers}
-Synchronisers are vertices that can have any number of input channels. Synchronisers have an internal state and generally accept messages from each input channel in some states, while in any of the other states the channel is blocked until a state transition brings the synchroniser to a state in which messages from the channel are accepted, thus unblocking it. Synchronisers are able to store received messages and retrieve them for the sole purpose of sending them on, either as they are, or combined with other stored or received messages and with trivial message extensions computed by the synch itself. The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one. In other words, a synchroniser is a finite state machine for joining messages and sending them on to its output channels.
-
-
-\paragraph{Channels}
-Bracketing depth of channels
-
-Boxes and synchronisers are connected by segmented channels. A channel carries a stream that
-consists of messages and possibly segmentation marks. The latter can be thought of as “brackets”. The intention of the brackets is to mark the beginning and the end of a sequence.
-
-Sequences may in turn consist of sequences in their own right, hence a channel can have a bracketing depth (or depth for short) greater than one. However, each message on a given channel will under all circumstances find itself between the same number of brackets, hence the depth is static, and is a characteristic of a channel available from the TPL.
-
-
-\paragraph{Network Composition}
-% TODO 4 or 5 wiring patterns?
-
-Wiring patterns form a small set: only 5 in total, describing connections between
-nodes in a hierarchical way. A pattern is applied to its operand networks, either vertices or groups of nodes already wired up with some wiring patterns. The pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result. Four out of five patterns are finite, applicable to one or two operands. The fifth one is infinite as it infinitely replicates the single operand network and wires up an infinite chain. That last pattern can also be dynamic, in the sense that the wiring takes place step-by-step at run time, which is the most complex topological and regulatory behaviour available in TPL.
-
-AstraKahn provides a small set of wiring patterns which is sufficient to achieve arbitrary wiring of the vertices.
-- The serial connection
-- The parallel connection
-- The wrap-around connection
-
-- Infinite star combinator
-
-
-The construction of networks in AstraKahn is hierarchical: vertices are combined into a subnetwork, which in turn can act as a vertex in a larger network, etc.
-
-
-\paragraph{The type system of \ak\ }
-
-the role of the CAL in AstraKahn is similar to the role
-of the type system in a conventional (non-coordination) programming language. The CAL is, in a way, a universal type system in the sense that it does not fix the structure and meaning of the type assertions that boxes may choose to import and export. It instead provides a constraint programming framework in which a wide variety of assertions can be formulated. It relies on general-purpose constraint solving as a means of type checking, type inference and most general subtyping.
-
-In data communication the static correctness of the channel demands that the statically guaranteed properties of an output message be sufficient to satisfy the static requirements of its recipients.
-a vertex is both an originator of its output messages and the recipient of the input ones, and since the input constraints are the necessary condition for the vertex to operate correctly and hence to guarantee the output properties, the vertex can be abstracted with
-respect to its data-transformation behaviour as an implicative statement p ⇒ P. Here p is the conjunction of all the requirements and P is the conjunction of all the guarantees. We will call these implications box passports.
-
-A box is represented as a combination of a source code and a triad of the box name, box category and CAL passport. An AstraKahn compiler performs its first (Constraint Aggregation or CA) pass by only taking the above-mentioned triad and the coordination program written in AstraKahn/TPL. During the CA pass, the topology of the network is extracted from the AstraKahn program, the properties of the synchronisers with respect to input terms (i.e. their “passports” if they had one) are inferred from each synchroniser program, and the process of juxtaposition and constraint solving is performed to instantiate all term variables. As a side effect, a proof is obtained that the constraint system is satisfiable, which indicates that all components have received sufficient assurances to guarantee their output, and consequently the whole program that will be generated next is consistent and type correct.
-
-CAL is based on the Message Definition Language (MDL) which is a language of abstract terms that are built recursively from the ground up. Structurally they are symbolic trees with the following kinds of leaf:
--symbol
--number
--string
--variable
--flag
-
-Terms are built recursively using the following types of constructors:
--tuple
--list
--record
--choice
--switch
-
-
-Data on streams in \ak\ are organised as choices of records.
-
-
-
 
     \section{Summary}
 StreamIt, S-Net and \ak\ share that the networks are constructed with a fixed of combinators. Reo connects the components it coordinates with complex connectors that are constructed of typed channels that express synchronisation.
 
 Which languages separate synchronisation from coordination?
 Reo does not.
-S-Net (via SISO and synchrocells) and \ak\ (via synchronisers) do.
+S-Net (via SISO and synchrocells) and \ak\ (via synchronisers) do. 
 StreamIt is SISO and based on the SDF model, where neighbouring processes communicate synchronously.
 
-Unlike S-Net or \ak\, Reo connectors never combine (or process) data items. It just sends them as is
-
+Unlike S-Net or \ak\, Reo connectors never combine (or process) data items. It just sends them as is.
