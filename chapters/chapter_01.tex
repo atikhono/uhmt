@@ -35,54 +35,76 @@ The contribution of the research is a technique for pressure propagation through
     \section{Outline}
 
 
+%Kahn's fixed-point semantics:
+%A network of continous functions is continous
+\chapter{Theoretical Background and Related Work}
+In this chapter we provide relevant theoretical background in coordination programming and streaming process networks. Particularly, we focus on the approaches to synchronisation in coordination languages. Then, we explain the concepts of \ak\ in more detail and relate it to KPNs and \ak\ predecessor S-Net.
 
-\chapter{Theoretical Background}
-    \section{Stream Processing}
-Stream processing research, particularly the study of stream processing systems, has a long history. In general, a stream processing system can be described as a system comprised of a set of processing components that compute in parallel and communicate data via channels. Channels pass data as infinite sequences; these infinite sequences are referred to as streams.
 
-Examples of stream processing research are dataflow systems, reactive systems, signal processing systems, etc. An overview of the hystorical development and the discussion of the different techniques for streams programming is presented in the survey by R. Stephens \cite{stephens97}.
-
-Stephens identifies that the first type of stream processing systems are dataflow systems. The first dataflow programming language Lucid \cite{lucid} was designed in 1970s. In Lucid, each variable is an infinite stream of values. Computation is carried out by defining transformation functions that process these streams. Lucid is possibly the first language to introduce the idea of a block that transforms input message sequences into output sequences.
-
-In 1974 G. Kahn published his paper \cite{kahn74} outlining the semantics of a simple language for parallel programming. In his work Kahn suggests a distributed model of computation where a group of deterministic sequential processes communicate via unbounded FIFO channels. In this model a program is represented as a directed graph whose vertices are prefix monotonic\footnote{Process is prefix monotonic when it takes partial input stream - prefix - in order to produce partial output stream, i.e. for prefix monotonic process $f(x)$ and prefix $p : f(p)=r$ it is true that $f(p || t) = r || T$} computational processes and edges are stream-carrying channels with the following assumptions:
-\begin{itemize}
-\item[-]Channels are the only way for processes to communicate;
-\item[-]Channels transmit messages within a finite time;
-\item[-]At any given time a process is either performing computation or waiting for messages on one of its input channels;
-\item[-]Each process is a sequential program.
-\end{itemize}
-Kahn proved that the resulting process network exhibits deterministic behaviour, i.e. its output does not depend on computation or communication delays. This model is now referred to as Kahn Process Network (KPN). Astra\emph{Kahn} is based on KPNs.
-
-One of the latest KPN interpretations in programming languages is StreamIt \cite{streamit}. In StreamIt, basic computational unit is called \emph{filter}. A filter is a user-defined single-input, single-output block that translates input data sequences to output sequences. Notable feature of StreamIt is that it imposes structuring on applications with the following structural primitives:
-\begin{itemize}
-\item \emph{pipeline} specifies sequential composition of filters,
-\item \emph{splitjoin} specifies parallel composition of filters,
-\item and \emph{feedbackloop} provides a way to create loop constructs in stream graph.
-\end{itemize}
-
-Recall that KPN model is theoretical and works well under interpretation when resources are unlimited. In real world, concurrent processes and their communication facilities have to share a very limited pool of resources. Thus, several refinements to KPNs are needed to address resource limitations.
-
-The fundamental technique to deal with the issue is load balancing. Several static and dynamic approaches were suggested for load balancing in StreamIt applications. Static load balancing implies partitioning of a StreamIt program into a set of balanced patritions. Static strategies introduce heuristic approach \cite{streamit}, as well as use of ILP solvers \cite{kudlur}, approximation alghorithms \cite{farhad} and machine learning \cite{wang}. Dynamic load balancing technique proposed in \cite{collins} takes advantage of filters' statelessness\footnote{Regardless of input sequence $A$, stateless filter output sequence does not depend on input sequences that came before $A$.}. The approach is based on communication pressure that emerges from the channels' boundedness. Here communication pressure characterises the channel occupancy of some computational process and feedback from its co-located computational processes.
-
-Astra\emph{Kahn} proposes demand-driven self-regulatory mechanism. It is based on the same concept of communication pressure with a refinement to achieve fine-grained parallelism.
-
-In Astra\emph{Kahn} predecessor S-Net \cite{snet_intro} the problem with resource management persists. A programmer has to tune S-Net application manually.
-
+%Approaches to synchronisation.
+%Synchronisation facilities in coordination languages.
 
     \section{Coordination Programming}
-The coordination aspect of Astra\emph{Kahn} is related to significant amount of prior work in data-driven coordination. Main existing coordination technologies are described in details in the survey \cite{papadopoulos} by G. Papadopoulos and F. Arbab.
+The coordination paradigm offers a promising way to address some issues related to the development of efficient parallel systems. Programming a parallel system can be seen as the combination of two activities: the actual computing part comprising a number of processes that manipulate data and a coordination part that is responsible for the communication between the processes.
 
-Unlike a great many approaches to coordination programming, coordination and computation in Astra\emph{Kahn} are completely separate. This is achieved by introduction of a special type of process called a synchroniser. A synchroniser can be thought of as a facility that guarantees data availability on computational process inputs.
+Basically, coordination is managing dependencies between components. Since the computation is completely separated from the coordination activity, the processes that comprise the former are seen as black boxes. Hence, the actual programming languages used to write the computational code do not play important role in setting up the coordination scheme. Thus, the concept of coordination is closely related to heterogenity.
 
-S-Net is also the case. S-Net utilises \emph{synchrocells} in order to control synchronisation. Synchrocells are the only means in S-Net to combine messages from several channels into a single record; they only realise a functional mapping from input streams to the output stream. In constrant to synchrocells, synchronisers allow complex synchronisation patterns. They are programmed in a dedicated programming language which is a part of Astra\emph{Kahn}.
+Existing coordination models\footnote{A coordination model constitutes the entities being coordinated, the means used to ccordinate the entities and the semantic framework the model adheres to} are described in details in the survey \cite{papadopoulos} by G. Papadopoulos and F. Arbab. They argue that these models fall into two major categories of coordination programming, namely either data-driven or control-driven.
 
-Another related coordination technology is the language Reo \cite{Reo_Arbab04}. Like Astra\emph{Kahn} or S-Net, Reo is exogenous in terms of coordination. Reo's emphasis is on complex coordinators, or \emph{connectors}, and their composition out of simpler ones, rather than on the components that communicate via these connectors.
+The main characteristic of the data-driven coordination models is that coordinated processes are responsible for both examining and manipulating data as well as for coordinating either themselves and/or other processes by invoking the coordination mechanism each language provides. This means that the coordination and computation code are mixed within the process definition. A data-driven coordination language typically offers several coordination primitives which are mixed with the purely computational part of code.
 
-A channel is an atomic connector in Reo. A channel is undirected, i.e. its ends may be either \emph{source} or \emph{sink}. Source and sink are connected to producer and to consumer nodes respectively. Channels in Reo are typed, however, no fixed set of types is assumed. Channels coincide in another fundamental entity called a \emph{node}. Reo defines sets of operations on channels and nodes, see \cite{Reo_Arbab04} for reference.
+Many data-driven coordination models have evolved around the notion of a shared dataspace. The shared dataspace plays the dual role, being a global data repository and an interprocess communication system. The processes communicate among themselves writing to the shared dataspace and retrieving data from it. Hystorically the first member of this family is Linda \cite{linda}.
 
-Complex connector in Reo is represented as undirected graph contisting of channels and nodes. C. Baier et al. introduce \emph{constraint automata} and propose them as an operational model for component connectors in Reo \cite{baier_ca}. Concerns of equivalence or containment checks and verification are addressed in this paper as well as in \cite{Pourvatan}.
+Strictly speaking, not all data-driven coordination models follow the above pattern of coordination. Some of them use a message-passing based mechanism (MPI, \cite{mpi}).
+
+Opposite to the data-driven coordination model, the control-driven coordination model achieves almost complete separation of computation and coordination concerns. This is usually achieved by defining a special language that offers facilities for controlling synchronisation, communication, creation and termination of computing components. One of contemporary members of this family is Reo \cite{Reo_Arbab04}.
+
+In Reo the computational components communicate via complex coordinators, or \emph{connectors}. An undirected channel is an atomic connector in Reo. Channels are typed, however, no fixed set of types is assumed. The channel type defines the synchronisational behaviour of the channel with respect to data.
+
+Channels are connected with \emph{nodes}. Nodes have fixed merger-replicator behaviour: the data of one of the incoming channels is propagated to all outgoing channels, without storing or altering the data. If multiple incoming channel can provide data, the node make a nondeterministic choice among them.
+
+Complex connector in Reo is represented as undirected graph contisting of channels and nodes. C. Baier et al. propose \emph{constraint automata} as an operational model for component connectors in Reo \cite{baier_ca}.
 
 
+    \section{Stream Processing}
+The term stream processing refers to the study of a number of disparate systems, such as dataflow systems, reactive systems, signal processing systems, etc. However, conceptually the analysis of each of these systems is usually based on the study of a patricular type of stream processing system. A stream processing system is a system comprised of a collection of processes that compute in parallel and communicate data via channels. The processes are ususally divided into three classes: sources that pass data into the system, filters that perform some atomic computation, and sinks that pass data from the system. Stream processing systems are usually visualised as directed graphs.
+
+An overview of the hystorical development and the discussion of the different techniques for streams programming is presented in the survey by R. Stephens \cite{stephens97}. Stephens identifies that the first type of stream processing systems are dataflow systems. In the first dataflow programming language Lucid \cite{lucid}, each variable is represented as an infinite stream of values. Computation is carried out by defining transformation functions that process these streams. Lucid is possibly the first language to introduce the idea of a filter.
+
+A significant result for concurrency engineering is Kahn's work \cite{kahn74} that outlines the semantics of a simple parallel programming language. Kahn suggests a distributed model of computation where a group of deterministic sequential processes communicate via unbounded FIFO channels under the following assumptions:
+\begin{itemize}
+\item Channels are the only way for processes to communicate
+\item Channels transmit messages within a finite time
+\item At any given time a process is either performing computation or waiting for messages on one of its input channels.
+\end{itemize}
+Kahn proved that the output of the resulting process network is deterministic, i.e. it does not depend on the mutual order of computations at different nodes. The model is now referred to as Kahn Process Network (KPN).
+
+A Kahn process may have multiple input and multiple output channels. Reading from a channel in KPN is blocking, i.e. a process that reads from an empty channel stalls and can only continue when the channel contains sufficient data.  On contrary, writing to a channel is non-blocking and it always succeeds since channels capacity in KPN is unlimited. Processes cannot test an input channel for data availability without consuming the data. KPNs allow arbitrary wiring, i.e. the network may have feedback communication.
+
+In KPNs the number of data elements a process might read from a channel or write to a channel is not restricted. In synchronous dataflow (SDF, \cite{sdf}) the consumption and production rates of a process that is ready to perform the computation are fixed. Hence, an SDF process computes in a synchronised manner with respect to the processes it is connected to.
+%Synchronous dataflow is a restriction of KPNs.
+%From operational point of view the dataflow model of computation is divided into two basic froms: data-driven (filters compute depending upon the availability of data at their inputs), and demand-driven (filters request data on the input lines when they wish to compute).
+
+A recent SDF implementation in programming languages is StreamIt \cite{streamit}. The basic unit of computation in StreamIt is a user-defined single-input single-output (SISO) block that translates input data sequences to output sequences called a filter. A filter can communicate with neighbouring blocks via FIFO channels. StreamIt imposes structuring on applications with the following structural primitives:
+\begin{itemize}
+\item \emph{Pipeline} specifies sequential composition of filters,
+\item \emph{SplitJoin} specifies parallel composition of filters,
+\item and \emph{FeedbackLoop} provides a way to create loop constructs in a streaming network.
+\end{itemize}
+A StreamIt program is a hierarchical composition of these constructs.
+
+With the restriction to a single input and a single output, a filter is relieved from questions to what extent to synchronise data on multiple input channels and to which of multiple output to send the output.
+
+
+    \section{S-Net}
+S-Net \cite{snet_intro} is a declarative coordination language based on stream processing. S-Net defines the coordination of stateless asynchronous components (boxes) that interact with each other in a streaming network. Boxes are written in conventional languages that are subject to contract with S-Net. Boxes execute fully asynchronously, i.e. a box may consume data as soon as it is available in the input stream. Moreover, boxes are SISO, therefore S-Net achieves a near-complete separation of communication and computation concerns.
+
+Streaming networks are expressed in a hierarchical composition of a fixed set of four combinators, namely serial composition, parallel composition, serial replication and parallel replication. All the combinators except for the serial composition are non-deterministic in a sense that the input data may be reordered in the output stream. For non-deterministic combinators there exist deterministic variants.
+
+S-Net provides a special kind of box, called a synchrocell, that implements barrier synchronisation on streams. Data on streams are organised as records of label-value pairs. A synchrocell maintains an internal state in order to keep a record coming from each of its input streams. Once a synchrocell has collected records from all of its input streams, it merges the records into a single one and emits then the result to the output stream.
+
+
+%Optionally: synchronisers can be used for monitoring of network
     \section{\ak\ Approach to Streaming Networks}
 The \ak\ computation model is based on Kahn's model of process networks. Program in Atra\emph{Kahn} is represented as a directed graph of computational processes connected with edges that are stream-carrying channels.
 
@@ -193,84 +215,15 @@ Terms are built recursively using the following types of constructors:
 Data on streams in \ak\ are organised as choices of records.
 
 
-%Optionally: synchronisers can be used for monitoring of network
-
-%Kahn's fixed-point semantics:
-%A network of continous functions is continous
-\chapter{Theoretical Background and Related Work}
-In this chapter we provide relevant theoretical background in coordination programming and streaming process networks. Particularly, we focus on the approaches to synchronisation in coordination languages. Then, we explain the concepts of \ak\ in more detail and relate it to KPNs and \ak\ predecessor S-Net.
 
 
-%Approaches to synchronisation.
-%Synchronisation facilities in coordination languages.
-
-    \section{Coordination Programming}
-The coordination paradigm offers a promising way to address some issues related to the development of efficient parallel systems. Programming a parallel system can be seen as the combination of two activities: the actual computing part comprising a number of processes that manipulate data and a coordination part that is responsible for the communication between the processes.
-
-Basically, coordination is managing dependencies between components. Since the computation is completely separated from the coordination activity, the processes that comprise the former are seen as black boxes. Hence, the actual programming languages used to write the computational code do not play important role in setting up the coordination scheme. Thus, the concept of coordination is closely related to heterogenity.
-
-Existing coordination models\footnote{A coordination model constitutes the entities being coordinated, the means used to ccordinate the entities and the semantic framework the model adheres to} are described in details in the survey \cite{papadopoulos} by G. Papadopoulos and F. Arbab. They argue that these models fall into two major categories of coordination programming, namely either data-driven or control-driven.
-
-The main characteristic of the data-driven coordination models is that coordinated processes are responsible for both examining and manipulating data as well as for coordinating either themselves and/or other processes by invoking the coordination mechanism each language provides. This means that the coordination and computation code are mixed within the process definition. A data-driven coordination language typically offers several coordination primitives which are mixed with the purely computational part of code.
-
-Many data-driven coordination models have evolved around the notion of a shared dataspace. The shared dataspace plays the dual role, being a global data repository and an interprocess communication system. The processes communicate among themselves writing to the shared dataspace and retrieving data from it. Hystorically the first member of this family is Linda \cite{linda}.
-
-Strictly speaking, not all data-driven coordination models follow the above pattern of coordination. Some of them use a message-passing based mechanism (MPI, \cite{mpi}).
-
-Opposite to the data-driven coordination model, the control-driven coordination model achieves almost complete separation of computation and coordination concerns. This is usually achieved by defining a special language that offers facilities for controlling synchronisation, communication, creation and termination of computing components. One of contemporary members of this family is Reo \cite{Reo_Arbab04}.
-
-In Reo the computational components communicate via complex coordinators, or \emph{connectors}. An undirected channel is an atomic connector in Reo. Channels are typed, however, no fixed set of types is assumed. The channel type defines the synchronisational behaviour of the channel with respect to data.
-
-Channels are connected with \emph{nodes}. Nodes have fixed merger-replicator behaviour: the data of one of the incoming channels is propagated to all outgoing channels, without storing or altering the data. If multiple incoming channel can provide data, the node make a nondeterministic choice among them.
-
-Complex connector in Reo is represented as undirected graph contisting of channels and nodes. C. Baier et al. propose \emph{constraint automata} as an operational model for component connectors in Reo \cite{baier_ca}.
-
-
-    \section{Stream Processing}
-The term stream processing refers to the study of a number of disparate systems, such as dataflow systems, reactive systems, signal processing systems, etc. However, conceptually the analysis of each of these systems is usually based on the study of a patricular type of stream processing system. A stream processing system is a system comprised of a collection of processes that compute in parallel and communicate data via channels. The processes are ususally divided into three classes: sources that pass data into the system, filters that perform some atomic computation, and sinks that pass data from the system. Stream processing systems are usually visualised as directed graphs.
-
-An overview of the hystorical development and the discussion of the different techniques for streams programming is presented in the survey by R. Stephens \cite{stephens97}. Stephens identifies that the first type of stream processing systems are dataflow systems. In the first dataflow programming language Lucid \cite{lucid}, each variable is represented as an infinite stream of values. Computation is carried out by defining transformation functions that process these streams. Lucid is possibly the first language to introduce the idea of a filter.
-
-A significant result for concurrency engineering is Kahn's work \cite{kahn74} that outlines the semantics of a simple parallel programming language. Kahn suggests a distributed model of computation where a group of deterministic sequential processes communicate via unbounded FIFO channels under the following assumptions:
-\begin{itemize}
-\item Channels are the only way for processes to communicate
-\item Channels transmit messages within a finite time
-\item At any given time a process is either performing computation or waiting for messages on one of its input channels.
-\end{itemize}
-Kahn proved that the output of the resulting process network is deterministic, i.e. it does not depend on the mutual order of computations at different nodes. The model is now referred to as Kahn Process Network (KPN).
-
-A Kahn process may have multiple input and multiple output channels. Reading from a channel in KPN is blocking, i.e. a process that reads from an empty channel stalls and can only continue when the channel contains sufficient data.  On contrary, writing to a channel is non-blocking and it always succeeds since channels capacity in KPN is unlimited. Processes cannot test an input channel for data availability without consuming the data. KPNs allow arbitrary wiring, i.e. the network may have feedback communication.
-
-In KPNs the number of data elements a process might read from a channel or write to a channel is not restricted. In synchronous dataflow (SDF, \cite{sdf}) when a process is ready to perform the computation, its consumption and production rates are fixed. Hence, an SDF process computes in a synchronised manner with respect to the processes it is connected to.
-%Synchronous dataflow is a restriction of KPNs.
-%From operational point of view the dataflow model of computation is divided into two basic froms: data-driven (filters compute depending upon the availability of data at their inputs), and demand-driven (filters request data on the input lines when they wish to compute).
-
-A recent SDF implementation in programming languages is StreamIt \cite{streamit}. The basic unit of computation in StreamIt is a user-defined single-input single-output block that translates input data sequences to output sequences called a filter. A filter can communicate with neighbouring blocks via FIFO channels. StreamIt imposes structuring on applications with the following structural primitives:
-\begin{itemize}
-\item \emph{Pipeline} specifies sequential composition of filters,
-\item \emph{SplitJoin} specifies parallel composition of filters,
-\item and \emph{FeedbackLoop} provides a way to create loop constructs in a streaming network.
-\end{itemize}
-A StreamIt program is a hierarchical composition of these constructs.
-
-With the restriction to a single input and a single output (SISO), a filter is relieved from questions to what extent to synchronise data on multiple input channels and to which of multiple output to send the output.
-
-
-    \section{S-Net}
-S-Net \cite{snet_intro} is a declarative coordination language based on stream processing.
-
-
-
-
-
-%%%%%%%
-Unlike S-Net or \ak\, Reo connectors never combine (or process) messages.
-
-SISO
-S-Net + synchrocells, StreamIt + 3 recursive language constructs (avoiding of synchronisation).
-Synchrocell - barrier synchronisation
-
+    \section{Summary}
+StreamIt, S-Net and \ak\ share that the networks are constructed with a fixed of combinators. Reo connects the components it coordinates with complex connectors that are constructed of typed channels that express synchronisation.
 
 Which languages separate synchronisation from coordination?
 Reo does not.
-S-Net does.
+S-Net (via SISO and synchrocells) and \ak\ (via synchronisers) do.
+StreamIt is SISO and based on the SDF model, where neighbouring processes communicate synchronously.
+
+Unlike S-Net or \ak\, Reo connectors never combine (or process) data items. It just sends them as is
+
