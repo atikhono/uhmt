@@ -108,7 +108,7 @@ S-Net provides a special kind of box, called a synchrocell, that implements barr
 %Optionally: synchronisers can be used for monitoring of network
     \section{\ak\ Approach to Streaming Networks}
 %In this section we present the concepts of a new coordination language \ak\.
-\ak\ is an attempt to combine coordination programming with stream processing in order to provide a component system with concurrency self-regulation. \ak\ defines the coordination behaviour of fully asynchronous components (boxes) and their orderly interconnection via stream-carrying bounded FIFO channels. Streams in \ak\ are typed and data on streams are organised as variant records of label-value pairs. Each record constitutes a message.
+\ak\ is an attempt to combine coordination programming with stream processing in order to provide a component system with concurrency self-regulation. \ak\ defines the coordination behaviour of fully asynchronous components (boxes) and their orderly interconnection via stream-carrying bounded FIFO channels. In \ak\, data on streams are organised as variant records of label-value pairs. Each record constitutes a message.
 
 Like S-Net, \ak\ provides a facility for stream synchronisation in a form of a special component called a synchroniser. The behaviour of a synchroniser is not fixed; instead, it is defined in a dedicated language that is a part of \ak\ paradigm. An \ak\ box is not SISO. Usually it has a single input channel, however, the number of output channels is not restricted. In order to allow the dynamic reconfiguration of \ak\ networks, a box is required to have no state, which it can maintain between two consecutive activations. Since a box is stateless, it does not know to what extent to synchronise the messages it sends to the output channels; this part of work is done by synchronisers. In addition, a synchroniser is not just a tool that is able combine and store received messages; it can compute some trivial message extensitons. With synchronisers, \ak\ achieves a separation of computation and coordination concerns.
 
@@ -121,7 +121,7 @@ In the following sections the concepts of \ak\ are explained in more detail.
     \subsubsection{Channels}
 A channel carries a segmented stream that consists of message sequences and these sequences may in turn consist of sequences in their own right. In order to mark the beginning and the end of a sequence, \ak\ supports a special kind of message called a segmentation mark.
 
-Segmentation marks can be thought of as brackets. \ak\ requires that a sequence can only consist of elements of the same nature, therefore further into the sequence brackets can occur in the following combination:
+Segmentation marks can be thought of as brackets. \ak\ requires that a sequence can only consist of elements of the same nature, therefore further into the sequence brackets can occur only in the following combination:
 \[
 \underbrace{)\ldots)}_k \underbrace{(\ldots(}_k\,,
 \]
@@ -135,20 +135,31 @@ is 3}. Each message on a given channel is under all circumstances found between 
     \subsubsection{Boxes}
 Boxes are the atomic building blocks of \ak\ networks that actually perform the computation. An \ak\ box is deterministic in a sense that for every partial input stream it produces a deterministic output stream\footnote{For a function $f(x): \mathcal{I} \to \mathcal{O}$, where $\mathcal{I}$ is the totality of $f(x)$ input streams and $\mathcal{O}$ is the totality of $f(x)$ output streams, $\forall p \in \mathcal{I} \land \forall t:p \cup t \in \mathcal{I} \: : \; f(p \:||\: t) = f(p) \:||\: f(t)$}.
 
-Conceptually, boxes can be specified in any conventional programming language, however, they are subject to a contract that defines acceptable behaviour for boxes. Any guarantees that \ak\ makes\footnote{E.g. regarding the concurrency self-regulation} are subject to the fulfilment of the contract on behalf of all the boxes. The interface between a box and the \ak\ runtime system is defined by the \ak\ Box-API for each supported box language.
+Conceptually, boxes can be specified in any conventional programming language, however, they are subject to a contract that defines acceptable behaviour for boxes. Any guarantees that \ak\ makes\footnote{E.g. regarding ordering of messages in the input channels} are subject to the fulfilment of the contract on behalf of all the boxes. The interface between a box and the \ak\ runtime system is defined by the \ak\ Box-API for each supported box language.
 
-\ak\ declares three box categories with respect to their algebraic properties and effect of channel segmentation\footnote{The box code does not see the segmentation marks; instead it is declared as having a certain type of bracketing behaviour so that the coordinator can take care of the brackets}:
-\begin{itemize}
-\item Transductor
+\ak\ declares seven box categories with respect to their algebraic properties and effect of channel segmentation\footnote{The box code does not see the segmentation marks; instead it is declared as having a certain type of bracketing behaviour so that \ak\ can take care of the brackets}:
+\begin{description}
+\item[Transductor]
+A transductor has one input channel and one or more output channels and responds with no more than one output message on each of its output channels. Segmentation marks are passed on to all the output channels of the box, bypassing the box code.
 
-\item Inductor
+\item[Inductor]
+An inductor has one input channel and one or more output channels and responds to a single message from the input channel with a sequence of messages on each of its output channels. Before the input stream is passed to the inductor, each $\sigma_k$ in it with $k > 0$ is replaced by $\sigma_{k+1}$, and a $\sigma_1$ is inserted between every two consecutive data messages. Segmentation marks are bypassed from the input to all the output channels by the coordinator when encountered at the input of the inductor.
 
-\item Reductor. There exist five type of reductor
-\end{itemize}
+\item[Reductor] A reductor implements the reduction operation for a list of input messages. All reductors have a single output channel. \ak\ classifes reductors by the number of input channels and properties of the reduction operation they implement. There exist five classes of reductors:
+
+    \begin{description}
+    \item[Dyadic ordered] A dyadic ordered reductor has two input channels. The first input channel is reserved for the initial value. The reduction operator is applied to the messages in the order they arrive on the second input channel
+
+    \item[Dyadic unordered] Same as dyadic ordered except for the reduction operator can be applied to the messages on the second channel in any order without affecting the result
+
+    \item[Monadic ordered and monadic unordered] Same as dyadic reductors except monadic reductors have one input channel. A monadic reductor is only run when two messages are received
+
+    \item[Monadic segmented] A monadic reductor recursively processes an input list of messages that can be segmented into arbitrary sublists until the list is reduced into a single message
+    \end{description}
+\end{description}
 
 
-
-\paragraph{Synchronisers}
+    \subsubsection{Synchronisers}
 Synchronisers are vertices that can have any number of input channels. Synchronisers have an internal state and generally accept messages from each input channel in some states, while in any of the other states the channel is blocked until a state transition brings the synchroniser to a state in which messages from the channel are accepted, thus unblocking it. Synchronisers are able to store received messages and retrieve them for the sole purpose of sending them on, either as they are, or combined with other stored or received messages and with trivial message extensions computed by the synch itself. The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one. In other words, a synchroniser is a finite state machine for joining messages and sending them on to its output channels.
 
 source of nondeterminism
