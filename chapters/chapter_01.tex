@@ -191,35 +191,25 @@ The fourth pattern -- \textbf{serial replication} -- replicates the single opera
 
 
     \subsubsection{The type system of \ak\ }
+The type system of \ak\ is based on the Message Definition Language (MDL, \cite{astrakahn}) which is a language of abstract terms that are built recursively from the ground up. Structurally the terms are symbolic trees with the following kinds of leaf:
+\begin{description}
+\item[Symbol, Number, String] terms represent a certain finite quality
+\item[Variable] term ranges over terms
+\item[Flag] is a boolean variable that only occurs in a certain context.
+\end{description}
+Other terms are built recursively using the following types of constructor:
+\begin{description}
+\item[Tuple] is a collection of terms in linear order
+\item[List] is an extensible collection of terms in linear order
+\item[Record] is a extensible collection of label-term pairs
+\item[Choice] is a extensible collection of labeled alternative terms
+\item[Switch] is a collection of guarded terms that represents exactly one of them depending on the value of the boolean guards
+\end{description}
 
-Streams in \ak\ are typed. Data on streams are organised as variant records of label-value pairs. 
+Data on streams are organised as collections of labeled alternative records (choices). If a choice is known to carry a single record, this record is labeled \emph{uniq}.
 
-
-the role of the CAL in AstraKahn is similar to the role
-of the type system in a conventional (non-coordination) programming language. The CAL is, in a way, a universal type system in the sense that it does not fix the structure and meaning of the type assertions that boxes may choose to import and export. It instead provides a constraint programming framework in which a wide variety of assertions can be formulated. It relies on general-purpose constraint solving as a means of type checking, type inference and most general subtyping.
-
-In data communication the static correctness of the channel demands that the statically guaranteed properties of an output message be sufficient to satisfy the static requirements of its recipients.
-a vertex is both an originator of its output messages and the recipient of the input ones, and since the input constraints are the necessary condition for the vertex to operate correctly and hence to guarantee the output properties, the vertex can be abstracted with
-respect to its data-transformation behaviour as an implicative statement p ⇒ P. Here p is the conjunction of all the requirements and P is the conjunction of all the guarantees. We will call these implications box passports.
-
-A box is represented as a combination of a source code and a triad of the box name, box category and CAL passport. An AstraKahn compiler performs its first (Constraint Aggregation or CA) pass by only taking the above-mentioned triad and the coordination program written in AstraKahn/TPL. During the CA pass, the topology of the network is extracted from the AstraKahn program, the properties of the synchronisers with respect to input terms (i.e. their “passports” if they had one) are inferred from each synchroniser program, and the process of juxtaposition and constraint solving is performed to instantiate all term variables. As a side effect, a proof is obtained that the constraint system is satisfiable, which indicates that all components have received sufficient assurances to guarantee their output, and consequently the whole program that will be generated next is consistent and type correct.
-
-CAL is based on the Message Definition Language (MDL) which is a language of abstract terms that are built recursively from the ground up. Structurally they are symbolic trees with the following kinds of leaf:
--symbol
--number
--string
--variable
--flag
-
-Terms are built recursively using the following types of constructors:
--tuple
--list
--record
--choice
--switch
-
-
-Data on streams in \ak\ are organised as choices of records.
+An \ak\ component, either a box or a synchroniser, is both a consumer and a producer for some other components in the network. Hence to guarantee the static correctness of a channel, the subtyping relation between the consumer's input and the producer's output types must hold. In order to check the static correctness over the network, a component can be abstracted with respect to its data-transformation behaviour as an implicative statement $p \Rightarrow P$, called a passport, where $p$ is the type of the input message and $P$ is the type of the output message. During the check, the \ak\ compiler extracts the topology of the network, forms the subtyping relations between the passports and performs constraint solving in order to instantiate all term variables. If the constraint system is satisfiable, then the whole program is consistent and type correct.
+%The role of the CAL in AstraKahn is similar to the role of the type system in a conventional programming language. The CAL is, in a way, a universal type system in the sense that it does not fix the structure and meaning of the type assertions that boxes may choose to import and export. It instead provides a constraint programming framework in which a wide variety of assertions can be formulated. It relies on general-purpose constraint solving as a means of type checking, type inference and most general subtyping.
 
 
 %Change the title
