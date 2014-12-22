@@ -407,6 +407,18 @@ In other words, the synchoniser avoids to make transitions to the states that se
 on-elseon execution order, dead $elseon$ code with $\langle chan \rangle .else$
 \end{itemize}
 
+\ak\ works under assumption that synchronisers process messages in zero time. In order to do this, there're several kinds of non-determinism introduces to sycnhronisers.
+
+1) The ability to read from several input channels in some state makes synchronisers non-deterministic. When several messages are ready at the same time, the synchroniser chooses non-deterministically what transition to make. 
+It considers many things when it make a choice:
+- if it sends something in the transition it is going to take, it checks if the channel it sends to is not blocked
+-...
+- if the transitions it chooses among are all equall, it follows the fairness policy: it should keep the statistics of how many times every transition was chosen, and then it choses the transition that was chosen the least number of times.
+
+1) Non-deterministic goto
+-It choses the state that reads from channels that have messages in it
+
+
 
 \section{The implementation of the $aksync$ compiler}
 In this section we describe the implementation of the \ak\ synchroniser compiler $aksync$. At the current stage of the \ak\ software stack development the $aksync$ compiler is highly integrated into the \ak\ runtime system prototype. Like the runtime system the $aksync$ compiler is implemented in Python. It generates an intermediate representation of the synchroniser program that is passed to the synchroniser runtime.

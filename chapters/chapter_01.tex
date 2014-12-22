@@ -110,7 +110,7 @@ S-Net provides a special kind of box, called a synchrocell, that implements barr
 %In this section we present the concepts of a new coordination language \ak\.
 \ak\ is an attempt to combine coordination programming with stream processing in order to provide a component system with concurrency self-regulation. \ak\ defines the coordination behaviour of fully asynchronous components (boxes) and their orderly interconnection via stream-carrying bounded FIFO channels. In \ak\, data on streams are organised as variant records of label-value pairs. Each record constitutes a message.
 
-Like S-Net, \ak\ provides a facility for stream synchronisation in a form of a special component called a synchroniser. The behaviour of a synchroniser is not fixed; instead, it is defined in a dedicated language that is a part of \ak\ paradigm. An \ak\ box is not SISO. Usually it has a single input channel, however, the number of output channels is not restricted. In order to allow the dynamic reconfiguration of \ak\ networks, a box is required to have no state, which it can maintain between two consecutive activations. Since a box is stateless, it does not know to what extent to synchronise the messages it sends to the output channels; this part of work is done by synchronisers. In addition, a synchroniser is not just a tool that is able combine and store received messages; it can compute some trivial message extensitons. With synchronisers, \ak\ achieves a separation of computation and coordination concerns.
+Like S-Net, \ak\ provides a facility for stream synchronisation in a form of a special component called a synchroniser. The behaviour of a synchroniser is not fixed; instead, it is defined in a dedicated language that is a part of \ak\ paradigm. An \ak\ box is not SISO. Usually it has a single input channel, however, the number of output channels is not restricted. In order to allow the dynamic reconfiguration of \ak\ networks, a box is required to have no state, which it can maintain between two consecutive activations. Since a box is stateless, it does not know to what extent to synchronise the messages it sends to the output channels; this part of work is done by synchronisers. In addition, a synchroniser is not just a tool that is able to combine and store received messages; it can compute some trivial message extensitons. With synchronisers, \ak\ achieves a separation of computation and coordination concerns.
 
 %wiring
 \ak\ imposes structuring on streaming networks with a total of four combinators, namely the serial connection, the parallel connection, the wrap-around connection and the serial replication. Network combinators may take either boxes or networks as their operands, hence the network construction is an inductive proccess. 
@@ -121,7 +121,7 @@ In the following sections the concepts of \ak\ are explained in more detail.
     \subsubsection{Channels}
 A channel carries a segmented stream that consists of message sequences and these sequences may in turn consist of sequences in their own right. In order to mark the beginning and the end of a sequence, \ak\ supports a special kind of message called a segmentation mark.
 
-Segmentation marks can be thought of as brackets. \ak\ requires that a sequence can only consist of elements of the same nature, therefore further into the sequence brackets can occur only in the following combination:
+Segmentation marks can be thought of as brackets. \ak\ requires the static bracketing depth of a stream. Therefore, each message in a given stream is under all circumstances found between the same number of brackets. In this case, further into the sequence brackets can occur only in the following combination:
 \[
 \underbrace{)\ldots)}_k \underbrace{(\ldots(}_k\,,
 \]
@@ -129,7 +129,7 @@ where $k \le d$, and $d$ is the number of opening brackets in the beginning of t
 \[
 (((\;a\underbrace{)(}_{\sigma_1}b\underbrace{))((}_{\sigma_2}c\underbrace{)(}_{\sigma_1}d\;)))
 \]
-is 3}. Each message on a given channel is under all circumstances found between the same number of brackets, hence the bracketing depth is static.
+is 3}.
 
 
     \subsubsection{Boxes}
@@ -160,9 +160,17 @@ An inductor has one input channel and one or more output channels and responds t
 
 
     \subsubsection{Synchronisers}
-Synchronisers are vertices that can have any number of input channels. Synchronisers have an internal state and generally accept messages from each input channel in some states, while in any of the other states the channel is blocked until a state transition brings the synchroniser to a state in which messages from the channel are accepted, thus unblocking it. Synchronisers are able to store received messages and retrieve them for the sole purpose of sending them on, either as they are, or combined with other stored or received messages and with trivial message extensions computed by the synch itself. The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one. In other words, a synchroniser is a finite state machine for joining messages and sending them on to its output channels.
+Synchronisers are non-deterministic finite state machines for joining messages and sending them on to the output channels. \ak\ provides synchronisers a finite memory in order to store received messages.
 
-source of nondeterminism
+A synchroniser can have any number of input and output channels. Unlike boxes, synchronisers maintain an internal state and generally accept messages from each input channel in some states, while in any of the other states the channel is blocked until a state transition brings the synchroniser to a state in which messages from the channel are accepted.
+
+A synchroniser can compute trivial extensions for messages. For example, it can add a labeled integer value to a message. It also detects segmantation marks in a an input stream and can change the segmentation of the stream by creating segmentation marks and sending them on to the output channels.
+
+The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one. In order for the synchroniser to read the field values of the current message, it is matched with a pattern specified within the triggering condition of the transition. In addition, the triggering condition may check the matched values if they are known to be integers. If the message was matched and the integer values are satisfactory, then the transition fires.
+
+The act of sending a message to the output channel is associated with a transition. Once the transition is known to fire, the synchroniser computes the message extensitons, joins the parts of the message together and sends it on to the output channel.
+
+\ak\ provides a dedicated language to describe synchronisers. A synchroniser program is a list of the synchronisers' states. Each state lists the state transitions.
 
 
 
@@ -173,10 +181,11 @@ Wiring patterns form a small set: only 5 in total, describing connections betwee
 nodes in a hierarchical way. A pattern is applied to its operand networks, either vertices or groups of nodes already wired up with some wiring patterns. The pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result. Four out of five patterns are finite, applicable to one or two operands. The fifth one is infinite as it infinitely replicates the single operand network and wires up an infinite chain. That last pattern can also be dynamic, in the sense that the wiring takes place step-by-step at run time, which is the most complex topological and regulatory behaviour available in TPL.
 
 AstraKahn provides a small set of wiring patterns which is sufficient to achieve arbitrary wiring of the vertices.
+Static:
 - The serial connection
 - The parallel connection
 - The wrap-around connection
-
+Dynamic:
 - Infinite star combinator
 
 every connection that is not serial is a source of non-determinism. non-determinism comes from non-deterministic mergers.
