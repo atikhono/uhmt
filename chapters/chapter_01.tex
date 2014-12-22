@@ -119,7 +119,7 @@ In the following sections the concepts of \ak\ are explained in more detail.
 
 
     \subsubsection{Channels}
-A channel carries a segmented stream that consists of message sequences and these sequences may in turn consist of sequences in their own right. In order to mark the beginning and the end of a sequence, \ak\ supports a special kind of message called a segmentation mark.
+Channels in \ak\ are named FIFO queues with a limited capacity. A channel carries a segmented stream that consists of message sequences and these sequences may in turn consist of sequences in their own right. In order to mark the beginning and the end of a sequence, \ak\ supports a special kind of message called a segmentation mark.
 
 Segmentation marks can be thought of as brackets. \ak\ requires the static bracketing depth of a stream. Therefore, each message in a given stream is under all circumstances found between the same number of brackets. In this case, further into the sequence brackets can occur only in the following combination:
 \[
@@ -173,27 +173,24 @@ The act of sending a message to the output channel is associated with a transiti
 \ak\ provides a dedicated language to describe synchronisers. A synchroniser program is a list of the synchronisers' states. Each state lists the state transitions.
 
 
+    \subsubsection{Network Composition}
+The construction of streaming networks in \ak\ is hierarchical: components are wired into a subnetwork, which in turn can act as a component in a larger network, etc. In order to wire the components, \ak\ provides a set of wiring patterns that is sufficient to achieve arbitrary wiring. A pattern is applied to its operand networks, either vertices or groups of components already wired up with some wiring patterns. The pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result.
 
-\paragraph{Network Composition}
-% TODO 4 or 5 wiring patterns?
+Wiring patterns form a set of four in total. Three out of four are static, applicable to one or two operands:
+\begin{description}
+\item[Serial connection] applies to two operands. All outputs of the first operand are wired to identically named inputs of the second operand if they exist. The rest of the channels contribute to the input/output sets of the resulting network.
 
-Wiring patterns form a small set: only 5 in total, describing connections between
-nodes in a hierarchical way. A pattern is applied to its operand networks, either vertices or groups of nodes already wired up with some wiring patterns. The pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result. Four out of five patterns are finite, applicable to one or two operands. The fifth one is infinite as it infinitely replicates the single operand network and wires up an infinite chain. That last pattern can also be dynamic, in the sense that the wiring takes place step-by-step at run time, which is the most complex topological and regulatory behaviour available in TPL.
+\item[Parallel connection] applies to two operands. Two operand networks are placed side by side without connection and their input and output channels form the input and output channel sets of the resulting network.
 
-AstraKahn provides a small set of wiring patterns which is sufficient to achieve arbitrary wiring of the vertices.
-Static:
-- The serial connection
-- The parallel connection
-- The wrap-around connection
-Dynamic:
-- Infinite star combinator
+\item[Wrap-around connection] applies to a single operand. Each output channel of the operand that matches an input channel by name is wired to it with a special wrap-around channel, thus completing a cyclic connection. In order to avoid deadlocks, \ak\ does not limit the capacity of wrap-around channels; their capacity is only limited by the amount of memory available for queues in the system.
+\end{description}
+These three patterns are sufficient to achieve arbitrary wiring of the components.
 
-every connection that is not serial is a source of non-determinism. non-determinism comes from non-deterministic mergers.
-
-The construction of networks in AstraKahn is hierarchical: vertices are combined into a subnetwork, which in turn can act as a vertex in a larger network, etc.
+The fourth pattern -- \textbf{serial replication} -- replicates the single operand network infinitely and wires up the consequent replicas with the serial connection. The actual replication is demand-driven, hence the chain of replicas is extended dynamically at runtime. The output from the infinite chain is organised via a special channel the programmer has to declare. Once a replica sends a message to the channel, the channel is dynamically wired to the rest of the \ak\ network.
+%All wiring patterns in \ak\ except for the serial connection are the source of non-determinism. non-determinism comes from non-deterministic mergers.
 
 
-\paragraph{The type system of \ak\ }
+    \subsubsection{The type system of \ak\ }
 
 Streams in \ak\ are typed. Data on streams are organised as variant records of label-value pairs. 
 
