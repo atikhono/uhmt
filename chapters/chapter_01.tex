@@ -97,7 +97,9 @@ A StreamIt program is a hierarchical composition of these constructs.
 With the restriction to a single input and a single output, a filter is relieved from questions to what extent to synchronise data on multiple input channels and to which of multiple output to send the output.
 
 
-    \section{S-Net}
+\section{Combined Approaches to Component Systems}
+
+    \subsection{S-Net}
 S-Net \cite{snet_intro} is a declarative coordination language based on stream processing. S-Net defines the coordination of stateless asynchronous components (boxes) that interact with each other in a streaming network. Boxes are written in conventional languages that are subject to contract with S-Net. Boxes execute fully asynchronously, i.e. a box may consume data as soon as it is available in the input stream. Moreover, boxes are SISO, therefore S-Net achieves a near-complete separation of communication and computation concerns.
 
 Streaming networks are expressed in a hierarchical composition of a fixed set of four combinators, namely serial composition, parallel composition, serial replication and parallel replication. All the combinators except for the serial composition are non-deterministic in a sense that the input data may be reordered in the output stream. For non-deterministic combinators there exist deterministic variants.
@@ -106,7 +108,7 @@ S-Net provides a special kind of box, called a synchrocell, that implements barr
 
 
 %Optionally: synchronisers can be used for monitoring of network
-    \section{\ak\ Approach to Streaming Networks}
+    \subsection{\ak\ }
 %In this section we present the concepts of a new coordination language \ak\.
 \ak\ is an attempt to combine coordination programming with stream processing in order to provide a component system with concurrency self-regulation. \ak\ defines the coordination behaviour of fully asynchronous components (boxes) and their orderly interconnection via stream-carrying bounded FIFO channels. In \ak\, data on streams are organised as variant records of label-value pairs. Each record constitutes a message.
 
@@ -171,6 +173,7 @@ The state transitions of a synchroniser can depend on the content of the current
 The act of sending a message to the output channel is associated with a transition. Once the transition is known to fire, the synchroniser computes the message extensitons, joins the parts of the message together and sends it on to the output channel.
 
 \ak\ provides a dedicated language to describe synchronisers. A synchroniser program is a list of the synchronisers' states. Each state lists the state transitions.
+%If a continous synchronisation is desired, the synchroniser must be programmed so that it looped around some state.
 
 
     \subsubsection{Network Composition}
@@ -190,7 +193,7 @@ The fourth pattern -- \textbf{serial replication} -- replicates the single opera
 %All wiring patterns in \ak\ except for the serial connection are the source of non-determinism. non-determinism comes from non-deterministic mergers.
 
 
-    \subsubsection{The type system of \ak\ }
+    \subsubsection{The Type System of \ak\ }
 The type system of \ak\ is based on the Message Definition Language (MDL, \cite{astrakahn}) which is a language of abstract terms that are built recursively from the ground up. Structurally the terms are symbolic trees with the following kinds of leaf:
 \begin{description}
 \item[Symbol, Number, String] terms represent a certain finite quality
@@ -213,13 +216,12 @@ An \ak\ component, either a box or a synchroniser, is both a consumer and a prod
 
 
 %Change the title
-    \section{Relation to KPN}
-The \ak\ computation model is based on Kahn's model of process networks. Program in Atra\emph{Kahn} is represented as a directed graph of computational processes connected with edges that are stream-carrying channels.
+    \subsubsection{\ak\ as a refinement to KPNs}
+The \ak\ computation model is based on Kahn's model of process networks.
+
 
 What properties of KPNs do \ak\ inherit? What are the differences?
 
-
-The semantics of AstraKahn on the TPL is described in terms of structures put in place for the coordinator, i.e. a controlling agent, or indeed a group of agents, responsible for progress and communication of the KPN vertices. The vertices are connected by stream-carrying channels using wiring patterns.
 
 
 Though \ak\ preserves certain properties of KPNs, it provides the following refinements:
