@@ -217,14 +217,14 @@ An \ak\ component, either a box or a synchroniser, is both a consumer and a prod
 
 %Change the title
     \subsubsection{Structure of \ak\ }
-\ak\ is motivated by a KPN, which is a theoretical model and its properties are only available under an interpretation with unlimited resources. The intention of \ak\ is to refine and structure KPNs in order to provide a component system with an automatic resource management.
+\ak\ is motivated by a KPN, which is a theoretical model and its properties are only available under an interpretation with unlimited resources. The intention of \ak\ is to refine and structure KPNs in order to provide a component system with an automatic resource and concurrency management.
 
 %What properties of KPNs do \ak\ inherit? What are the differences?
 \ak\ provides the following refinements for KPNs:
 \begin{itemize}
 \item \emph{Complete separation of coordination and computation concerns} opens opportunities for parallelisation. Computational components are stateless and the coordination logic is expressed in the network wiring and synchronisers
 
-\item \emph{Automatic resource management} provides a demand-based parallelisation mechanism and takes care of the queue sizes in the network
+\item \emph{Automatic resource and concurrency management} provides a communicational demand based parallelisation mechanism and takes care of the queue sizes in the network
 
 \item \emph{Separation into independent layers communicating by means of interfaces} addresses the standard engineering agenda of abstraction, encapsulation and hierarchical development.
 \end{itemize}
@@ -236,7 +236,7 @@ As the result of the refinement, \ak\ is seen as a construction of three indepen
 \item[-] Classes of boxes, their algebraic properties and their effects on channel segmentation
 \item[-] The language for synchronisers
 \item[-] The wiring patterns and the subnetwork encapsulation facility
-\item[-] The Automatic resource management strategy
+\item[-] The automatic resource and concurrency management strategy
     \end{itemize}
 
 \item The Constraint Aggregation Layer (CAL) that insures type safety all over network with data constraints provided by each component
@@ -246,11 +246,12 @@ As the result of the refinement, \ak\ is seen as a construction of three indepen
 
 
     \section{Summary}
-StreamIt, S-Net and \ak\ share that the networks are constructed with a fixed of combinators. Reo connects the components it coordinates with complex connectors that are constructed of typed channels that express synchronisation.
+In this chapter we have reviewed recent component systems based on coordination programming (\emph{Reo}) and stream processing (\emph{StreamIt, S-Net}), and described the approach to component coordination that is being developed within the \ak\ project.
 
-Which languages separate synchronisation from coordination?
-Reo does not.
-S-Net (via SISO and synchrocells) and \ak\ (via synchronisers) do. 
-StreamIt is SISO and based on the SDF model, where neighbouring processes communicate synchronously.
+The stream processing based approaches StreamIt, S-Net and \ak\ impose structuring on networks with fixed sets of combinators, while the coordination language Reo allows an arbitrary component connection. In Reo, the computational components are connected into a network with complex connectors that are constructed of channels typed with respect to their synchronisation properties. Just like the Reo's approach to data synchronisation, S-Net achieves a near-complete separation of computation and communication concerns. However, in S-Net, the computational component's interface is restricted to a single input and a single output channel. Addinionally, S-Net provides a stream synchronisation facility called a synchrocell that implements barrier synchronisation on streams. \ak\ does not put a restriction for computational components to have a single input and a single output channels. Instead, \ak\ provides a tool for a more complex stream synchronisation called a synchroniser. Unlike a Reo connector or an S-Net synchrocell, an \ak\ synchroniser is able to process messages, e.g. read and change their content to some extent. With synchronisers, \ak\ achieves a separation of computation and communication concerns. Like in S-Net, the computational components in StreamIt have a single input and a single output channel. Moreover, StreamIt is based on the synchronous dataflow model, where neighbouring components communicate synchronously. With these properties the components in StreamIt are relieved from question to what extent to synchronise data.
 
-Unlike S-Net or \ak\, Reo connectors never combine (or process) data items. It just sends them as is.
+In order to support the dynamic reconfiguration of streaming networks, S-Net and \ak\ require the computational components to have no state. A heuristic scheduler that utilises positive and negative demands of the stream communications was developed for S-Net in \cite{nga}. The ability to dynamically reconfigure a streaming network opens opportunities for parallelisation. The long-term goal of the \ak\ project is to provide a self-regulating concurrency mechanism based on the communicational demand. StreamIt does not require the components to be stateless; it relies on the static scheduling of the synchronous data flow programs. Reo is clueless about the components it coordinates; it focuses on the components connection, rather then on the components themselves.
+%
+%Queue size management - StreamIt is a SDF system, therefore management of channels size is easy, because the consumption and the production rates of each component are fixed and known in advance. Reo and S-Net do not care. AK attempts to provide the automatic resource management.
+%
+%In this thesis we focus on the \ak\ approach to stream synchronisation.
