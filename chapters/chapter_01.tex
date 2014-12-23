@@ -110,7 +110,7 @@ S-Net provides a special kind of box, called a synchrocell, that implements barr
 %Optionally: synchronisers can be used for monitoring of network
     \subsection{\ak\ }
 %In this section we present the concepts of a new coordination language \ak\.
-\ak\ is an attempt to combine coordination programming with stream processing in order to provide a component system with concurrency self-regulation. \ak\ defines the coordination behaviour of fully asynchronous components (boxes) and their orderly interconnection via stream-carrying bounded FIFO channels. In \ak\, data on streams are organised as variant records of label-value pairs. Each record constitutes a message.
+\ak\ is an attempt to combine coordination programming with stream processing in order to provide a component system with concurrency self-regulation. \ak\ defines the coordination behaviour of fully asynchronous components (boxes) and their orderly interconnection via stream-carrying bounded FIFO channels. In \ak\, data on streams are organised as collections of labeled alternative records. Each record constitutes a message.
 
 Like S-Net, \ak\ provides a facility for stream synchronisation in a form of a special component called a synchroniser. The behaviour of a synchroniser is not fixed; instead, it is defined in a dedicated language that is a part of \ak\ paradigm. An \ak\ box is not SISO. Usually it has a single input channel, however, the number of output channels is not restricted. In order to allow the dynamic reconfiguration of \ak\ networks, a box is required to have no state, which it can maintain between two consecutive activations. Since a box is stateless, it does not know to what extent to synchronise the messages it sends to the output channels; this part of work is done by synchronisers. In addition, a synchroniser is not just a tool that is able to combine and store received messages; it can compute some trivial message extensitons. With synchronisers, \ak\ achieves a separation of computation and coordination concerns.
 
@@ -123,11 +123,11 @@ In the following sections the concepts of \ak\ are explained in more detail.
     \subsubsection{Channels}
 Channels in \ak\ are named FIFO queues with a limited capacity. A channel carries a segmented stream that consists of message sequences and these sequences may in turn consist of sequences in their own right. In order to mark the beginning and the end of a sequence, \ak\ supports a special kind of message called a segmentation mark.
 
-Segmentation marks can be thought of as brackets. \ak\ requires the static bracketing depth of a stream. Therefore, each message in a given stream is under all circumstances found between the same number of brackets. In this case, further into the sequence brackets can occur only in the following combination:
+Segmentation marks can be thought of as brackets. \ak\ requires that a stream of message sequences that flows through a channel has the static bracketing depth. Therefore, each message in a given channel is under all circumstances found between the same number of brackets. In this case, further into the message sequence brackets can occur only in the following combination:
 \[
 \underbrace{)\ldots)}_k \underbrace{(\ldots(}_k\,,
 \]
-where $k \le d$, and $d$ is the number of opening brackets in the beginning of the stream. This combination is denoted as a segmentation mark $\sigma_k$. The bracketing depth $d \ge 0$ characterises the stream-carrying channel\footnote{Indeed, the bracketing depth of a channel that would carry the stream of message lists
+where $k \le d$, and $d$ is the number of opening brackets in the beginning of the stream. This combination is denoted as a segmentation mark $\sigma_k$. The bracketing depth $d \ge 0$ characterises the stream-carrying channel and is know statically\footnote{Indeed, the bracketing depth of a channel that would carry the stream of message lists
 \[
 (((\;a\underbrace{)(}_{\sigma_1}b\underbrace{))((}_{\sigma_2}c\underbrace{)(}_{\sigma_1}d\;)))
 \]
@@ -147,7 +147,7 @@ A transductor has one input channel and one or more output channels and responds
 \item[Inductor]
 An inductor has one input channel and one or more output channels and responds to a single message from the input channel with a sequence of messages on each of its output channels. Before the input stream is passed to the inductor, each $\sigma_k$ in it with $k > 0$ is replaced by $\sigma_{k+1}$, and a $\sigma_1$ is inserted between every two consecutive data messages. Segmentation marks are bypassed from the input to all the output channels by the coordinator when encountered at the input of the inductor.
 
-\item[Reductor] A reductor implements the reduction operation for a list of input messages. All reductors have a single output channel. \ak\ classifes reductors by the number of input channels and properties of the reduction operation they implement. There exist five classes of reductors:
+\item[Reductor] A reductor implements the reduction operation for a list of input messages. All reductors have a single output channel. \ak\ classifes reductors by the number of input channels and properties of the reduction operation they implement. There exist five classes of reductor:
 
     \begin{description}
     \item[Dyadic ordered] A dyadic ordered reductor has two input channels. The first input channel is reserved for the initial value. The reduction operator is applied to the messages in the order they arrive on the second input channel
@@ -177,7 +177,7 @@ The act of sending a message to the output channel is associated with a transiti
 
 
     \subsubsection{Network Composition}
-The construction of streaming networks in \ak\ is hierarchical: components are wired into a subnetwork, which in turn can act as a component in a larger network, etc. In order to wire the components, \ak\ provides a set of wiring patterns that is sufficient to achieve arbitrary wiring. A pattern is applied to its operand networks, either vertices or groups of components already wired up with some wiring patterns. The pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result.
+The construction of streaming networks in \ak\ is hierarchical: components are wired into a subnetwork, which in turn can act as a component in a larger network, etc. In order to wire the components, \ak\ provides a set of wiring patterns that is sufficient to achieve arbitrary wiring. A pattern is applied to its operand networks, either boxes or synchronisers. The pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result.
 
 Wiring patterns form a set of four in total. Three out of four are static, applicable to one or two operands:
 \begin{description}
@@ -185,7 +185,7 @@ Wiring patterns form a set of four in total. Three out of four are static, appli
 
 \item[Parallel connection] applies to two operands. Two operand networks are placed side by side without connection and their input and output channels form the input and output channel sets of the resulting network.
 
-\item[Wrap-around connection] applies to a single operand. Each output channel of the operand that matches an input channel by name is wired to it with a special wrap-around channel, thus completing a cyclic connection. In order to avoid deadlocks, \ak\ does not limit the capacity of wrap-around channels; their capacity is only limited by the amount of memory available for queues in the system.
+\item[Wrap-around connection] applies to a single operand. Each output channel of the operand that matches an input channel by name is wired to it with a special wrap-around channel, thus completing a cyclic connection. In order to avoid deadlocks, \ak\ does not limit the capacity of wrap-around channels; their capacity is only limited by the amount of memory available for the queues in the system.
 \end{description}
 These three patterns are sufficient to achieve arbitrary wiring of the components.
 
@@ -204,8 +204,8 @@ Other terms are built recursively using the following types of constructor:
 \begin{description}
 \item[Tuple] is a collection of terms in linear order
 \item[List] is an extensible collection of terms in linear order
-\item[Record] is a extensible collection of label-term pairs
-\item[Choice] is a extensible collection of labeled alternative terms
+\item[Record] is an extensible collection of label-term pairs
+\item[Choice] is an extensible collection of labeled alternative terms
 \item[Switch] is a collection of guarded terms that represents exactly one of them depending on the value of the boolean guards
 \end{description}
 
@@ -216,42 +216,33 @@ An \ak\ component, either a box or a synchroniser, is both a consumer and a prod
 
 
 %Change the title
-    \subsubsection{\ak\ as a refinement to KPNs}
-The \ak\ computation model is based on Kahn's model of process networks.
+    \subsubsection{Structure of \ak\ }
+\ak\ is motivated by a KPN, which is a theoretical model and its properties are only available under an interpretation with unlimited resources. The intention of \ak\ is to refine and structure KPNs in order to provide a component system with an automatic resource management.
 
-
-What properties of KPNs do \ak\ inherit? What are the differences?
-
-
-
-Though \ak\ preserves certain properties of KPNs, it provides the following refinements:
-\begin{description}
-\item[complete separation of coordination logic from computations]
-
-This refinement leaves computational components stateless and opens opportunities for easier parallelisation. Coordination logic is expressed in special vertices called \emph{synchronisers}. \emph{Synchronisers} are programmed in dedicated programming language;
-\item[self-regulatory concurrency mechanism] based on the concept of communication pressure. The mechanism address the issue of application progress under the interpretation when resources are limited. Behavioural classification of computational components is provided along with this mechanism;
-\item[separation into independent layers communicating by means of interfaces]
-
-This refinement addresses standard engineering issues such as abstraction, encapsulation and hierarchical development.
-\end{description}
-
-As the result of refinement, \ak\ is seen as a construction of three independent layers:
+%What properties of KPNs do \ak\ inherit? What are the differences?
+\ak\ provides the following refinements for KPNs:
 \begin{itemize}
-\item Topology and Progress Layer (TPL) defines the topology and provides concurrency regulatory mechanism.
-The TPL defines:
-1. classes of boxes, their algebraic properties, their effects on channel segmentation and the behaviour under both types of pressure.
-2. classes of channels with respect to pressure conductance 3. the language for synchronisers, including:
-• the structure of the state, the specification of the state transitions and the associated storage/retrieval behaviour
-• pressure creation and conductance • nondeterminism and fairness policies
-4. the static wiring patterns 4
-5. subnetwork encapsulation facility
+\item \emph{Complete separation of coordination and computation concerns} opens opportunities for parallelisation. Computational components are stateless and the coordination logic is expressed in the network wiring and synchronisers
 
-\item Constraint Aggregation Layer (CAL) insures type safety all over network with data constraints provided by each component
+\item \emph{Automatic resource management} provides a demand-based parallelisation mechanism and takes care of the queue sizes in the network
 
-\item Data Instrumentation Layer (DIL) manages data distribution and concurrent memory access.
+\item \emph{Separation into independent layers communicating by means of interfaces} addresses the standard engineering agenda of abstraction, encapsulation and hierarchical development.
 \end{itemize}
 
+As the result of the refinement, \ak\ is seen as a construction of three independent layers:
+\begin{itemize}
+\item The Topology and Progress Layer (TPL) that defines:
+    \begin{itemize}
+\item[-] Classes of boxes, their algebraic properties and their effects on channel segmentation
+\item[-] The language for synchronisers
+\item[-] The wiring patterns and the subnetwork encapsulation facility
+\item[-] The Automatic resource management strategy
+    \end{itemize}
 
+\item The Constraint Aggregation Layer (CAL) that insures type safety all over network with data constraints provided by each component
+
+\item The Data Instrumentation Layer (DIL) that manages data distribution and concurrent memory access.
+\end{itemize}
 
 
     \section{Summary}
