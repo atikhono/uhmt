@@ -187,7 +187,7 @@ Wiring patterns form a set of four in total. Three out of four are static, appli
 
 \item[Wrap-around connection] applies to a single operand. Each output channel of the operand that matches an input channel by name is wired to it with a special wrap-around channel, thus completing a cyclic connection. In order to avoid deadlocks, \ak\ does not limit the capacity of wrap-around channels; their capacity is only limited by the amount of memory available for the queues in the system.
 \end{description}
-These three patterns are sufficient to achieve arbitrary wiring of the components.
+These three patterns are sufficient to achieve arbitrary wiring of the components. %TODO: mergers!
 
 The fourth pattern -- \textbf{serial replication} -- replicates the single operand network infinitely and wires up the consequent replicas with the serial connection. The actual replication is demand-driven, hence the chain of replicas is extended dynamically at runtime. The output from the infinite chain is organised via a special channel the programmer has to declare. Once a replica sends a message to the channel, the channel is dynamically wired to the rest of the \ak\ network.
 %All wiring patterns in \ak\ except for the serial connection are the source of non-determinism. non-determinism comes from non-deterministic mergers.
