@@ -1,304 +1,255 @@
-% TODO change this uglyness
-\chapter{Synchronisers in the replication resolution}
+\chapter{Towards statistical properties of synchronisers}
+Brief explanation of the role of synchronisers in learning for proliferation (that initial throughput value estimation is needed as well as initial channel sizes)
 
-In this chapter we discuss the role of synchronisers in wiring patterns based on a replicated operand network.
+How did we come to the idea of using a statistical model?
+What is a statistical model in general? (See wiki page) How are they used?
+The practical side of statistical model: The model of the relatioships between various object parameters
+ 
+In absence of environment for experiments and example applications artificial load is used.
 
-The replication combinator creates conceptually infinite number of copies of its component, which may be either a box or a net, and connects them in series. Replication is demand-driven, hence replicas are created dynamically in runtime and do not necessarily require significant resouces since \ak\ boxes are stateless and synchronisers require no resouces in their start state. %in start state a synchroniser resets all its store variables
+%Практический смысл статистической модели:
+%1) Характеристики $T'_{i}, \; j'_{i}$ являются начальными значениями для алгоритма пролиферации
+%2) Начальные размеры каналов
 
-\ak\ proposes an elegant way to produce the output of the infinite chain of replicas. Despite its elegance, we argue the convenience of the approach and propose another one, which, in our opinion, is more convenient and easier to use.
+\section{Statistical model}
+Let $S = (\Phi, \; \Pi)$, where $\Phi = (A \subseteq C \times P, \; S, \; T)$, $\Pi \: : \: S \times \Omega \to V$ be a synchroniser with $|C| = m$ input channels, $|\Omega| = n$ output channels and the transtion matrix $T$. All channels $c_{i}, \: i = 1,m$ and $\omega_{i}, \: i=1,n$ are finite FIFO-queues that have lengths $L^{(in)}_{i}, \: i = 1,m$ and $L^{(out)}_{i}, \: i=1,n$ as shown in Fig. \ref{fig:stat_mod}.
 
-% TODO: I don't like the reason. Why was the reverse fixed point introduced?
-% reverse fixed point is the basic optimisation that preserves growth of the replicas chain.
-As the chain of replicas evolves, it may be the case that some replicas in the head of the chain are active yet they just transmit messages without a change. \ak\ is commited to detect such replicas and optimise the connection so that the data are sent directly to a replica that is ready to process it. 
-
-The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{rfp} we explain why both cases are relevant to synchroniser analysis and give formal definitions. In section \ref{ffp_discussion} we discuss the original approach to the output of the infinite chain of replicas and in section \ref{approach} we propose another one. In section \ref{fp_detect} we provide detection algoritms for both cases.
-
-
-    \section{Fixed Point}
-A replica is inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running. Indeed the cost of replication is only felt when the replicas are active, which is the case when the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
-
-The replication combinators in S-Net require a specification of termination pattern. The termination mechanism in S-Net is based on the record subtyping provided by the S-Net type system. Processing of a record in the replication pipeline terminates when the record is a subtype of the specified pattern and then the record leaves the pipeline through the output stream. \ak\ attempts to provide a termination mechanism that does not require to explicitly specify termination rules in the \ak\ application code. This mechanism is based on the concept of a fixed point. In mathematics, a fixed point of a function is an element of the function's domain that is mapped to itself by the function. Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net. (NOT TRUE, FIX)
-
-%TODO!! Explain that synchroniser analysis is relevant to fix-point resolution
-In order to utilize the fixed point the \ak\ compiler must be able to detect it. Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or the network topology of a net. It means that the net graph must have at least one path that goes exclusively via synchronisers (TODO fix) or straight through the net without traversing any box.
-
-\ak\ defines two types of a fixed point: a forward fixed point and a reverse fixed point. The intention of a forward fixed point is to cut infinite tail of inactive replicas chain. The reverse fixed point is an optimisation of an input connection that has to cascade through the chain to a replica that is ready to accept the data. Its intention is to bypass the replicas that transmit messages without change (TODO not good). Later we will see that a replica does not have to be inactive in order to that.
-
-With the reference to fixed point utilisation we will call the \ak\ replication operator the fixed point series (FPS).
-
-
-
-    \section{Forward Fixed Point Series\label{ffp}}
-In this section we provide the original approach to the forward fixed point.
-
-
-Consider a vertex $v$ that has an input and an output channel, both named $x$.
-
-\begin{definition}The vertex $v$ is said to have a forward fixed point in $x$ if and only if the following requirements are satisfied:
-
-\begin{enumerate}
-\item There exists a condition $p(m)$ on the content of the message $m$ received by the vertex on the input channel $x$ under which it follows a unique non-branching path to the output channel $x$ without traversing any boxes.
-
-\item The path can traverse synchronisers, but then whenever $p(m)$ is true and the synchroniser is in the start state, it must accept $m$ and transition back to the start state while sending the message $m$ on the path unchanged and without producing any other output.
-
-\end{enumerate}
-\end{definition}
-
-% Give a definition for "edge that satisfies the fixed-point definition"
-The condition $p(m)$ may not be unique for each vertex, and when it is not, a disjunction of all such conditions is called the fixed-point condition of the vertex on channel $x$. The condition can also be a tautology, in which case the forward fixed point is called unconditional. When the path traverses several vertices, the fixed-point condition is a conjunction of their fixed-point conditions.
-
-% Draw a picture to explain conj and disj
-  \begin{figure}[h!]
-  \centering
-  \includegraphics{figs/chapter_04_ffp.pdf}
-  \caption{Forming of the forward fixed-point condition of a vertex.}
-  \label{fig:ffp}
-  \end{figure}
-
-A replicated vertex in Fig. \ref{fig:ffp} is a net that has a unique path $[v_1, \: v_2, \: v_3]$ that traverses only synchronisers. The synchroniser $v_2$ has two edges that loop around the start state and satisfy the fix-point definition (TODO fix; explain how). The firing conditions for those edges are $p^{1}_2(m)$ and $p^{1}_2(m)$. A message $m$ is a fixed-point when it satisties any of them, i.e. $p^{1}_2(m) \lor p^{1}_2(m)$. The synchronisers $v_1$ and $v_3$ have fixed-point conditions $p_1(m)$ and $p_3(m)$ respectively, where $p_i(m) = p^{1}_i(m) \lor \dots p^{j}_i$, $i=1,3$ and $j$ is the number of edges that satisfy the fixed-point definition (TODO fix). Then the fixed-point condition of the whole net is $p_1(m) \land (p^{1}_2(m) \lor p^{1}_2(m)) \land p_3(m)$.
-
-
-%Forward fix point puts some requirements on the message value and not its type.
-
-%Forward fix point checker checks if a message satisfies a set of requirements to be a fix point.
-
-%Forward fix point checker is a code generated from the synchronisers source code. It utilises message api like fuction that tells that a message has variant $v$ etc.
-
-
-    \subsubsection{Output from the Forward FPS}
-In this section we will clarify how the FPS is wired to the rest of network and how the output of the FPS is produced.
-
-Strictly the FPS is not a connection since it does not simply wire the replicas of its component. It also creates a set of output channels and in some cases augments the replicas with some auxiliary vertices. However, in the main it wires the replicas in a serian fashion and we will consequently call the FPS a connection.
-
-We denote the FPS connection as $A^{*} = A' \: .. \: A' \: .. \: A' \: .. \: \dots$, where $A'$ is the network that contains $A$ and provides additional wiring to ensure that all output channels of $A'$ match its input channels bijectively.
-
-The FPS connection $A^{*}$ defines the output channel set $\mathcal{N}_{out}$ as follows:
-\begin{equation}
-\mathcal{N}_{out} = \{ name(c) \: | \: c \in \mathcal{O} \land fp(c) \}\nonumber
-\end{equation}
-where $\mathcal{O}$ is the output channel set of $A$ and the predicate $fp(c)$ is true on any channel $c$ that has a forward fixed point. The FPS creates a set of fresh output channels $\mathcal{O}^{*}$ taking the names from the set $\mathcal{N}_{out}$. A message coming to an inactive replica on any channel $c$ with $name(c) \in \mathcal{N}_{out}$ and which satisfies the fixed-point condition on that channel is immediately transferred to the identically named output channel from $\mathcal{O}^{*}$.
-
-  \begin{figure}[h!]
-  \centering
-  \includegraphics{figs/chapter_04_ffp_out.pdf}
-  \caption{Output from the forward fixed-point series.}
-  \label{fig:ffp_out}
-  \end{figure}
-
-In Fig. \ref{fig:ffp_out} a replicated vertex $A$ has the fixed-point condition $p(m)$. Synchroniser $S_f$ is inserted before every inactive replica $A'^{(i+1)}$ to check whether a message in channel $a_{i}$ satisfies the condition $p(m)$. If $p(m)$ is satisfied, the message $m$ is sent to the output channel $a$ of $A^{*}$. Otherwise, it is sent to the input channel $a^{(i+1)}$ of the next replica. The listing of the synchroniser $S_f$ is given in Fig. \ref{ffp:synch_filt}.
-
-\begin{figure}[h!]
-\begin{lstlisting}[frame=single,mathescape]
-synch $S_f$ ($a_i$ | $a_{i+1}$, $a$)
-{
-  start {
-    on:
-      $a_{i}$.$p(m)$ {
-        send this => $a$;
-      }
-      $a$.else {
-        send this => $a_{i+1}$;
-      }
+% Inkscape figure
+  \begin{figure}[h] %here!
+  \scalebox{0.8}{
+    \includesvg{figs/stat_mod}
   }
-}
-\end{lstlisting}
-\caption{The synchroniser $S_f$}
-\label{ffp:synch_filt}
-\end{figure}
-
-The merger $M$ accepts input messages from all synchronisers $S_f$ that are inserted before inactive replicas of $A$ (TODO fix) and sends the messages to the output channel $a$.
-
-
-%An FPS is a form of replication wiring whereby an infinite chain of replicas is created, connected in series. The connection is denoted as A* for any operand network A and can be thought of as the equivalent of $A^{*} = A'..A'..A'.. \dots$ where $A'$, called the streamlining of the vertex A, is a network that contains A and provides some additional wiring to ensure that each output channel of A? matches an input channel and vice versa. We will dwell on the streamlining procedure a little further down, and at this point only remark that if all output channels of A match its input channels bijectively, A' = A.
-
-
-
-    \subsection{Discussion\label{ffp_discussion}}
-%Why is the path required to be unique?
-The definition of the forward fixed point required the uniqueness of the fixed point path. (TODO) Explain why it is required to be unique.
-
-%Why does it consider only the start state? Why can't it be a closed subset of states in a general case?
-%Explain that it should be ok but it makes the approach really bad (because need to add the sane edge to every state in the closed set)
-The forward fixed point definition requires the traversed synchronisers to be in their start states when a message that satisfies the fixed-point condition is received. This requirement does not mean that synchronisers have to stay in their start states. A net in Fig. \ref{fig:ffp_net} demonstrates such behaviour. The synchroniser $S$ that implements the fixed-point condition $p(m)$ on channel $a$ moves to the state $s_1$ when it received a message from channel $b$. A message received from channel $c$ make $S$ move from state $s_1$ to the start state. The synchroniser $S$ can implement some processing of messages from channels $b$ and $c$, i.g. pattern matching, combining and sending to the output channels. However, to make sure that $S$ is in the start state when a message from channel $a$ is received, messages need to be ordered so that a message from channel $a$ always arrives before a message from channel $b$ and a message from channel $c$. Such ordering can be implemented with a synchroniser. In Fig. \ref{fig:ffp_net} this synchroniser is denoted $Ord$.
-
-  \begin{figure}[h!]
-  \centering
-  \includegraphics{figs/chapter_04_ffp_net.pdf}
-  \caption{An example net where the fixed point synchroniser does not have to stay in its start state}
-  \label{fig:ffp_net}
+  \caption{A statistical model of a synchroniser}
+  \label{fig:stat_mod}
   \end{figure}
 
-Synchroniser $S$ has a subset of states $s=\{start, \: s_1\}$ and both states $start$ and $s_1$ read messages from other channels $b$ or $c$, however, no transition to a state outside of the subset $s$ exists. Addition of a fixed-point edge to state $s_1$ could potentially let messages from channel $a$ that satisty the fixed point condition leave the replication pipeline earlier. This idea is generalised as follows: the fixed-point synchroniser can have a subset of states that have the fixed-point edge, and the synchroniser may still be sensitive to other input channels, as long as it does not cause a transition to a state outside of the subset. Thus, the definition of the forward fixed point should be extended to cover the described case.
+%Explaining basic structure of channel and input channel producer properties
+Every input channel $c_{i}, \; i = 1,m$ is connected to a producer $P_{i}$ that sends to this channel on average of $T_{i}$ messages per unit time with an independent jitter (i.e. standard deviation) $j_{i}$. $T_{i}$ may also be interpreted as the throughtput of the $i$-th producer. The output parameters of the synchroniser $T_{i}$ and $j_{i}, \; i=1,n$ assume that the channel $c_{i}$ has infinite length.
 
-The extended approach makes the maintenance of the fixed-point condition inconvenient because the programmer needs to keep track of changes in all fixed-point edges of synchronisers. Moreover, if the replicated vertex has several synchronisers on the fixed-point path, it may be hard to find and maintain the fixed-point condition at all. Considering these drawbacks, the question arises if the idea of terminating the processing of a message implicitly is good.
+%Explaining synchroniser consuming characteristics
+When messages are placed on a synchroniser's input queue they may or may not be consumed immediately. In some states the synchroniser may block the input channel. Let $T'_{i}, \: i=1,m$ be the average number of messages accepted by the synchroniser per unit time and $j'_{i}$ the standard deviation of $T'_{i}$.
 
-%And it creates dificulties for the synchroniser analysis that make it conservative. I.e. in some cases when the fix point exists the compiler may miss it.
+%Synchroniser producing characteristics
+A synchroniser is the producer for its output queues $\omega_{i}, \: i=1,n$. Let $T'_{i}, \: i=1,n$ be the average number of messages sent by the synchroniser to the output channel $\omega_{i}$ per unit time and $j'_{i}$, again, the standard deviation of $T'_{i}$.
 
-The idea of the implicit processing termination originates in S-Net. In S-Net the termination could be done by its type system means: the record leaves the replication pipeline when all its fields are flow-inherited. However, it was implemented in a more explicit way: whether a record leaves the replication pipeline is decided by checking if the record matches the specified termination pattern.
+%Ouptut channels consumers
+The synchroniser's output channels are connected to processes $C_{i}, \: i=1,n$ that consume messages from these channels. Let $T_{i}, \: i=1,n$ be the average number of messages consumed by the process $C_{i}$ per unit time and $j'_{i}$ the standard deviation of $T_{i}$.
 
-%However, the final decision for fix-point resolution was made on the side of simplicity (????) TODO What is the solution in S-net??
+%problem statement
+\begin{problem}Find relations between $(T_{i}, \: j_{i})$, $(T'_{i}, \: j'_{i}), \: i=1,m+n$, $L^{in}_{i}, \: i=1,m$ and $L^{out}_{i}, \: i=1,m$.
+\end{problem}
 
-In this chapter we propose a straightforward approach to the FPS. The fixed-point satisfaction check is now maintained in the box code. The box sends the fixed points to a special channel that goes through the replicated vertex without traversing any box or synchroniser. Messages that are sent to this channel leave the replication pipeline.
+%From statistics point of view
+The model can be constructed in a different way. We focus on the interarrival time of messages instead of the throughput of the components. The interarrival time $t_{i}, \: i=1,m+n$ of messages in the channel $c_{i} \cup \omega_{i}$ is a random variable distributed according to a continuous two-parameter probability density function $p_{i} \: (t < t_{i}) = p_{i} \: (\mu_{i}, \sigma^2_{i}, t_{i})$, where $\mu_{i} = E[t_{i}]$ is the expectancy and $\sigma^2_{i} = Var[t_{i}]$ is the variance of $t_{i}$.
 
-%Now the \ak\ compiler can check the fix-point out of the network topology because there's a channel connected to the box that.
+%%
+%% TODO Draw a picture:
+%%             t_i
+%%        *-----------*
+%%  ------*-----------*--------> t
+%%        i          i+1
+%%
 
+If the interarrival time $t$ has the PDF $p_{t}(t)$ then the throughput $T = \frac{1}{t}$ has the PDF $p_{\frac{1}{t}}(t)$ that is inverse to $p_{t}(t)$. An inverse distribution is obtained by applying the transformation theorem (TODO: reference a good book) to $p(t)$. The transformation theorem states that for a continuous random variable $X$ with the PDF $p_{X} (x)$ and a function $g$ that is monotonous on its domain of definition the random variable $Y = g(X)$ has the PDF $p_{Y} (x) = |\frac{d}{dx}g^{-1}(x)|\cdot p_{X} (g^{-1}(x))$, where $g^{-1}(x)$ is the inverse function for $g(x)$ and $\frac{d}{dx}g^{-1}(x)$ is its derivative. Applying the theorem for the interarrival time $t \sim p_{t}(t)$ and the throughtput $T = g(t) = \frac{1}{t} \sim p_{\frac{1}{t}}(t)$ we get
+\begin{IEEEeqnarray}{rCl}
+g^{-1}(t) &=& (\frac{1}{t})^{-1} = \frac{1}{t}\nonumber\\
+p_{\frac{1}{t}}(t) &=& |\frac{d}{dt}(\frac{1}{t})| \cdot p_{t}(\frac{1}{t}) = \frac{1}{t^2} \cdot p_{t}(\frac{1}{t})\nonumber
+\end{IEEEeqnarray}
+Knowing $p_{\frac{1}{t}}(t)$ the expectancy and the variance of the throughtput $T$ are obtained from the standard formulae
+\begin{IEEEeqnarray}{rCl}
+E[T] &=& \int_{0}^{\infty} t \cdot p_{\frac{1}{t}} (t) dt = \int_{0}^{\infty}\frac{1}{t} \cdot p_{t}(\frac{1}{t}) dt\nonumber\\
+Var[T] &=& \int_{0}^{\infty} t^2 \cdot p_{\frac{1}{t}} (t) dt = \int_{0}^{\infty}p_{t}(\frac{1}{t}) dt\nonumber
+\end{IEEEeqnarray}
 
-    \subsection{Another Approach to the Forward Fixed Point\label{approach}}
-Consider a vertex $v$ that has input and output channels sets $\mathcal{I}$ and $\mathcal{O}$, respectively. The set of matched inputs and outputs is $\mathcal{M}(\mathcal{I}, \: \mathcal{O}) = \mathcal{I} \cap \mathcal{O}$.
+\section{I don't know how to name it}
+When all the time $T_{i} > T'_{i}$, $i=1,m$ then it doesn't matter what is the length of the input queue $L^{(in)_{i}}$ it will always be full. The same is with the output queues of the synchroniser: when $T'_{i} > T_{i}$, $i=1,n$ the output queue $L^{(out)}_{i}$, $i=1,n$ will always be full. Therefore, we are only interested in cases where $T_{i} = T'_{i}$, $i=1,m+n$. We are seeking for the queue lengths $L_{i} = L_{i} (T_{i}=T'_{i}, j_{i}, j'_{i})$, so that anytime the number of messages in the queue would be $l_{i} < L_{i}$. In other words, we are seeking for the queue length $L_{i}$ that minimizes the probability of messages loss for given jitters $j_{i}$ and $j'_{i}$ and rate $T_{i} = T'_{i}$.
 
-\begin{definition} The vertex $v$ is said to have a forward fixed point in $x \in \mathcal{M}(\mathcal{I}, \: \mathcal{O})$ if the following requirements are true:
-    \begin{enumerate}
-\item A unique non-branching path from the input to the output channel $x$ exists that does not traverse any boxes or synchronisers.
-\item There exists at least one box or synchroniser within $v$ that produces output to $x$.
-    \end{enumerate}
-\end{definition}
-
-A non-branching path that does not traverse boxed and synchronisers may traverse mergers. Output is send to the channel $x$ via mergers.
-
-A net in Fig. \ref{fig:ffp_new} has two input and output channels $a$ and $x$. Channel $x$ is the fixed-point channel. Output to the channel $x$ is produced by box $T$. Its output channel is wired with $x$ via merger $M$.
-
-  \begin{figure}[h!]
-  \centering
-  \includegraphics{figs/chapter_04_ffp_new.pdf}
-  \caption{Output to the fixed-point channel}
-  \label{fig:ffp_new}
-  \end{figure}
-
-% A net in wrapped in a Star combinator
-%  __                               __
-% |       _____________________       | *
-% |      |    __      __       |      |
-% |     _|  /|__|----|__|-\    |_     |
-% |  a |_|-|      __      |----|_| a  |
-% |      |  \----|__|-----/    |      |
-% |     _|                |    |_     |
-% |  b |_|----------------*----|_| b  |  - fix point channel b (goes straight throuhg the net)
-% |      |              merger |      |
-% |      |_____________________|      |
-% |__                               __|
-%
-% Find what outputs to the fixpoint channel
-
-The definition above provides topological requirements for the fixed-point existence. Making sure that messages are actually sent to the fixed-point channel is the programmmer's responsibility.
-
-
-    \subsection{Forward Fixed Point Detection\label{ffp_detect}}
-The approch we proposed in section \ref{approach} makes the forward fixed-point detection trivial. The forward fixed-point detection does not require synchroniser analysis anymore. The \ak\ compiler just checks that the forward fixed-point exists in the network topology.
-
-We split the forward fixed-point detection problem into the following subproblems:
-\begin{itemize}
-\item Choose a data structure to represent a net
-\item Provide an algoritm for the fixed-point path detection
-\item Provide an algoritm for recursive fixed-point check
-\end{itemize}
-
-%% Provide detection algorithm
-
-\ak\ compiler needs to just detect the forward fixpoint from the network topology (answer 'yes' or 'no' if the fixpoint exists). If the fixpoint was not found then the network is infinite and inconsistent.
-
-Forward fixpoint detection is pure network topology analysis. Find a way in a net graph that goes exclusively through mergers and some other vertex output to this channel.
-
-How to represent the net graph.
-We have (at least) 4 types of vertices: boxes, synchronisers, nets, mergers.
-If we find net on the way we have to run the analysis for it (recursively). For example:
-% A net in wrapped in a Star combinator
-%  __                               __
-% |       _____________________       | *
-% |      |    __      __       |      |
-% |     _|  /|__|----|__|-\    |_     |
-% |  a |_|-|      __      |----|_| a  |
-% |      |  \----|__|-----/    |      |
-% |     _|                |    |_     |
-% |  b |_|---------------|N|---|_| b  |  - fix point channel b (goes straight throuhg the net)
-% |      |               net   |      |
-% |      |_____________________|      |
-% |__                               __|
-%
-We could represent the net graph as a multigraph (where a vertex, which is a box, a synch, a net or a merger can have several inputs and several outputs).
-But it is inconvenient because we cannot specify the connections to the net inputs and outputs. In order to specify this connections, we can have ports as vertices of a graph.
-
-We assume that the ports graph is a connected graph.
-
-We can filter the subgraph those vertices are only mergers and nets. In this case with the assumption of the original graph connectivity, the resulting graph is a connected graph by construction.
-We construct this graph by traversing all the vertices from the 'start' vertex (we have to keep it in the graph structure). We take the successors of the current vertex and check their 'type'. If the successor is a merger, we add it to the resulting graph and traverse it. (Anyway, generating such a graph seems useless since we can detect the paths we need with just a single traversal)
-
-Or we can leave the graph as is and just put a condition of every vertex we visit that it must be net or merger.
-
-
-
-    \section{Reverse Fixed Point Series\label{rfp}}
-%channels are ordered, need to insert synchronisers
-In this section we provide the approach to the reverse fixed point.
-
-Consider a vertex $v$ that has an input and an output channel, both named $x$.
-
-\begin{definition} The vertex $v$ is said to have a reverse fixed point in $x$ if and only if the following statements hold:
-
+We have 3 parts to analyse in the system:
 \begin{enumerate}
-\item A unique non-branching path from the input to the output channel $x$ exists that does not traverse any boxes.
+\item The producer $P_{i}$, $i=1,m$ send out messages into the output channel with the rate $T_{i}$ and the jitter $j_{i}$ in assumption the output channels have infinite length. The synchroniser connected to this channels then consumes the messages with the rate $T'_{i} = T'_{i} (T_{i}, TD)$. When the length of the channel $L_{i}$ is finite and one the jitters $j_{i}$ and $j'_{i}$ is too big the channels may sometimes get full. The producer is suspended when it output channels are full, thus the full channel affects $T_{i}$ and $j_{i}$ of the producer.
 
-\item Every synchroniser $S_i$ on the path has a subset of states, which we denote as $s_i$, such that in each of these states every message on the path is immediately transferred without being changed or even stored, causing the synchroniser to remain in the same state\footnote{It should also be borne in mind that the values of any state variables form a part of the synchroniser state}. In a state from $s_i$ the synchroniser $S_i$ may still be sensitive to other input channels, as long as this does not, under any circumstances, cause a transition to a state outside $s_i$.
+\item The influence of $TD$ on the syncroniser's output rates. Messages arrive to the synchroniser's input channels with the rates $T_{i}$ and jitters $j_{i}$, $i=1,m$. Find the output rates $T'_{i} = T'_{i} (T_{i}, TD)$ and jitters $j'_{i} = j'_{i} (j_{i}, TD)$, $i=1,n$ in assumption that the input and the output channels are infinite.
+
+Assume the synchroniser produces one message in the $i$-th output channel immediately when it has $(N_1, N_2, \dots N_m)$ messages in its input channels $(c_1, c_2, \dots c_m)$. The the arrival of the message to the $i$-th output channels happens the most often when $E[N_1 \cdot c_1] = E[N_2 \cdot c_2] = \dots = E[N_m \cdot c_m]$ and $Var[N_1 \cdot c_1, N_2 \cdot c_2, \dots N_m \cdot c_m]$ is minimal. $N_i \cdot c_i$, $i=1,m$ here denotes the event of arrival of $N_i$-th message in the channel.
+
+For a Poisson process $Pois(\lambda)$ the arrival of the $n$-th message is distributed according to the Erlang distribution $Erlang(n, \lambda)$ with the expectancy $\frac{n}{\lambda}$ and the variance $\frac{n}{\lambda^2}$.
+
+Draw graphs for the pure zip2 throughput(variance) with infinite queue lengts for Poisson processes and for inverse gamma processes. Probably draw a graph for the less trivial synchroniser, for ex. (a,2b)->c.
+
 \end{enumerate}
-\end{definition}
 
-The vertex $v$ is said to be in a reverse fixed point state on channel $x$ when each $S_i$ is in a state that belongs to its $s_i$.
-
-%%%%%%%%%
-%%  Motivation for the reverse fixpoint
-%%%%%%%%%
-The reverse fix-point is defined to unify backslash \ combinatior and the star in terms of their functionality, which was never done in S-Net(TODO which patterns??). The intention is that they only differ in the pressure propagation strategy. The backslash creates no pressure (TODO why??) in its looped channel, and the start mantains and propagates the pressure in channels between instanses.
-
-% probably a picture
-%
-% backslash (* is the synchroniser)
-%      _________
-%    \|/ _____  |
-% ____*_|     |_|
-%       |_____|
-%
-%
-% Star with the reverse fix point
-%        __________________
-%      _|___________       |
-%    _|______       |      |
-%   |    __ \|/ __ \|/ __ \|/ __
-% --*---|__|-*-|__|-*-|__|-*-|__|-- ...
-%
-
-The reverse fix point is more the way to write code. It is the way to program a loop dependency, when the result of the iteration depends not only on the result of the previous iteration but on the new incoming data. The difference with backslash is in the pressure propagation.
-
-If you want the feature, you must define a closed set of translating states in every synchroniser on the fp path.
+We have to somehow find the balance equations for the synchroniser to consider it all.
 
 
-\subsubsection{Rewiring of the Reverse FPS}
-The reverse fixed point optimises an input connection that has to cascade through the chain to a replica that is ready to accept the data. Any input channel $x$ wired to an active replica $A_i$ that transitions to a reverse fixed point state on that channel is disconnected from $A_i$ and dynamically rewired to the input channel $x$ of the next replica on the chain $A'_{i+1}$.
-
-%pic
+Proliferation: combining and splitting Poisson processes
 
 
-    \subsection{Discussion}
-Order of messages in the reverse fixed point may be changed, because a message may put the replica into the reverse fixed-point state and go for processing into this replica. In this case the messages that came to the replica that is in the reverse fixed-point state may overcome the message processed in the replica. This changes the order of messages. If the progrmmer wants to preserve the order, he must mind it. It may be fixed by creating a separate channel for RFP messages and putting a synchroniser that blockes the RFP channel while there's no message from the output channel (this is for operand network with one input channel, with two it can be more dificult if there're races between the channels that wire replicas).
-
-The replication combinator is just a wiring pattern that does not have to guarantee race-safety. For example, if the operand network is not race-safe, the star is not race-safe as well.
-
-
-    \subsection{Reverse Fixed Point Detection\label{rfp_detect}}
-%%% Synch state conditions for the reverse fixpoint state
-A message is not changed by the synchroniser in some state when:
-- message is sent out by the synchroniser without any changes and storing in any transition including user-specified $else$ ($this$)
-
-A message sent in autogenerated $else$ transition is disregarded by the synchroniser.
-
-If a message is sent out in a user-defined $else$ then we have to make sure that the message get to this $else$. Before $else$ the channel may be tested for variants and segmantation marks, so we have to make sure that the message doesn't contain these variants/not a segmentation mark whatever.
-%%%%%%
+\textbf{Some obvious properties of the model}
+Let $l_{i}, \; i = 1,n$ be the actual number of messages stored in any moment of time in channels $L_{i}$. Then the following is true:
+  \begin{itemize}
+  \item If anytime $l_{i} < L_{i}$, then $T'_{i} = T_{i}$, $i = 1,m$;
+  \item If sometime $l_{i} = L_{i}$, then $T'_{i} < T_{i}$, $i = 1,m$;
+  \item If $l_{i} > 0$, then $T'_{i} = T_{i}$, $i = m+1,n$;
+  \item If $l_{i} = 0$, then $T'_{i} < T_{i}$, $i = m+1,n$.
+  \end{itemize}
 
 
-Choose any convenient structure for nets to resolve fix points. It may be a kind of graph that traversing it it's easy to find paths that only consist of synchronisers.
-It could be a hypergraph (each vertex may have several inputs and several outputs) with type vertices (something that indicates whether vertex is a synchroniser or a box)
+\section{The plan of study}
+%TODO: These all need better explanation w.r.t (Some obvious properties of the model)
+%Influence of finite input channel lengths on producers
 
-This chosen structure can be build in the net parser of from the net compiler internal data structure.
 
-Then we need to represent a set of possible paths in this hypergraph that only contain synchronisers. And a traversal of the hypergraph to find all these paths.
+$T_{i}$ and $j_{i}, \; i=1,m$ are the characteristics of producers in assumption that the channels $c_{i}, \; i=1,m$ they are connected to, are infinite. A finite channel length affects these values. If a channel is full, messages can't be placed in it anymore, so $T_{i}$ decreases. (TODO: what happens to $j_{i}$, does it decrease as well?)
 
-Then we analyse every synchroniser in each path for the satisfiability of fix point conditions.
+%Synchroniser input characteristics
+The affected values $T_{i}, \; j_{i}, \; i=1,m$ change $T'_{i}, \; j'_{i}$. Also $T'_{i}$ and $j'_{i}$ are affected by the transition diagram of a synchroniser causing input channel blockings.
 
+%Influence of finite output channel lengths on synchroniser
+If output channels of a synchroniser have finite lengths, it affects the output characteristics of a synchroniser $T'_{i}$ and $j'_{i}, \; i=m+1,n$ as finite input channels lengths affect producers.
+
+%Influence on synchroniser consumers
+The characteristics of synchroniser consumers are not affected directily by finite channels lengths. They are directly affected by $T'_{i}$ and $j'_{i}, \; i=m+1,n$.
+
+
+%The plan of study
+%What kind of synchronisers is studied
+In this project we study only synchronisers whose transition diagrams have deterministic transitions, i.e a transition diagram doesn't depend on message content. If more that one transition possible at the same time, than all choices are made with the same frequency.
+
+%Describe the idea for a study. We have 3 problems with a synchroniser: input channels are finite, transition diagram is random (fixed by the language), output channels are finite. Decribe the order in which these problems are studied (the strategy).
+
+We break down the problem into parts:
+  \begin{enumerate}
+  \item Study the part of a system that doesn't depend on the output channels
+    \begin{itemize}
+    \item Find $T'_{i}$ and $j'_{i}, \; i=1,m$ depending on $T_{i}, \; j_{i}, \; i=1,m$ and finite channel lengths $L_{i}, \; i=1,m$;
+    \item Investigate how $T_{i}, \; j_{i}, \; i=1,m$ are affected by $L_{i}, \; i=1,m$;
+  \end{itemize}
+
+  \item Study the part of a system that depends on the output channels
+    \begin{itemize}
+    \item Find "ideal" $T'_{i}$ and $j'_{i}, \; i=m+1,n$ with assumption that output channels have infinite lengths;
+    \item Study an impact of finite output channels on $T'_{i}$ and $j'_{i}, \; i=m+1,n$;
+    \item Investigate how $T_{i}$ and $j_{i}, \; i=m+1,n$ of consumers are affected.
+    \end{itemize}
+  \end{enumerate}
+
+
+Stability condition $\frac{\lambda_{arr}}{\lambda_{dep}} < 1$.
+\section{Relevant work}
+
+
+Queueing theory, queueing networks with blocking
+-Poisson
+-Non-poisson
+Production systems perfomance
+
+
+\section{Modeling a system}
+
+  \subsection{Modeling channels}
+Channels act as FIFO-queues. Message arrivals in a channel are independent events with interarrival time $\Delta t$ distributed according to the gamma distribution: $\Delta t \sim Gamma (k, \theta, t)$. Gamma distribution is chosen because of two reasons:
+    \begin{itemize}
+    \item it is a well-studied distribution that generates positive values, i.e. its domain of definition is $t \in [0;\infty]$, and interarrival times must be positive,
+    \item it is closed to the convolution operation if the parameter $\theta$ is fixed: $Gamma_(k_{1}, \theta) * Gamma (k_{2}, \theta) = Gamma (k_{1} + k_{2}, \theta)$; this property helps to significantly simplify heavy computations involving convolutions.
+    \end{itemize}
+
+According to the central limit theorem, any distribution could be chosen -- it should not change results significantly. (Explain why?)
+
+TODO Put a graph somewhere with the number of messages in a channel over time (the channel is finite and connected to a synchroniser) Probably appendix with the Brownian motion
+
+  \subsection{Modeling artificial load}
+Describe the modeling of a synchroniser with a general case transition diagram (data structures, algorithms, tools, etc)
+    \begin{itemize}
+    \item For the unlimited queue
+    \item For the limited queue
+    \end{itemize}
+
+  \subsection{Limitations of the model}
+Describe the limitations of this model (only considers choosing a transition by choice frequency if more than one channel are ready)
+
+
+\section{Application of Markov chains to synchronisers}
+In this section we explain how to find $T'_{i}$ and $j'_{i}, \; i=1,n$ using discrete-time Markov chains.
+  \subsection{Introduction to discrete-time Markov chains}
+A short introduction to discrete-time Markov networks.
+
+The states and the transition probability matrix $P$. The transition probabilities do not depend on how the state was reached. The matrix $P$ has the following properties: the sum of all elements in each raw is 1, and $lim_{n - \infty} P = P_{steady}$. The elements in each column of the matrix $P_{steady}$ have the same value and the sum of elements in (each) raw is 1. These probabilities are called steady state probabilities.
+
+  \subsection{Structure of a chain}
+\textbf{States} States of a chain describe all the possible states of input channels. By a state of a channel at time $t$ we assume the number of messages stored in it at time $t$. If a synchroniser has $A^1, \; A^2, \; \cdots A^m$ input channels, then the states of a corresponding chain are $A^1_{l_1} A^2_{l_2} \cdots A^m_{l_m}$, where $l_i, \; i=1,m$ is the number of messages in the channel $A^i$ at any time $t$.
+
+    Provide a sketch of the algorithm to find the states. The algorithm is recursive. We have the reduced set of events that corresponds to time $t$ we chose. Then we put each event of the set to the synchroniser and record the state of queues. We run this procedure for each new state we get until we get a new state. This algoritm stops because the queues, the set of events and the set of states of he synchroniser are all finite.
+
+
+\textbf{Transitions}
+A transition is any tuple of messages we may get in the channels during time $t$. Defining a transition like this we state that any state is reachable from any state with just one step (need a proof?).
+However, making a transition $(a^1,a^1)$ from the state $A^1_{l_1=1} A^2_{l_2}$ in the system where $|A^1|=2$ produces a lost message on the channel $A^1$. To consider lost messages we modify the state adding the number of lost messages to it: $A^1_{l_1} L^1_{k_1} A^2_{l_2} L^2_{k_2}$.
+
+For example, take an abstract system having 2 input channels of length $l>2$. Assume the system is in such state when the chain is in state $A^1_0 A^2_0$ and the channel $A^2$ is blocked. During some time $t$ we may get any number of messages in the input channels. We consider transitions where we get 0 or 1 messages in each input channel $A^i, \; i={1;2}$. The interarrival time in both channels is Gamma-distributed with parameters $k=2$ and $\theta=0.5$: $t \sim Gamma \: (t,\theta)$. Then the probability to have one message in a channel is $p = p\:(t) = Gamma \:(k,\theta,t)$. The probability to have one message in a channel and not to have a message in another channel $P_{1,0} \: (t) P_{0,1} \: (t) = p(1-p)$. The probability to have messages in both channels $P_{1,1} = p^2$.
+
+(A graph showing $p_{1,0}(t)$ and $p_{1,1}(t)$)
+
+Whe can chose $t$ so that many transitions are cut off because their probability is very small.
+
+
+
+A transition from the state $A^1_{l^1_1} A^2_{l^1_2} \cdots A^m_{l^1_m}$ to the state $A^1_{l^2_1} A^2_{l^2_2} \cdots A^m_{l^2_m}$ when we get $(l^2_1-l^1_1)$ messages in $A^1$, $(l^2_2-l^1_2)$ messages in $A^2$, \dots and $(l^2_m-l^1_m)$ messages in $A^m$. Because state machine recieves one symbol at time, there will be $\sum_{i=1}^{m}{(l^2_i-l^1_i)}$ transitions made in total.
+
+
+Let $L_i, \; i=1,m$ be the length of the channel $A^i$. Obviously, $l_i <= L_i, i=1,m$. The number of states in the chain is
+
+
+Describe what are the states of the chain ($A_{i} B_{j} L_{k}$). How the number of states depends on the length of the channels. Why number of states is unlimited (because of $L_{k}$).
+
+Example: zip2
+  \subsection{Approximation}
+Markov chains only can be used when the arrival process is memoryless (a Markov process). In our system the arrival processes are not Markov, however we can try to approximate the model with the Markov model of higher order.
+
+Why can we assume that the arrival processes are independent? They all come from the same source.
+
+-discrete time
+-events in channels
+
+Describe the continous case first. Show that why the discretisation is reasonable.
+Describe the discrete case. How $L_{k}$ is cut (by choosing possible events $(n,a,b,ab,...)$)
+
+How we chose the set of possible events. We want the most minimal set possible that shows the dependence of steady-state probabilities on the distribution parametes.
+
+%TODO: Come up with a good name for it
+  \subsection{How to find $T'$ and $j'$}
+dT = $\frac{sum of steady-state probabilities where messages are lost)}{t_{t}}$
+
+%or subsection?
+\section{Good-enough channel length?}
+$l \sim \frac{Dk}{\langle k \rangle}$, where $Dk = \sum_{k} (k - \langle k \rangle)^{2} a_{k}$, $\langle k \rangle = \sum_{k} k a_{k}$.
+
+
+\section{Example: application of the Markov chain to the zip2 synchroniser}
+  \subsection{Modeling the throughput}
+$T = T \: (\sigma, l)$, where $\sigma = \sigma_{a} = \sigma_{b}$ - variance in both channels, $l = l_{a} = l_{b}$ - length of both channels. See \ref{fig:t_s}
+    \begin{figure}[here]
+    \centering
+    \includegraphics[scale=0.4]{figs/thr_(disp,l).png}
+    \caption{$T = T \: (\sigma, l)$.}
+    \label{fig:t_s}
+    \end{figure}
+
+Explain the shape of the graph when $\mu \sim \sigma$ or $\mu >> \sigma$.
+Plot a graph for $0 < \sigma < \frac{\mu}{2}$.
+
+  \subsection{Analytical results}
+-States of the chain
+Why we do not consider lost messages separately for each channels in the case of zip2. 
+
+-events in channel (the minimal set for the zip2 synchroniser)
+First, we try the most minimalistic set $(n,a,b)$. Let $F_{a}(t) = Gamma(k, \theta, t)$ the distribution of interarrival times in the channels. Then the probability of one message $a$ coming to the channel $A$ in time $t_{t}$ $P_{a} = F_{a}(t_{t}) = Gamma(t_{t})$. The same is for a message $b$ coming to the channel $B$ in time $t_{t}$: $P_{b} = F_{b}(t_{t}) = Gamma(t_{t})$. Note that the discretion time $t_{t}$ must be chosen so that the ptobability os an event $ab$ in time $t_{t}$ is almost zero: $P_{ab}(t_{t}) = convolution! Gamma(t_{t})^2$. The probability to see the event $a$ arrived in $A$, channel $B$ is empty $P_{a} = Gamma(t_{t})(1-Gamma(t_{t})) = Gamma(t_{t}) - Gamma(t_{t})^2 \sim Gamma(t_{t})$. The probability to see the event $n$ (nothing arrived) in the channels over time $t_{t}$ $P_{n} = (1-p)^2 = 1 - 2 Gamma(t_{t}) + Gamma(t_{t})^2 \sim 1 - 2 Gamma(t_{t})$. The total probability of all possible events in the system $P_{n} + P_{a} + P_{b} = 1 - 2 Gamma(t_{t}) + Gamma(t_{t}) + Gamma(t_{t}) = 1$ as it should be. Then we fill the Markov transition probabilities matrix $P$ for the system's states and solve the matrix equation $xP = x$. Then we find that steady-state probabilities do not depend on the parameters of the distribution in the channels which means that we should consider more events.
+
+Then we take the set of events $(n,a,b,ab)$, for which $P_{a} = P_{b} = Gamma(t_{t})(1 - Gamma(t_{t}))$, $P_{ab} = Gamma(t_{t})^2$ and $P_{n} = (1 - Gamma(t_{t}))^2$. For this set we see the dependence of the steady-state probabilities on $Gamma(t_{t})$.
+
+-time $t_t$
+If we expect just one message to come to a channel, then we may take the expected mean of the distribution as the discretion time $t_{t} \sim m(Gamma(k,\theta)) = k \theta$.
+
+
+Build $P_{steady}$, solve $x P_{steady} = x$, dT = $\frac{\sum{x_l}}{t_t}$, $T' = T - dT$.
+
+Expand $T'$ for $\sigma << \mu$. Plot two graphs on the same picture.
