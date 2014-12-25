@@ -102,6 +102,7 @@ With the restriction to a single input and a single output, a filter is relieved
     \subsection{S-Net}
 S-Net \cite{snet_intro} is a declarative coordination language based on stream processing. S-Net defines the coordination of stateless asynchronous components (boxes) that interact with each other in a streaming network. Boxes are written in conventional languages that are subject to contract with S-Net. Boxes execute fully asynchronously, i.e. a box may consume data as soon as it is available in the input stream. Moreover, boxes are SISO, therefore S-Net achieves a near-complete separation of communication and computation concerns.
 
+%five combinators, feedback
 Streaming networks are expressed in a hierarchical composition of a fixed set of four combinators, namely serial composition, parallel composition, serial replication and parallel replication. All the combinators except for the serial composition are non-deterministic in a sense that the input data may be reordered in the output stream. For non-deterministic combinators there exist deterministic variants.
 
 S-Net provides a special kind of box, called a synchrocell, that implements barrier synchronisation on streams. Data on streams are organised as records of label-value pairs. A synchrocell maintains an internal state in order to keep a record coming from each of its input streams. Once a synchrocell has collected records from all of its input streams, it merges the records into a single one and emits then the result to the output stream.
