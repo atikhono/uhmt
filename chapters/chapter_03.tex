@@ -1,21 +1,59 @@
 % TODO change this uglyness
 \chapter{The Serial Replication in \ak\ }
+%The serial replication combinator implements recursive computations and the loop construct with pipeline parallelism.
+In this chapter we explain the machinery behind the serial replication in \ak\ and the role of synchronisers in it. We introduce the concept of the forward fixed point for the replication pipeline and show how it is used to organise the output from the infinite chain of replicas. In order to supress the growth of the replicas chain, we present the concept of the reverse fixed point and use it to optimise some replicas in the head of the chain.
 
-In this chapter we explain the machinery behind the serial replication in \ak\ and the role of synchronisers in it.
+
 %TODO
 %First of all, the semantics of AstraKahn on the TPL is described in terms of structures put in place for the coordinator, i.e. a controlling agent, or indeed a group of agents, responsible for progress and communication of the KPN vertices.
 %
-%The rest of the chapter is organised as follows. In sections \ref{ffp} and \ref{rfp} we explain why both cases are relevant to synchroniser analysis and give formal definitions. In section \ref{ffp_discussion} we discuss the original approach to the output of the infinite chain of replicas and in section \ref{approach} we propose another one. In section \ref{fp_detect} we provide detection algoritms for both cases.
 
-
-    \section{Motivation}
-The serial replication combinator creates conceptually infinite number of copies of its operand network, and connects them in a chain. Replication is demand-driven, hence replicas are created dynamically in runtime. A fresh replica is \emph{inactive}\footnote{More generally, we call a replica inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running}, hence it does not necessarily require significant resouces since \ak\ boxes are stateless and synchronisers require no resouces in their start state\footnote{When a synchroniser transitions back to the start state, it flushes its store variables}. Indeed the cost of replication is only felt when the replicas are active, which is the case when the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
-
-%loop construct with pipeline parallelism
 
     \section{\ak\ Approach to the Serial Replication}
+The serial replication combinator creates conceptually infinite number of copies of its operand network, and connects them in a chain. Replication is demand-driven, hence replicas are created dynamically in runtime. A fresh replica is \emph{inactive}\footnote{More generally, we call a replica inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running}, hence it does not necessarily require significant resouces since \ak\ boxes are stateless and synchronisers require no resouces in their start state\footnote{When a synchroniser transitions back to the start state, it flushes its store variables}. Indeed the cost of replication is only felt when the replicas are active, which is the case when the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
 
-In S-Net, the output from the replication pipeline is based on the record subtyping in the type system. The replication combinators in S-Net require the programmer to specify a termination pattern, so that each record that is a subtype of this pattern leaves the replication pipeline throught the output stream. In \ak\, a message leaves the replication pipeline exclusively via a special complement channel that is wired to the rest of the \ak\ network. The programmer has to make sure that the messages to be sent on are detected within the operand network and sent to this channel. 
+In S-Net, the output from the replication pipeline is based on the record subtyping in the type system. The replication combinators in S-Net require the programmer to specify a termination pattern, so that each record that is a subtype of this pattern leaves the replication pipeline throught the output stream.
+
+In \ak\, the output from the replication pipeline is inspired by the concept of a fixed point. From the mathematical point of view a fixed point of a function is an element of the function's domain the function maps to itself. That is to say, the function $f(x): X \to Y$ has a fixed point in $x_0 \in X$ iff $f(x_0) = x_0$. The definition yields an important termination consideration
+\begin{equation}
+\exists n: \; \forall k<n \;\; f^{(k)}(x) \neq f^{(n)}(x) \; \land \; \forall k \ge n \;\; f^{(k)}(x) = f^{(n)}(x) \nonumber
+\end{equation}
+when the function $f$ is computed recursively\footnote{$f^{(n)}(x) = \underbrace{f(f(\dots f}_n (x) \dots))$}. The serial replication combinator implements such a computation as shown in Fig. \ref{fig:fp}. After the $n$-th replica has processed the message $f^{(n-1)}(x) \neq x_0$ the computation reaches the fixed point $x_0$, and the message $x_0$ is sent on to the output channel of the serial replication network $f^{*}$.
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.8]{figs/chapter_03_fp.pdf}
+\caption{The recursive computation in \ak\ }
+\label{fig:fp}
+\end{figure}
+
+% why compiler?
+In order to utilize the fixed point, \ak\ must be able to detect it statically. Thus, the fixed point message must satisfy a certain condition that can be derived from the operand network. Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or the network topology of a net.
+
+
+In the example in Fig. \ref{fig:fp} there is only one box that performs computation at a time. this box is in the tail of the chain. boxes after this box are inactive (or not yet created since the replication is demand-driven). In order to preserve the growth of the replicas chain, \ak\ detects the boxes (nets) in the head of the chain that can be optimised and removes them from the chain. A replica can only be removed from the chain safely if \ak\ can prove that it always transmits messages without changing or storing them, thus for such a replica every message is a fixed point. Since \ak\ can only analyse synchronisers in the operand network, the state in which the replica transmits messages is defined by the states of the synchronisers in the replica. The replica that is in this state is said to be in the reverse fixed point state.
+
+
+
+%\ak\ defines two types of a fixed point: a forward fixed point and a reverse fixed point. The intention of a forward fixed point is to cut infinite tail of inactive replicas chain. The reverse fixed point is an optimisation of an input connection that has to cascade through the chain to a replica that is ready to accept the data. Its intention is to bypass the replicas that transmit messages without change (TODO not good). Later we will see that a replica does not have to be inactive in order to that.
+%
+%With the reference to fixed point utilisation we will call the \ak\ replication operator the fixed point series (FPS).
+
+
+
+    \section{Forward Fixed Point}
+The number of iterations $n$ needed to reach the fixed point is not known in advance. \ak\ provides the programming patterns that enable the fixed point detection during compilation.
+
+
+
+%
+%Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net. (NOT TRUE, FIX)
+%
+
+
+%%%% IMPLEMENTATION NOTES
+%%%%
+In \ak\, a message leaves the replication pipeline exclusively via a special complement channel that is wired to the rest of the \ak\ network. The programmer has to make sure that the messages to be sent on are detected within the operand network and sent to this channel. 
+
 Thus, the serial replication in \ak\ enforces a topological property of the operand network that is formally defined as follows. Consider the serial replication $N^{*}$ of an operand network $N$ with the input and output channel sets $\mathcal{I}$ and $\mathcal{O}$ respectively. Consequently, the set of matched inputs and outputs is $\mathcal{M}(\mathcal{I}, \: \mathcal{O}) = \mathcal{I} \cap \mathcal{O}$. In order for the serial replication $N^{*}$ to be able to produce output to the channel $x \in \mathcal{M}(\mathcal{I}, \: \mathcal{O})$, at least one box or a synchroniser in $N$ must have the output port wired to the complement channel $x'$. The \ak\ compiler recognizes the use of complement channels and checks whether the operand network topology has this property. If it does not, the compiler reports an error and aborts the compilation.
 
 The \ak\ runtime is committed to support the dynamic rewiring for complement channels. The serial replication implementation depends on the \ak\ runtime implementation, particularly the primitives the runtime system provides for the network construction. We briefly describe two approaches to the serial replication implementation with respect to the available primitives.
@@ -40,33 +78,13 @@ The second approach to the serial replication implementation relies on a merger 
 
 %The serial replication implements a loop with variable tripcount
 
-    \section{An example}
+
+
+    \section{Reverse Fixed Point\label{rfp}}
 % TODO: I don't like the reason. Why was the reverse fixed point introduced?
 % reverse fixed point is the basic optimisation that preserves growth of the replicas chain.
-In order to supress the growth of the replicas chain
-
-
 As the chain of replicas evolves, it may be the case that some replicas in the head of the chain are active yet they just transmit messages without a change. \ak\ is commited to detect such replicas and optimise the connection so that the data are sent directly to a replica that is ready to process it. 
 
-
-
-%\ak\ provides a termination mechanism that does not require to explicitly specify termination rules in the \ak\ application code. This mechanism is inspired by the concept of a fixed point.
-%
-%In mathematics, a fixed point of a function is an element of the function's domain that is mapped to itself by the function. Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net. (NOT TRUE, FIX)
-%
-%TODO!! Explain that synchroniser analysis is relevant to fix-point resolution
-%In order to utilize the fixed point the \ak\ compiler must be able to detect it. Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or the network topology of a net. It means that the net graph must have at least one path that goes exclusively via synchronisers (TODO fix) or straight through the net without traversing any box.
-%
-%\ak\ defines two types of a fixed point: a forward fixed point and a reverse fixed point. The intention of a forward fixed point is to cut infinite tail of inactive replicas chain. The reverse fixed point is an optimisation of an input connection that has to cascade through the chain to a replica that is ready to accept the data. Its intention is to bypass the replicas that transmit messages without change (TODO not good). Later we will see that a replica does not have to be inactive in order to that.
-%
-%With the reference to fixed point utilisation we will call the \ak\ replication operator the fixed point series (FPS).
-
-
-
-
-
-    \section{Reverse Fixed Point Series\label{rfp}}
-%channels are ordered, need to insert synchronisers
 In this section we provide the approach to the reverse fixed point.
 
 Consider a vertex $v$ that has an input and an output channel, both named $x$.
@@ -109,17 +127,20 @@ The reverse fix point is more the way to write code. It is the way to program a 
 If you want the feature, you must define a closed set of translating states in every synchroniser on the fp path.
 
 
-\subsubsection{Rewiring of the Reverse FPS}
+    \subsubsection{Rewiring of the Reverse FPS}
 The reverse fixed point optimises an input connection that has to cascade through the chain to a replica that is ready to accept the data. Any input channel $x$ wired to an active replica $A_i$ that transitions to a reverse fixed point state on that channel is disconnected from $A_i$ and dynamically rewired to the input channel $x$ of the next replica on the chain $A'_{i+1}$.
 
 %pic
 
 
     \subsection{Discussion}
+%channels are ordered, need to insert synchronisers
 Order of messages in the reverse fixed point may be changed, because a message may put the replica into the reverse fixed-point state and go for processing into this replica. In this case the messages that came to the replica that is in the reverse fixed-point state may overcome the message processed in the replica. This changes the order of messages. If the progrmmer wants to preserve the order, he must mind it. It may be fixed by creating a separate channel for RFP messages and putting a synchroniser that blockes the RFP channel while there's no message from the output channel (this is for operand network with one input channel, with two it can be more dificult if there're races between the channels that wire replicas).
 
 The replication combinator is just a wiring pattern that does not have to guarantee race-safety. For example, if the operand network is not race-safe, the star is not race-safe as well.
 
+
+\section{Fixed Point Detection Algorithms}
 
     \subsection{Forward Fixed Point Detection\label{ffp_detect}}
 The approch we proposed in section \ref{approach} makes the forward fixed-point detection trivial. The forward fixed-point detection does not require synchroniser analysis anymore. The \ak\ compiler just checks that the forward fixed-point exists in the network topology.
@@ -183,4 +204,3 @@ This chosen structure can be build in the net parser of from the net compiler in
 Then we need to represent a set of possible paths in this hypergraph that only contain synchronisers. And a traversal of the hypergraph to find all these paths.
 
 Then we analyse every synchroniser in each path for the satisfiability of fix point conditions.
-
