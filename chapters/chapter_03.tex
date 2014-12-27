@@ -26,18 +26,14 @@ when the function $f$ is computed recursively\footnote{$f^{(n)}(x)$ denotes $\un
 \label{fig:fp}
 \end{figure}
 
-% why compiler?
 The number of iterations $n$ needed to reach the fixed point is not known in advance, meaning that in order to utilize the fixed point as shown in Fig. \ref{fig:fp}, \ak\ must be able to detect the fixed point message right at the time it is produced by the $(n-1)$-th replica. Therefore, just like in S-Net, \ak\ needs to be provided with a pattern that matches all the fixed point messages of the operand network. In S-Net, the serial replication combinator requires to specify the pattern as one of its operands, while in \ak\ the pattern can be encoded within the operand network due to the ability of synchronisers to check the message content and perform different actions depending on the result of the check. The pattern is extracted from the operand network due to the fact \ak\ can analyse synchronisers.
 %Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or the network topology of a net.
 
-The chain of replicas grows as the computation progresses, however, in the example in Fig. \ref{fig:fp} the computation is carried out only by a single replica in the tail of the chain. The replicas in the head of the chain have processed the message and are not used anymore. In order to suppress the growth of the chain, \ak\ is committed to detect the unused replicas and optimise the connection to remove them. Since \ak\ boxes are stateless, an operand network can have a state that is fully defined by the states of its synchronisers. A replica of the operand network can be removed from the chain safely iff the replica is in a state, in which it transmits any message without change, i.e. any message it receives is a fixed point. We will call such a state of the replica the reverse fixed point state.
+The chain of replicas grows as the computation progresses, however, in the example in Fig. \ref{fig:fp} the computation is carried out only by a single replica in the tail of the chain. The replicas in the head of the chain have processed the message and are not used anymore. In order to suppress the growth of the chain, \ak\ is committed to detect such replicas and optimise the connection to remove them. Since \ak\ boxes are stateless, an operand network can have a state that is fully defined by the states of its synchronisers. A replica of the operand network can be removed from the chain safely iff the replica is in a state, in which it transmits any message without change, i.e. any message it receives is a fixed point. We will call such a state of the replica the reverse fixed point state.
 
-
-
-
-%\ak\ defines two types of a fixed point: a forward fixed point and a reverse fixed point. The intention of a forward fixed point is to cut infinite tail of inactive replicas chain. The reverse fixed point is an optimisation of an input connection that has to cascade through the chain to a replica that is ready to accept the data. Its intention is to bypass the replicas that transmit messages without change (TODO not good). Later we will see that a replica does not have to be inactive in order to that.
-%
-%With the reference to fixed point utilisation we will call the \ak\ replication operator the fixed point series (FPS).
+So far we have described briefly the \ak\ approach to the serial replication. The approach is based on the concepts of a fixed point message, which we will call the forward fixed point, and a reverse fixed point state of a replica. The intention of the forward fixed point is to cut an infinite tail of replicas chain. The reverse fixed point is an optimisation of an input connection that suppresses the growth of the replicas chain. 
+%has to cascade through the chain to a replica that is ready to accept the data.
+In the remainder of the chapter we give formal definitions for both kinds of fixed points and provide detection algorithms for the \ak\ compiler.
 
 
 
