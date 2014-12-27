@@ -18,7 +18,7 @@ In \ak\, the output from the replication pipeline is inspired by the concept of 
 \begin{equation}
 \exists n: \; \forall k<n \;\; f^{(k)}(x) \neq f^{(n)}(x) \; \land \; \forall k \ge n \;\; f^{(k)}(x) = f^{(n)}(x) \nonumber
 \end{equation}
-when the function $f$ is computed recursively\footnote{$f^{(n)}(x) = \underbrace{f(f(\dots f}_n (x) \dots))$}. The serial replication combinator implements such a computation as shown in Fig. \ref{fig:fp}. After the $n$-th replica has processed the message $f^{(n-1)}(x) \neq x_0$ the computation reaches the fixed point $x_0$, and the message $x_0$ is sent on to the output channel of the serial replication network $f^{*}$.
+when the function $f$ is computed recursively\footnote{$f^{(n)}(x)$ denotes $\underbrace{f(f(\dots f}_n (x) \dots))$}. The serial replication combinator implements such a computation as shown in Fig. \ref{fig:fp}. After the $n$-th replica has processed the message $f^{(n-1)}(x) \neq x_0$ the computation reaches the fixed point $x_0$, and the message $x_0$ is sent on to the output channel of the serial replication network $f^{*}$.
 \begin{figure}[h!]
 \centering
 \includegraphics[scale=0.8]{figs/chapter_03_fp.pdf}
@@ -27,10 +27,11 @@ when the function $f$ is computed recursively\footnote{$f^{(n)}(x) = \underbrace
 \end{figure}
 
 % why compiler?
-In order to utilize the fixed point, \ak\ must be able to detect it statically. Thus, the fixed point message must satisfy a certain condition that can be derived from the operand network. Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or the network topology of a net.
+The number of iterations $n$ needed to reach the fixed point is not known in advance, meaning that in order to utilize the fixed point as shown in Fig. \ref{fig:fp}, \ak\ must be able to detect the fixed point message right at the time it is produced by the $(n-1)$-th replica. Therefore, just like in S-Net, \ak\ needs to be provided with a pattern that matches all the fixed point messages of the operand network. In S-Net, the serial replication combinator requires to specify the pattern as one of its operands, while in \ak\ the pattern can be encoded within the operand network due to the ability of synchronisers to check the message content and perform different actions depending on the result of the check. The pattern is extracted from the operand network due to the fact \ak\ can analyse synchronisers.
+%Due to separation of concerns \ak\ does not have to analyse the box code\footnote{except for CAL passport generation}, therefore the fixed point must be defined in synchronisers or the network topology of a net.
 
+The chain of replicas grows as the computation progresses, however, in the example in Fig. \ref{fig:fp} the computation is carried out only by a single replica in the tail of the chain. The replicas in the head of the chain have processed the message and are not used anymore. In order to suppress the growth of the chain, \ak\ is committed to detect the unused replicas and optimise the connection to remove them. Since \ak\ boxes are stateless, an operand network can have a state that is fully defined by the states of its synchronisers. A replica of the operand network can be removed from the chain safely iff the replica is in a state, in which it transmits any message without change, i.e. any message it receives is a fixed point. We will call such a state of the replica the reverse fixed point state.
 
-In the example in Fig. \ref{fig:fp} there is only one box that performs computation at a time. this box is in the tail of the chain. boxes after this box are inactive (or not yet created since the replication is demand-driven). In order to preserve the growth of the replicas chain, \ak\ detects the boxes (nets) in the head of the chain that can be optimised and removes them from the chain. A replica can only be removed from the chain safely if \ak\ can prove that it always transmits messages without changing or storing them, thus for such a replica every message is a fixed point. Since \ak\ can only analyse synchronisers in the operand network, the state in which the replica transmits messages is defined by the states of the synchronisers in the replica. The replica that is in this state is said to be in the reverse fixed point state.
 
 
 
@@ -41,13 +42,20 @@ In the example in Fig. \ref{fig:fp} there is only one box that performs computat
 
 
     \section{Forward Fixed Point}
-The number of iterations $n$ needed to reach the fixed point is not known in advance. \ak\ provides the programming patterns that enable the fixed point detection during compilation.
+\ak\ provides the programming patterns that enable the fixed point detection during compilation.
 
+relies on the property of the (n+1)-th replica that transmits fixed point messages without change and the fact that the (n+1)-th replica is inactive.
+
+A fixed point message can be interpreted as a message that a previously inactive replica could transmit without a change. 
 
 
 %
 %Mapping this definition to messages and components we obtain the fixpoint definition of an \ak\ net: a message that leaves a net inactive after it was processed is called a fixpoint of the given \ak\ net. (NOT TRUE, FIX)
 %
+
+1) synchronisers approach (only detects integer fields like S-Net)
+
+2) wire-through (applicable to detect non-integer fixed points, for iterative computation with the floating-point presicion)
 
 
 %%%% IMPLEMENTATION NOTES
