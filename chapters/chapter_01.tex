@@ -12,12 +12,12 @@ Boxes are connected to the streaming network with one or two input channels and 
 
     \section{Motivation}
 %write about the state of the project. the runtime system needs to be developed before the regulation research.
-The \ak\ project is now in its initial state and there is yet no implementation. The playground environment need to be developed for the research towards the self-regulation.
+%The \ak\ project is now in its initial state and there is yet no implementation. The playground environment need to be developed for the research towards the self-regulation.
 
-The aim of this thesis is to identify the role of the synchroniser analysis in the project. It includes implementation of the \ak\ synchroniser and integration of the implementation into the runtime system prototype. The output form the infinite replication relies on the synchroniser analysis.
+%The aim of this thesis is to identify the role of the synchroniser analysis in the project. It includes implementation of the \ak\ synchroniser and integration of the implementation into the runtime system prototype. The output form the infinite replication relies on the synchroniser analysis.
 
 %explain about pressure propagation and statistics
-The long-term goal of the \ak\ project is to provide an environment for development of scalable concurrent applications that do not require manual tuning efforts. Though the adaptive self-regulation mechanism is not known to propose something for synchronisers, we try to review the possible strategies for the pressure propagation through synchroniser.
+%The long-term goal of the \ak\ project is to provide an environment for development of scalable concurrent applications that do not require manual tuning efforts. Though the adaptive self-regulation mechanism is not known to propose something for synchronisers, we try to review the possible strategies for the pressure propagation through synchroniser.
 
 
 %An Astra\emph{Kahn} approach to adaptive concurrency relies on the concept of communication pressure propagation across a network. Since pressure propagation directly affects proliferation levels of certain vertices, effectiveness of concurrency self-regulation depends largely on correctness of pressure propagation strategy. An important part of this strategy is pressure propagation through synchronisers because, unlike other vertices in Astra\emph{Kahn}, they induce negative pressure that represents a demand for messages in a certain part of a network.
@@ -30,7 +30,7 @@ The long-term goal of the \ak\ project is to provide an environment for developm
 
 
     \section{Contribution}
-The contribution of the research is a technique for pressure propagation through synchronisers. This mechanism is an important part of concurrency self-regulating mechanism in Astra\emph{Kahn}. An approach to the problem will be provided in accordance with runtime system regulation policies and a tool for pressure propagation support on runtime will be implemented. The chosen pressure propagation strategy will be tested with a runtime system prototype to decide on its usability for adaptive concurrency regulation. Depending on the result, synchronisation model nondeterminism restrictions and/or strategy changes can be provided to enable efficient concurrency self-regulation on runtime.
+%The contribution of the research is a technique for pressure propagation through synchronisers. This mechanism is an important part of concurrency self-regulating mechanism in Astra\emph{Kahn}. An approach to the problem will be provided in accordance with runtime system regulation policies and a tool for pressure propagation support on runtime will be implemented. The chosen pressure propagation strategy will be tested with a runtime system prototype to decide on its usability for adaptive concurrency regulation. Depending on the result, synchronisation model nondeterminism restrictions and/or strategy changes can be provided to enable efficient concurrency self-regulation on runtime.
 
 
     \section{Outline}
@@ -39,12 +39,11 @@ The contribution of the research is a technique for pressure propagation through
 %Kahn's fixed-point semantics:
 %A network of continous functions is continous
 \chapter{Theoretical Background and Related Work}
-In this chapter we provide relevant theoretical background in coordination programming and streaming process networks. Particularly, we focus on the approaches to synchronisation in coordination languages. Then, we explain the concepts of \ak\ in more detail and relate it to KPNs and \ak\ predecessor S-Net.
+In this chapter we provide relevant theoretical background in coordination programming and stream processing. We pick a recent component system example from each field. Then, we descride the combined approaches to coordination programming and stream processing S-Net and \ak\ and explain the concepts behind \ak\ in more detail. We sum up the chapter with the comparisson of the four components systems, including their approaches to synchronisation.
 
 
 %Approaches to synchronisation.
 %Synchronisation facilities in coordination languages.
-
     \section{Coordination Programming}
 The coordination paradigm offers a promising way to address some issues related to the development of efficient parallel systems. Programming a parallel system can be seen as the combination of two activities: the actual computing part comprising a number of processes that manipulate data and a coordination part that is responsible for the communication between the processes.
 

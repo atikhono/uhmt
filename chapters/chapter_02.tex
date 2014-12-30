@@ -1,51 +1,39 @@
 \chapter{\ak\ Synchroniser}
-A synchroniser is a vertex that produces output messages based on a potentially unlimited history of input messages read from its input channels. In order to do this, a synchroniser maintains an internal state and makes state transitions. The states and transitions between them define which channels are read and in what order depending on the channel status (available, not available) and optionally the content of the messages. Messages received in various states can be stored in the synchronisation storage with the single purpose to retrieve them in another state and to use them in output messages.
+In this chapter we describe the source language for an \ak\ synchroniser and implement a compiler for the language. Prior to describing the language in details, we present a mathematical model of a synchroniser from \cite{astrakahn} and describe sources of non-determinism in synchronisers providing the execution algorithm of a synchroniser.
+
+The $aksync$ compiler is integrated into the current \ak\ runtime system prototype. It takes the source code of a synchroniser program and generates the runtime object. The compiler performs the syntactic and type checking of a program and generates the CAL passport of the synchroniser.
+
 
     \section{Mathematical Model}
-From the mathematical point of view a synchroniser is a pair $(\Phi, \; \Pi)$, where
-  \begin{itemize}
-  \item[] $\Phi = (A, \; S, \; T)$ -- nondeterministic state machine:
-    \begin{itemize}
-    \item[] $A \subseteq C \times P$ -- the alphabet of events, $C$ -- set of synchroniser input channels, $P$ -- set of predicates on channel messages. An event $(c, \; p) \in A$ represents the reception of a message on channel $c$ that satisfies predicate $p$,
-    \item[] $S \supseteq \{s_{0}\}$ -- set of abstract states, $s_{0}$ -- start state,
-    \item[] $T \: : \: A \times S \to S$ -- transition matrix.
-    \end{itemize}
-  \item[] $\Pi \: : \: S \times \Omega \to V$ -- path functional that defines the synchroniser output:
-    \begin{itemize}
-    \item[] $\Omega$ -- the set of output channels,
-    \item[] $V$ -- the set of message values \cite{astrakahn}.
-    \end{itemize}
-  \end{itemize}
+A synchroniser is a vertex that produces output messages based on a potentially unlimited history of input messages read from its input channels. In order to do this, a synchroniser maintains an internal state and makes state transitions. The states and transitions between them define which channels are read and in what order depending on the channel status (available, not available) and optionally the content of the messages. Messages received in various states can be stored in the synchronisation storage with the single purpose to retrieve them in another state and to use them in output messages.
 
-In a state $s_{k}$ the functional is based on the retrospective sequence of transitions from the most recent visit to the start state $s_{0}$ to $s_{k}$:
-  \begin{itemize}
-  \item[] $(s_{0}, c_{0}), \: (s_{1}, c_{1}),... \: (s_{k}, c_{k})$, where
-    \begin{itemize}
-      \item[] $s_{0}$ -- start state,
-      \item[] $c_{i} \in C$, $0 \le i \le k$ -- the channel that caused the transition from the state $s_{i}$.
-    \end{itemize}
-  \end{itemize}
+From the mathematical point of view a synchroniser is a pair
+\begin{equation}
+(\Phi, \; \Pi),\\\nonumber
+\end{equation}
+where $\Phi = (A, \; S, \; T)$ is a nondeterministic state machine with the alphabet of events $A \subseteq C \times P$, $C$ denotes the set of the synchroniser input channels and $P$ denotes the set of the predicates on channel messages\footnote{An event $(c, \; p) \in A$ represents the reception of a message on channel $c$ that satisfies the predicate $p$}. The set of abstract states in $\Phi$ is denoted as $S \supseteq \{s_{0}\}$ with the start state $s_{0}$, $T \: : \: A \times S \to S$ is the transition matrix of $\Phi$. $\Pi \: : \: S \times \Omega \to V$ is the path functional that defines the synchroniser output with the set of output channels $\Omega$ and the set of message values.
+
+In state $s_{k}$ the functional is based on the retrospective sequence of transitions from the most recent visit to the start state $s_{0}$ to $s_{k}$:
+\begin{equation}
+(s_{0}, c_{0}), \: (s_{1}, c_{1}),... \: (s_{k}, c_{k}),\\\nonumber
+\end{equation}
+where $s_{0}$ is the start state and $c_{i} \in C$, $0 \le i \le k$ is the channel that caused the transition from the state $s_{i}$.
 
 Let $\mu_{i}$ be the message received in the transition from the state $s_{i}$. Then
-  \begin{itemize}
-  \item[] $\Pi \; (s_{k}, \omega_{m}) = \psi_{\sqcap} \; \{\mu_{i} \: | \: \rho_{ki}^{m} \; (s_{i}), \: 0 \le i \le k\}$, where
-    \begin{itemize}
-      \item[] $\rho_{ki}^{m}$ -- selection predicate that defines $\Pi$,
-      \item[] $\psi_{\sqcap}$ -- the operator that coerces the messages in the operand set to their joint greatest subtype.
-    \end{itemize}
-  \end{itemize}
+\begin{equation}
+\Pi \; (s_{k}, \omega_{m}) = \psi_{\sqcap} \; \{\mu_{i} \: | \: \rho_{ki}^{m} \; (s_{i}), \: 0 \le i \le k\},\\\nonumber
+\end{equation}
+where $\rho_{ki}^{m}$ is the selection predicate that defines $\Pi$, and $\psi_{\sqcap}$ is the operator that coerces the messages in the operand set to their joint greatest subtype.
 
 From the above, the synchroniser is fully defined by two functions:
   \begin{enumerate}
   \item The transition matrix $T$
 
-The state machine can have a regular structure whereby many transitions can be defined at once by a formula with some limited range integer variables. For example, a machine with 8 states could have a transition matrix defined thus: $S_{k \; mod \; 8} \to S_{k+1 \; mod \; 8}$.
+The state machine can have a regular structure whereby many transitions can be defined at once by a formula with some limited range integer variables. For example, a machine with 8 states could have a transition matrix defined thus: $S_{k \; mod \; 8} \to S_{k+1 \; mod \; 8}$. In order to be able to use regular structures, \ak\ allows synchronisers to declare \emph{state} variables.
 
-In order to be able to use regular structures, \ak\ allows synchronisers to declare \emph{state} variables.
+\textbf{Example: the counter synchroniser}  Counter sends every $n$-th message from its input channel to the output channel, other messages are disregarded. The transition diagram for the counter synchroniser for $n = 3$ is given in Figure \ref{fig:counter}.a.
 
-\textbf{Example: the counter synchroniser}  Counter emits every $n$-th message received in its input channel to the output channel. The transition diagram for the counter synchroniser for $n = 3$ is given in Figure \ref{fig:counter}.a.
-
-Mathematical model $S_{counter_{3}} = (\Phi, \; \Pi)$, where
+The counter synchroniser is a pair $(\Phi, \; \Pi)$, where
   \begin{itemize}
   \item[] $\Phi = (A, \; S, \; T)$,
     \begin{itemize}
@@ -85,7 +73,7 @@ Some possible transition diagrams of the counter synchroniser are given in Figur
   \begin{figure}[here]
   \centering
   \includegraphics[scale=0.4]{figs/counter.pdf}
-  \caption{The transition diagrams of the counter synchroniser.}
+  \caption{The transition diagrams of the counter synchroniser}
   \label{fig:counter}
   \end{figure}
 
@@ -96,18 +84,18 @@ In a given state $k$ for each output channel $\omega_{m}$ we note all $i$ on whi
 
 Consequently the storage mechanism that \ak\ provides for synchronisers is in the form of individual \emph{store} variables. The type of a store variable is determined when a variable is assigned.
 
-\textbf{Example: the binary zip synchroniser}  Zip2 receives messages on its input channels and sends their concatenation to the output channel. In the resulting concatenation there's exactly one message from each input channel and those messages are ordered as they received.
+\textbf{Example: the binary zip synchroniser}  Zip2 receives messages on its input channels and sends their concatenation to the output channel. In the resulting concatenation there is exactly one message from each input channel and those messages are ordered as they received.
 
 The zip2 transition diagram is given in Figure \ref{fig:zip2}. The message received in the current transition is referred by a keyword \emph{this}. $ma$ and $mb$ are the store variables associated with the input channels $a$ and $b$ respectively. The statement \emph{send} indicates a sending of a message to an output channel.
 
   \begin{figure}[here]
   \centering
   \includegraphics[scale=0.4]{figs/zip2.pdf}
-  \caption{The transition diagram of the zip2 synchroniser.}
+  \caption{The transition diagram of the zip2 synchroniser}
   \label{fig:zip2}
   \end{figure}
 
-Mathematical model $S_{zip2} = (\Phi, \; \Pi)$, where
+Mathematically, the zip2 synchroniser is a pair $(\Phi, \; \Pi)$, where
   \begin{itemize}
   \item[] $\Phi = (A, \; S, \; T)$,
     \begin{itemize}
@@ -129,7 +117,7 @@ Mathematical model $S_{zip2} = (\Phi, \; \Pi)$, where
     \end{itemize}
   \end{itemize}
 
-An output message is emitted when a transition happens either from the state $s_{1}$ or the state $s_{2}$. These states are reached in two paths:
+An output message is emitted when a transition happens either from state $s_{1}$ or state $s_{2}$. These states are reached in two paths:
   \begin{itemize}
   \item[]
 $W_{0} = ((s_{0}, \; a), \: (s_{1}, \; b))$
@@ -142,15 +130,15 @@ $\Pi \; (s_{2}, c) = \psi_{\sqcap} \; \{\mu_{0} = b \: | \: \rho_{20}^{c} \; (s_
   \end{itemize}
   \end{enumerate}
 
+So far we have given a formal definition of a synchroniser. Along with it we have introduced two important concepts for a synchroniser that are considered as a part of the synchroniser language. First is a message storage mechanism we call a store variable. Second is a mechanism to define big transition matrices with a regular structure we call a state variable.
+
 
 \section{The Language for \ak\ Synchroniser}
-We develop the language according to chosen message protocol. The protocol restricts anything but a $choice$ termed message trevelling in channels. This the syntax $on a.(x,y, ...)$ is not needed with this protocol. We may include this syntax as a syntax sugar for $uniq$ when choice has just one alternative. Originally this syntax was intended for records in channels. However, the chosen protocal doesn't allow it. For example if we want to extend the protocol for lists to travel in channels, we need to define the union of lists, possibly as a construct with 2 nested lists $(union l_1 l_2)$ and we need to extend the protocol to encode this construct. For record and choice union is easy to define. If no labels in $t_1$ and $t_2$ intersect then the resulting record of choice has all the labels from $t_1$ and $t_2$ with their values: $t = union \; t_1 \: t_2 = union \; \{a:t_a\} \: \{b:t_b\} = \{a:t_a, \: b:t_b\}$. When labels intersect, it is the deal for CAL solver to resolve with option to take (it should consider flow inheritance). The synchroniser just leaves it to be a union of terms:
+%We develop the language according to chosen message protocol. The protocol restricts anything but a $choice$ termed message trevelling in channels. This the syntax $on a.(x,y, ...)$ is not needed with this protocol. We may include this syntax as a syntax sugar for $uniq$ when choice has just one alternative. Originally this syntax was intended for records in channels. However, the chosen protocal doesn't allow it. For example if we want to extend the protocol for lists to travel in channels, we need to define the union of lists, possibly as a construct with 2 nested lists $(union l_1 l_2)$ and we need to extend the protocol to encode this construct. For record and choice union is easy to define. If no labels in $t_1$ and $t_2$ intersect then the resulting record of choice has all the labels from $t_1$ and $t_2$ with their values: $t = union \; t_1 \: t_2 = union \; \{a:t_a\} \: \{b:t_b\} = \{a:t_a, \: b:t_b\}$. When labels intersect, it is the deal for CAL solver to resolve with option to take (it should consider flow inheritance). The synchroniser just leaves it to be a union of terms:
 
-For example for Choice: $union \; (: \: a:t_a \: :) \: (: \: a:t_b \: :) = (: \: a:union \: t_a, \: t_b \: :)$.
-Same for record.
+%For example for Choice: $union \; (: \: a:t_a \: :) \: (: \: a:t_b \: :) = (: \: a:union \: t_a, \: t_b \: :)$. Same for record.
 
 
-\subsection{Synchroniser Code}
 %% TODO fix 'channel connected to the port x' to channel x
 %% Insert a footer that explains that 'channel x' is short for 'channel connected to the port x'
 An \ak\ synchroniser is a finite state machine, therefore the basic building blocks of a synchroniser program are states and transitions. A state of a synchroniser is fully defined by the corresponding state of the finite state machine and the values of the state variables. A transition is the act of moving to another state which is initiated by a triggering event. A triggering event for the synchroniser transition is an arrival of a message to the associated channel. The message may be required to have a specific structure. In addition, a transition may be guarded by special conditions on the values of the state variables. If the conditions are satisfied the transition fires, otherwise it is cancelled.
@@ -389,32 +377,31 @@ A message received on a channel is referred to by the keyword $this$ within the 
 
 
 \section{Execution Order of Synchroniser\label{execod}}
+\ak\ works under assumption that synchronisers process messages in zero time. In order to do this, there're several kinds of non-determinism introduces to sycnhronisers.
+
 \begin{itemize}
 \item Fairness policy
-In a certain state both input channels may be ready, but a state machine receives input symbols one at a time. Which transition will be triggered under such circumstances is defined by the fairness policy: the coordinator will ensure that when more than one transition is possible in a given state, all choices will be made with the same frequency.
+%In a certain state both input channels may be ready, but a state machine receives input symbols one at a time. Which transition will be triggered under such circumstances is defined by the fairness policy: the coordinator will ensure that when more than one transition is possible in a given state, all choices will be made with the same frequency.
 
 \item Non-deterministic $goto$
 
-The purpose of non-deterministic gotos comes from the requirement that the synchroniser must not block the execution. If non-deterministic goto is the case then the synchroniser makes a fair transition to the state that sends messages to the channel that is not blocked.
+%The purpose of non-deterministic gotos comes from the requirement that the synchroniser must not block the execution. If non-deterministic goto is the case then the synchroniser makes a fair transition to the state that sends messages to the channel that is not blocked.
+%
+%In other words, the synchoniser avoids to make transitions to the states that send messages to blocked channels.
 
-In other words, the synchoniser avoids to make transitions to the states that send messages to blocked channels.
-
-
-\item Algorithm of the execution of synchronisers
-on-elseon execution order, dead $elseon$ code with $\langle chan \rangle .else$
+\item Algorithm of the execution of synchroniser
+%on-elseon execution order, dead $elseon$ code with $\langle chan \rangle .else$
 \end{itemize}
 
-\ak\ works under assumption that synchronisers process messages in zero time. In order to do this, there're several kinds of non-determinism introduces to sycnhronisers.
-
-1) The ability to read from several input channels in some state makes synchronisers non-deterministic. When several messages are ready at the same time, the synchroniser chooses non-deterministically what transition to make. 
-It considers many things when it make a choice:
-- if it sends something in the transition it is going to take, it checks if the channel it sends to is not blocked
--...
-- if the transitions it chooses among are all equall, it follows the fairness policy: it should keep the statistics of how many times every transition was chosen, and then it choses the transition that was chosen the least number of times.
-
-1) Non-deterministic goto
--It choses the state that reads from channels that have messages in it
-
+%1) The ability to read from several input channels in some state makes synchronisers non-deterministic. When several messages are ready at the same time, the synchroniser chooses non-deterministically what transition to make. 
+%It considers many things when it make a choice:
+%- if it sends something in the transition it is going to take, it checks if the channel it sends to is not blocked
+%-...
+%- if the transitions it chooses among are all equall, it follows the fairness policy: it should keep the statistics of how many times every transition was chosen, and then it choses the transition that was chosen the least number of times.
+%
+%1) Non-deterministic goto
+%-It choses the state that reads from channels that have messages in it
+%
 
 
 \section{The Implementation of the $aksync$ Compiler}
@@ -1072,8 +1059,9 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 
 \subsection{Code Generation}
   \subsubsection{Synchroniser runtime code}
-%Give a class diagram?
-%Generator architecture - node visitor
+TODO
+The compiler generates a runtime object that is passed to the \ak\ runtime system for the execution.
+
 
   \subsubsection{Synchroniser passport}
 Synchronisers rely on both TPL and CAL for their definition. The CAL aspects of a synchroniser are confined to the CAL terms for its input and output channels. Those terms are not straightforward since they have to be fairly generic to match the broadest possible formats of producer and consumer messages involved in the act of synchronisation. On the other hand, the synchroniser passport is produced solely on the basis of the synchroniser code, exclusively by program analysis; the programmer does not supply an explicit passport for this.
@@ -1191,10 +1179,10 @@ Now consider the output interface. The algorithm in Fig. \ref{output_term} colle
 The function $type(id)$ performs the symbol table lookup and returns the \emph{type} attribute value for the \tangled{id} entry.
 
 
+\section{Discussion and Future Work}
+In this chapter we have presented the language for \ak\ synchronisers. We have developed the language compiler that generates the CAL passport of the synchroniser. The message format in \ak\ is based on the Message Definition Language (MDL) with the restriction that data on streams are organised as collections of alternative records of label-value pairs. A value in a record can have any structure that is allowed by the MDL. The presented synchroniser matches only a top-level structure of a message. The MDL generates a much wider set of terms that the presented synchroniser can synchronise, however, it needs to be elaborated whether the implementation of a lower level synchronisation in synchronisers is useful for the realworld applications.
 
-\section{Discussion}
-Optimisations based on execution order: remove unreachable transitions.
+The presented language does not consider flow inheritance in synchronisers because the synchroniser code only needs to access the label-value parts of the message it matches. Thus, the flow inheritance should be supported outside of the synchroniser definition and the question how it should be done is left open.
+%Decide how to do flow inheritance in synchronisers. This will be done outside of synchronisers. Need to somehow specify which fields are inherited and which are not. In synchroniser transitions we can pick fields of an accepted message, with ehich we want to do something in synchroniser. However, there may be many fields in the message and some of them do not need to be inherited. In theory we could pick all the fields that we want to inherit along with the fields we want to work with, and them concat them and send them to then output channel. But there may be too many to specify manually for eack transition in the synchroniser caused by the channel.
 
-MDL is wider than what the presented synchroniser can synchronise. TODO: give examples. However, it need to be elaborated with the real world applications of \ak\ whether it is useful to implement it in synchronisers.
-
-Decide how to do flow inheritance in synchronisers. This will be done outside of synchronisers. Need to somehow specify which fields are inherited and which are not. In synchroniser transitions we can pick fields of an accepted message, with ehich we want to do something in synchroniser. However, there may be many fields in the message and some of them do not need to be inherited. In theory we could pick all the fields that we want to inherit along with the fields we want to work with, and them concat them and send them to then output channel. But there may be too many to specify manually for eack transition in the synchroniser caused by the channel.
+The compiler we have implemented does not optimise the code deeply. We have only implemented an elimination of unused states. However, based on the synchroniser execution algorithm we provided, a wider set of dead code elimination optimisations can be implemented\footnote{E.g. all transitions that are specified after the \texttt{.else} transition on a particular channel can be removed}.
