@@ -111,40 +111,7 @@ The merger $M'$ gathers messages that do not satisty the fixed point condition f
     \subsection{Forward Fixed Point Detection}
 %    \subsubsection{The Fixed Point Path Search}
 %Algorithm that uses extract_ffp, returns the list of all atomic FP conditions for the fixed point message
-Networks in \ak\ are represented as graphs, thus the fixed point path search is a graph search problem. A network graph is a directed multigraph because in \ak\ two nodes are not restricted to be connected with more than one edge. The graph has four types of nodes, namely a box, a synchroniser, a merger and a network. The search problem can be formulated as follows. In a directed multigraph with typed nodes find a path that traverses only nodes of a specified type and prove that the path is unique. A recursive depth-first search based path enumeration algorithm in Fig. \ref{fig:dfs} solves the problem in TODO complexity.
-
-
-%How to represent the net graph.
-%We have (at least) 4 types of vertices: boxes, synchronisers, nets, mergers.
-%If we find net on the way we have to run the analysis for it (recursively). For example:
-% A net in wrapped in a Star combinator
-%  __                               __
-% |       _____________________       | *
-% |      |    __      __       |      |
-% |     _|  /|__|----|__|-\    |_     |
-% |  a |_|-|      __      |----|_| a  |
-% |      |  \----|__|-----/    |      |
-% |     _|                |    |_     |
-% |  b |_|---------------|N|---|_| b  |  - fix point channel b (goes straight throuhg the net)
-% |      |               net   |      |
-% |      |_____________________|      |
-% |__                               __|
-%
-%We could represent the net graph as a multigraph (where a vertex, which is a box, a synch, a net or a merger can have several inputs and several outputs).
-%But it is inconvenient because we cannot specify the connections to the net inputs and outputs. In order to specify this connections, we can have ports as vertices of a graph.
-
-%We assume that the ports graph is a connected graph.
-
-%We can filter the subgraph those vertices are only mergers and nets. In this case with the assumption of the original graph connectivity, the resulting graph is a connected graph by construction.
-%We construct this graph by traversing all the vertices from the 'start' vertex (we have to keep it in the graph structure). We take the successors of the current vertex and check their 'type'. If the successor is a merger, we add it to the resulting graph and traverse it. (Anyway, generating such a graph seems useless since we can detect the paths we need with just a single traversal)
-%
-%Or we can leave the graph as is and just put a condition of every vertex we visit that it must be net or merger.
-
-
-
-%\subsubsection{Extracting the fixed point condition from a synchroniser}
-The existence of a forward fixed point requires the synchronisers of the operand network that define the fixed point condition to have at least one transition in their start states that accepts the fixed point messages and send them on unchanged and without producing any other output. Coded in the synchroniser language, the transition that defines the fixed point condition $p$ in channel $x$ is presented in \ref{ffp:synch_fp}.
-
+The existence of a forward fixed point requires the synchronisers that are traversed by the fixed point path to have at least one transition in their start states that accepts the fixed point messages and send them on unchanged and without producing any other output. Coded in the synchroniser language, the transition that defines the fixed point condition $p$ in channel $x$ is presented in \ref{ffp:synch_fp}.
 \begin{figure}[h!]
 \begin{lstlisting}[frame=single,mathescape]
 start {
@@ -155,25 +122,25 @@ start {
   ...
 }
 \end{lstlisting}
-\caption{The start state of a synchroniser that encodes the fixed point condition $p$ on channel $x$}
+\caption{The start state of a synchroniser that encodes the fixed point condition $p$ in channel $x$}
 \label{ffp:synch_fp}
 \end{figure}
 
-We shall note, that there exists no more transition on the channel from the start state with the same structure (a single \emph{send} clause). Otherwise, the synchroniser has the fixed point condition that is a disjunction of conditions in such transitions. The algorithm in Fig. \ref{fig:ffp_extract} checks if a forward fixed point exists in channel $x$ and extracts the fixed point condition from the synchroniser source code. The algorithm supports the renaming of channel $x$ and makes sure that the fixed point path does not branch in the synchroniser. It is assumed that channel $x$ is declared as an input and an output channel of the synchroniser.
+We shall note, that there exists no more transition on the channel from the start state with the same structure (a single \emph{send} clause). Otherwise, the synchroniser has the fixed point condition that is a disjunction of conditions in such transitions. The algorithm in Fig. \ref{fig:ffp_extract} checks if a forward fixed point exists in channel $x$ and extracts the fixed point condition from the synchroniser source code. The algorithm supports the renaming of channel $x$ in the synchroniser. Moreover, it may be the case that the transitions that cause a fixed point in the synchronisers send messages to different output channels. The algorithm detects such a situation, however, the branching of the fixed point path is resolved in the context of the whole network.
 
 \begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
-% Input: code - the AST of the synchroniser program, x - the input label of the fixed point channel
-% Output: CondDict (a, CondList), where a is the output label of the fixed point channel, CondList is the list of atomic fixed point conditions
-\Function{extract\_ffp}{$code, x$}
-  \State $synch\gets parse$($code$)\Comment{\emph{parses the source code and returns the abstract syntax tree}}
+\Require the abstract syntax tree of the synchroniser program ($synch$), the input label of a channel to test for a forward fixed point ($x$)
+\Ensure a dictionary $(a, CondList)$, where $a$ is the output label of the fixed point channel and $CondList$ is the list of atomic fixed point conditions
 
-  \State $state\gets get\_state\_by\_name$(\tangled{start})\Comment{\emph{get the start state tree from the state list}}
+\Statex
+\Function{extract\_ffp}{$synch, x$}
+  \State $state\gets get the start state tree from synch$
 
   \State $CondDict\gets nil$
-
+  \Statex
   \For{\textbf{each} \emph{trans in trans\_list}($state$)}
     \If{$get\_port$($trans$) $\neq x$}
       \State \textbf{continue}\Comment{\emph{the transition reads from another channel}}
@@ -202,63 +169,135 @@ We shall note, that there exists no more transition on the channel from the star
     \If{$cond \in CondDict$($out\_port$)}
       \State $CondDict$($out\_port$)$\gets CondDict$($out\_port$) \texttt{..} $cond$
     \Else
-      \State $CondDict\gets CondDict$ \texttt{..} ($out\_port$, $cond$)
+      \State $CondDict\gets CondDict$ \texttt{..} ($out\_port$, [$cond$])
     \EndIf
 
   \EndFor
 
-  \If{$|keys$($CondDict$)$| \neq 1$}\Comment{\emph{if the number of entries in the dictionary is not 1}}
-    \State \emph{error}
-  \EndIf
+  \Statex
+%  \If{$|keys$($CondDict$)$| \neq 1$}\Comment{\emph{if the number of entries in the dictionary is not 1}}
+%    \State \emph{error}
+%  \EndIf
+
+%  \If{$CondDict = nil$}
+%    \State \emph{error}\Comment{\emph{the synchroniser does not have the fixed point}}
+%  \EndIf
+
   \State \textbf{return} $CondDict$
 \EndFunction
 \end{algorithmic}
 \end{minipage}%
 }
-\caption{Extracting the fixed point condition from a synchroniser\label{fig:ffp_extract}}
+\caption{Extracting the fixed point condition from a synchroniser (assumes that channel $x$ is declared as an input and an output channel of the synchroniser)\label{fig:ffp_extract}}
 \end{figure}
+
+The fixed point condition of an \ak\ network is formed by the fixed point conditions of its synchronisers that are traversed by the fixed point path. Networks in \ak\ are represented as graphs, thus the fixed point detection is a graph search problem.
+
+A network graph is a directed multigraph because in \ak\ two nodes are not restricted to be connected with more than one edge. The graph has four types of nodes, namely a box, a synchroniser, a merger and a network. The fixed point path may traverse nodes of any type except for boxes. If the path traverses a node that is a network, the network must have a forward fixed point as well.
+
+The fixed point detection algorithm (Fig. \ref{fig:ffp_detect}) is based on the depth-first search algorithm with the following considerations:
+\begin{itemize}
+\item The first and the last node of the fixed point path for a particular input channel are known, thus, only the paths between these two nodes in the graph are traversed
+
+\item If the search encounters a box, the traversed path is rejected
+
+\item If the search encounters a synchroniser, the fixed point condition of the synchroniser is extracted using the function $extract_ffp$ in Fig. \ref{fig:ffp_extract}. If the synchroniser has no fixed point condition, the traversed path is rejected. Otherwise, the search continues only for the successors of the node that were detected by $extract_ffp$
+
+\item If the search encounters a merger, it immediately continues with its only successor
+
+\item If the search encounters a node that encapsulates a network, the fixed point detection is run on the network. If no fixed point path exists for the network, the traversed path is rejected.
+\end{itemize}
+
+The fixed point detection algorithm runs only on acyclic networks. The wrap-around wiring makes \ak\ networks cyclic, however, the wrap-around channels cannot carry a fixed point. Therefore, these channels must be filtered before the fixed point detection is run.
 
 
 \begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
-% Input: an operand network, a channel to test for a forward fixed point
-% Output: FFPCondList - a list of lists which are the fixed point conditions extracted from the synchronisers that traverse the fixed point path
+
+\Require an operand network ($net$), a channel to test for a forward fixed point ($x$)
+\Ensure a set of fixed point conditions on the channel
+\Statex
+
 \Function{detect\_ffp}{$net, x$}
   \State $start\gets$\emph{get a node that has an input port x}
   \State $end\gets$\emph{get a node that has an output port x}
-  \State $graph\gets get\_graph$($net$)\Comment{\emph{extract the graph from the network data structure}}
-% maybe remove get_graph and leave just net?
-  \State $FFPCondList\gets get\_cond\_list$($graph, x, start, end$)
+  \Statex
+
+  \State \textbf{return} $get\_cond\_list$($net, x, start, end$)\Comment{\emph{Fig. \ref{fig:ffp_get_cond}}}
+%  \If{$|Lists| \neq 1$}
+%    \State \textbf{return} \emph{error}
+%  \EndIf
+%  \State \textbf{return} $Lists$
 \EndFunction
+\end{algorithmic}
+\end{minipage}%
+}
+\caption{A forward fixed point detection in channel $x$ (assumes the network graph is connected)\label{fig:ffp_detect}}
+\end{figure}
 
 
-\Function{get\_cond\_list}{$graph, x, start, end, cond\_list=[]$}
+
+\begin{figure}[h!]
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+\Require an operand network graph ($graph$), a channel to test for a forward foxed point ($x$)
+%\Ensure
+\Statex
+
+\Function{get\_cond\_list}{$graph, x, start, end, cond\_list=empty\_list$}
   \If{$start$ \emph{is a box}}
-    \State \textbf{return} TODO
+    \State \textbf{return} $empty\_list$
   \EndIf
 
   \If{$start$ \emph{is a synchroniser}}
-    \State ($out\_port,fp\_list$)$\gets extract\_ffp$($start, x$)
-    \State $cond\_list\gets cond\_list$ \textbf{..} $fp\_list$
+    \State $CondDict\gets extract\_ffp$($start, x$)
+    %What if there're few synch paths and the synch does not have the fixed point???
+    \If{$CondDict = nil$}
+      \State \textbf{return} $empty\_list$
+    \EndIf
+
+    \State $Lists\gets empty\_list$
+
+    \State $cond\_list\gets cond\_list$ \textbf{..} $start\_cond$ %add check if cond already exists in cond_list
+
     \For{\textbf{each} \emph{succ\_node in succ\_nodes}($start$)}
-      \If{$get\_label$($edge$($start, succ\_node$))$ = out\_port$}
-        \State ...$\gets get\_cond\_list$($graph, out\_port, succ\_node, end, cond\_list$)
+      \State $out\_port\gets get\_label$($edge$($start, succ\_node$))
+      \If{$out\_port \in keys$($CondDict$)}
+        \If{$start = end$}
+          \State \textbf{return} $cond\_list$
+        \EndIf
+
+        \State $NewLists\gets get\_cond\_list$($graph, out\_port, succ\_node, end, cond\_list$)
+
+        \For{\emph{new\_list in NewLists}}
+          \State $Lists\gets Lists$ \textbf{..} $new\_list$
+        \EndFor
+%If Lists contains more than one list - the fixed point path branches
+
       \EndIf
     \EndFor
 
+    \State \textbf{return} $Lists$
+  \EndIf
+
+  \If{$start$ \emph{is a merger}}
+    \State $out\_port\gets get\_out\_port$($start$)\Comment{a merger has a single output port}
+    \State $succ\_node\gets get\_succ\_node$($start$)
+    \State \textbf{return} $get\_cond\_list$($graph, out\_port, succ\_node, end, cond\_list$)
   \EndIf
 
   \If{$start$ \emph{is a network}}
-    \State \textbf{return} $detect\_ffp$($net,x$)
+    \State \textbf{return} $detect\_ffp$($start,x$) %it can be empty_list as well if the network does not have a fixed point, then the path is rejected
   \EndIf
 
 \EndFunction
 \end{algorithmic}
 \end{minipage}%
 }
-\caption{A forward fixed point detection in channel $x$\label{fig:ffp_detect}}
+\caption{TODO\label{fig:ffp_get_cond}}
 \end{figure}
 
 
