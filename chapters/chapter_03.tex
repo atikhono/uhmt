@@ -42,14 +42,13 @@ Once the computation in the serial replication network has reached the fixed poi
 %1) synchronisers approach (only detects integer fields like S-Net)
 The existence of a forward fixed point requires the operand network to have some topological properties that are formally defined as follows. Consider a network $N$ that has an input and an output channel, both named $x$.
 
-\begin{definition}The network $N$ is said to have a forward fixed point in $x$ if and only if the following requirements are satisfied:
+\begin{definition}\label{ffp_def}The network $N$ is said to have a forward fixed point in $x$ if and only if the following requirements are satisfied:
 \begin{enumerate}
 \item There exists a condition $P(m)$ on the content of the message $m$ received by the network on the input channel $x$ under which it follows a unique non-branching path to the output channel $x$ without traversing any boxes
 \item The path can traverse synchronisers, but then whenever $P(m)$ is true and the synchroniser is in the start state, it must accept $m$ and transition back to the start state while sending the message $m$ on the path unchanged and without producing any other output%TODO fix
 \end{enumerate}
 \end{definition}
 
-% Give a definition for "edge that satisfies the fixed-point definition"
 The condition $P$ may not be unique for each network, and when it is not, the fixed point condition of the network is a disjunction of all such conditions. The condition can also be a tautology, in which case the forward fixed point is called unconditional. When the path traverses a single synchroniser, the fixed point condition is defined exclusively by the synchroniser transitions that loop around the start state and send on the accepted messages unchanged. When the path traverses several synchronisers, the fixed point condition of the network is a conjunction of the fixed point conditions of these synchronisers. We demonstrate the construction of the fixed point condition with the example operand network $N$ pictured in Fig. \ref{fig:ffp}.
 
 \begin{figure}[h!]
@@ -60,6 +59,8 @@ The condition $P$ may not be unique for each network, and when it is not, the fi
 \end{figure}
 
 Apart from all the paths that traverse boxes, the operand network $N$ has a unique path $[s_1, \: s_2, \: s_3]$ that traverses only synchronisers. The synchroniser $s_2$ has two transitions that loop around the start state and send on messages they accept unchanged with the firing conditions $p^{1}_2(m)$ and $p^{1}_2(m)$. A message $m$ is a fixed point for the network $N$ when it satisties any of these conditions, i.e. $p^{1}_2(m) \lor p^{1}_2(m)$. The synchronisers $s_1$ and $s_3$ have fixed point conditions $p_1(m)$ and $p_3(m)$ respectively, where $p_i(m) = p^{1}_i(m) \lor \dots p^{j}_i$, $i=1,3$ and $j$ is the number of transitions in each synchroniser that loop around the start state and send on messages unchanged. Then the fixed point condition of the network $N$ is $p_1(m) \land (p^{1}_2(m) \lor p^{1}_2(m)) \land p_3(m)$.
+
+The definition \ref{ffp_def} requires the synchronisers that traverse the fixed point path to transition back to the start state when the fixed point message was sent on. This restriction can be relaxed, however, in this case for each synchroniser the programmer would have to maintain a transition that checks for the fixed point condition in every state of the synchroniser.
 
 
     \subsubsection{Output from the Serial Replication Network}
@@ -83,34 +84,65 @@ where $\mathcal{O}$ is the output channel set of $N$ and the predicate $fp(c)$ i
 \label{fig:ffp_out}
 \end{figure}
 
-The operand network $N$ has the fixed point condition $P$. A synchroniser $S^{(i)}$ is inserted in front of every inactive replica $N^{(i+1)}$ to check whether a message $m$ in channel $x^{(i)}$ satisfies the condition $p$. If $P(m)$ is true, the synchroniser sends the message $m$ to the output channel $x$ of $N^{*}$. Otherwise, it is sent to the input channel $x^{(i+1)}$ of the next replica of $N$. The listing of the synchroniser $S^{(i)}$ is given in Fig. \ref{ffp:synch_filt}.
-
-\textbf{TODO urgent! Fix to a net of synchronisers in case there are more than one fixed point conditions on a message}
+The operand network $N$ has the fixed point condition $P = \underset{j}{\bigcap} \; p_j$, where $p_j$ is the fixed point condition extracted from the $j$-th synchroniser ($1 \leq j \leq n$) on the fixed point path of $N$. In order to check whether a message $m$ in channel $x'$ satisfies the condition $p_j$, a synchroniser $S^{(j)}$ is inserted in front of every inactive replica $N'$. If $p_{j}(m)$ is true, the synchroniser sends the message $m$ on to the input channel of the next synchroniser $S^{(j+1)}$ to check whether $p_{j+1}$ is satisfied. Otherwise, the message $m$ is sent to the input channel $x'$ of the next replica of $N$. The listing of the synchroniser $S^{(j)}$ is given in Fig. \ref{ffp:synch_filt}. We shall note that $\forall j \;:\; p_j = \underset{j,k}{\bigcup} \: p^{(k)}_j$ the synchroniser $S^{(j)}$ has $k$ transitions that implement checking of the atomic conditions $p^{(k)}_j$.
 \begin{figure}[h!]
 \begin{lstlisting}[frame=single,mathescape]
-synch $S^{(i)}$ ($x^{(i)}$ | $x^{(i+1)}$, $x$)
+synch $S^{(j)}$ ($x'^{(j-1)}$ | $x'^{(j)}$, $x'$)
 {
   start {
     on:
-      $x^{(i)}$.$P$ {
-        send this => $x$;
+      $x'^{(j-1)}$.$p_j$ {
+        send this => $x'^{(j)}$;
       }
       $x$.else {
-        send this => $x^{(i+1)}$;
+        send this => $x'$;
       }
   }
 }
 \end{lstlisting}
-\caption{The synchroniser $S^{(i)}$}
+\caption{The synchroniser $S^{(j)}$}
 \label{ffp:synch_filt}
 \end{figure}
 
-The merger $M$ accepts input messages from all synchronisers $S^{(i)}$ in the serial replication network and resends the messages to the output channel $x$ of $N^{*}$.
+The merger $M'$ gathers messages that do not satisty the fixed point condition from all synchronisers $S^{(j)}$ between two consequtive replicas on $N$ and resends them to the input channel of the next replica. The merger $M$ gathers message that satisfy the fixed point condition and resends the messages to the output channel $x$ of the serial replication network $N^{*}$.
 
 %An FPS is a form of replication wiring whereby an infinite chain of replicas is created, connected in series. The connection is denoted as A* for any operand network A and can be thought of as the equivalent of $A^{*} = A'..A'..A'.. \dots$ where $A'$, called the streamlining of the vertex A, is a network that contains A and provides some additional wiring to ensure that each output channel of A? matches an input channel and vice versa. We will dwell on the streamlining procedure a little further down, and at this point only remark that if all output channels of A match its input channels bijectively, A' = A.
 
     \subsection{Forward Fixed Point Detection}
-    \subsubsection{Extracting of the fixed point condition from a synchroniser}
+%    \subsubsection{The Fixed Point Path Search}
+%Algorithm that uses extract_ffp, returns the list of all atomic FP conditions for the fixed point message
+Networks in \ak\ are represented as graphs, thus the fixed point path search is a graph search problem. A network graph is a directed multigraph because in \ak\ two nodes are not restricted to be connected with more than one edge. The graph has four types of nodes, namely a box, a synchroniser, a merger and a network. The search problem can be formulated as follows. In a directed multigraph with typed nodes find a path that traverses only nodes of a specified type and prove that the path is unique. A recursive depth-first search based path enumeration algorithm in Fig. \ref{fig:dfs} solves the problem in TODO complexity.
+
+
+%How to represent the net graph.
+%We have (at least) 4 types of vertices: boxes, synchronisers, nets, mergers.
+%If we find net on the way we have to run the analysis for it (recursively). For example:
+% A net in wrapped in a Star combinator
+%  __                               __
+% |       _____________________       | *
+% |      |    __      __       |      |
+% |     _|  /|__|----|__|-\    |_     |
+% |  a |_|-|      __      |----|_| a  |
+% |      |  \----|__|-----/    |      |
+% |     _|                |    |_     |
+% |  b |_|---------------|N|---|_| b  |  - fix point channel b (goes straight throuhg the net)
+% |      |               net   |      |
+% |      |_____________________|      |
+% |__                               __|
+%
+%We could represent the net graph as a multigraph (where a vertex, which is a box, a synch, a net or a merger can have several inputs and several outputs).
+%But it is inconvenient because we cannot specify the connections to the net inputs and outputs. In order to specify this connections, we can have ports as vertices of a graph.
+
+%We assume that the ports graph is a connected graph.
+
+%We can filter the subgraph those vertices are only mergers and nets. In this case with the assumption of the original graph connectivity, the resulting graph is a connected graph by construction.
+%We construct this graph by traversing all the vertices from the 'start' vertex (we have to keep it in the graph structure). We take the successors of the current vertex and check their 'type'. If the successor is a merger, we add it to the resulting graph and traverse it. (Anyway, generating such a graph seems useless since we can detect the paths we need with just a single traversal)
+%
+%Or we can leave the graph as is and just put a condition of every vertex we visit that it must be net or merger.
+
+
+
+%\subsubsection{Extracting the fixed point condition from a synchroniser}
 The existence of a forward fixed point requires the synchronisers of the operand network that define the fixed point condition to have at least one transition in their start states that accepts the fixed point messages and send them on unchanged and without producing any other output. Coded in the synchroniser language, the transition that defines the fixed point condition $p$ in channel $x$ is presented in \ref{ffp:synch_fp}.
 
 \begin{figure}[h!]
@@ -123,26 +155,28 @@ start {
   ...
 }
 \end{lstlisting}
-\caption{The start state of a synchroniser that encodes the fixed point condition $p$}
+\caption{The start state of a synchroniser that encodes the fixed point condition $p$ on channel $x$}
 \label{ffp:synch_fp}
 \end{figure}
 
-We shall note, that there exists no more transition from the start state with the same structure (a single \emph{send} clause). Otherwise, the synchroniser has the fixed point condition that is a disjunction of conditions in such transitions. The algorithm in Fig. \ref{fig:ffp_extract} checks is a forward fixed point exists in channel $x$ and extracts the fixed point condition from the synchroniser source code. The algorithm assumes that channel $x$ is declared as an input and an output channel of the synchroniser.
+We shall note, that there exists no more transition on the channel from the start state with the same structure (a single \emph{send} clause). Otherwise, the synchroniser has the fixed point condition that is a disjunction of conditions in such transitions. The algorithm in Fig. \ref{fig:ffp_extract} checks if a forward fixed point exists in channel $x$ and extracts the fixed point condition from the synchroniser source code. The algorithm supports the renaming of channel $x$ and makes sure that the fixed point path does not branch in the synchroniser. It is assumed that channel $x$ is declared as an input and an output channel of the synchroniser.
 
 \begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
+% Input: code - the AST of the synchroniser program, x - the input label of the fixed point channel
+% Output: CondDict (a, CondList), where a is the output label of the fixed point channel, CondList is the list of atomic fixed point conditions
 \Function{extract\_ffp}{$code, x$}
   \State $synch\gets parse$($code$)\Comment{\emph{parses the source code and returns the abstract syntax tree}}
 
   \State $state\gets get\_state\_by\_name$(\tangled{start})\Comment{\emph{get the start state tree from the state list}}
 
-  \State $CondList\gets nil$
+  \State $CondDict\gets nil$
 
   \For{\textbf{each} \emph{trans in trans\_list}($state$)}
-    \If{$get\_port$($trans$) $\neq$ \tangled{x}}
-      \State \textbf{continue}\Comment{the transition reads from another channel}
+    \If{$get\_port$($trans$) $\neq x$}
+      \State \textbf{continue}\Comment{\emph{the transition reads from another channel}}
     \EndIf
     \If{$get\_goto$($trans$) $\neq$ (\tangled{start} $\lor$ $\emptyset$)}
       \State \textbf{continue}\Comment{\emph{the transition does not loop around the state state}}
@@ -152,27 +186,31 @@ We shall note, that there exists no more transition from the start state with th
     \EndIf
     
     \State $send\gets get\_send$($trans$)
-    \If{$get\_port$($send$) $\neq$ \tangled{x}}
-      \State \textbf{continue}\Comment{\emph{messages are sent to another channel}}
-    \EndIf 
+%    \If{$get\_port$($send$) $\neq$ \tangled{x}}
+%      \State \textbf{continue}\Comment{\emph{messages are sent to another channel}}
+%    \EndIf 
     \If{$get\_msg$($send$) $\neq$ $this$}
       \State \textbf{continue}
     \EndIf
 
     \State $cond\gets get\_condition$($trans$)
-    \If{$cond$ \emph{is not CondDataMsg}}
+    \If{$cond$ \emph{is not CondDataMsg} $\lor$ $cond$ \emph{is not CondEmpty}}
       \State \textbf{continue}\Comment{\emph{the condition cannot be a segmentation mark or an} \texttt{.else}}
     \EndIf
-    \If{$cond \notin CondList$}
-      \State $CondList\gets CondList$ \texttt{..} $cond$
+
+    \State $out\_port\gets get\_port$($send$)
+    \If{$cond \in CondDict$($out\_port$)}
+      \State $CondDict$($out\_port$)$\gets CondDict$($out\_port$) \texttt{..} $cond$
+    \Else
+      \State $CondDict\gets CondDict$ \texttt{..} ($out\_port$, $cond$)
     \EndIf
 
   \EndFor
 
-  \If{$CondList = nil$}
+  \If{$|keys$($CondDict$)$| \neq 1$}\Comment{\emph{if the number of entries in the dictionary is not 1}}
     \State \emph{error}
   \EndIf
-  \State \textbf{return} $CondList$
+  \State \textbf{return} $CondDict$
 \EndFunction
 \end{algorithmic}
 \end{minipage}%
@@ -181,20 +219,58 @@ We shall note, that there exists no more transition from the start state with th
 \end{figure}
 
 
-    \subsubsection{Path Search}
-%Algorithm that uses extract_ffp, returns the list of all atomic FP conditions for the fixed point message
+\begin{figure}[h!]
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+% Input: an operand network, a channel to test for a forward fixed point
+% Output: FFPCondList - a list of lists which are the fixed point conditions extracted from the synchronisers that traverse the fixed point path
+\Function{detect\_ffp}{$net, x$}
+  \State $start\gets$\emph{get a node that has an input port x}
+  \State $end\gets$\emph{get a node that has an output port x}
+  \State $graph\gets get\_graph$($net$)\Comment{\emph{extract the graph from the network data structure}}
+% maybe remove get_graph and leave just net?
+  \State $FFPCondList\gets get\_cond\_list$($graph, x, start, end$)
+\EndFunction
+
+
+\Function{get\_cond\_list}{$graph, x, start, end, cond\_list=[]$}
+  \If{$start$ \emph{is a box}}
+    \State \textbf{return} TODO
+  \EndIf
+
+  \If{$start$ \emph{is a synchroniser}}
+    \State ($out\_port,fp\_list$)$\gets extract\_ffp$($start, x$)
+    \State $cond\_list\gets cond\_list$ \textbf{..} $fp\_list$
+    \For{\textbf{each} \emph{succ\_node in succ\_nodes}($start$)}
+      \If{$get\_label$($edge$($start, succ\_node$))$ = out\_port$}
+        \State ...$\gets get\_cond\_list$($graph, out\_port, succ\_node, end, cond\_list$)
+      \EndIf
+    \EndFor
+
+  \EndIf
+
+  \If{$start$ \emph{is a network}}
+    \State \textbf{return} $detect\_ffp$($net,x$)
+  \EndIf
+
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
+}
+\caption{A forward fixed point detection in channel $x$\label{fig:ffp_detect}}
+\end{figure}
 
 
 
 
 
+
+
+    \subsection{Discussion}
 2) wire-through (applicable to detect non-integer fixed points, for iterative computation with the floating-point presicion)
 
-
-
-
-%%%% IMPLEMENTATION NOTES
-%%%%
+%%%%%%%%%
 In \ak\, a message leaves the replication pipeline exclusively via a special complement channel that is wired to the rest of the \ak\ network. The programmer has to make sure that the messages to be sent on are detected within the operand network and sent to this channel. 
 
 Thus, the serial replication in \ak\ enforces a topological property of the operand network that is formally defined as follows. Consider the serial replication $N^{*}$ of an operand network $N$ with the input and output channel sets $\mathcal{I}$ and $\mathcal{O}$ respectively. Consequently, the set of matched inputs and outputs is $\mathcal{M}(\mathcal{I}, \: \mathcal{O}) = \mathcal{I} \cap \mathcal{O}$. In order for the serial replication $N^{*}$ to be able to produce output to the channel $x \in \mathcal{M}(\mathcal{I}, \: \mathcal{O})$, at least one box or a synchroniser in $N$ must have the output port wired to the complement channel $x'$. The \ak\ compiler recognizes the use of complement channels and checks whether the operand network topology has this property. If it does not, the compiler reports an error and aborts the compilation.
@@ -295,32 +371,6 @@ The reverse fixed point optimises an input connection that has to cascade throug
 %
 %Forward fixpoint detection is pure network topology analysis. Find a way in a net graph that goes exclusively through mergers and some other vertex output to this channel.
 %
-%How to represent the net graph.
-%We have (at least) 4 types of vertices: boxes, synchronisers, nets, mergers.
-%If we find net on the way we have to run the analysis for it (recursively). For example:
-% A net in wrapped in a Star combinator
-%  __                               __
-% |       _____________________       | *
-% |      |    __      __       |      |
-% |     _|  /|__|----|__|-\    |_     |
-% |  a |_|-|      __      |----|_| a  |
-% |      |  \----|__|-----/    |      |
-% |     _|                |    |_     |
-% |  b |_|---------------|N|---|_| b  |  - fix point channel b (goes straight throuhg the net)
-% |      |               net   |      |
-% |      |_____________________|      |
-% |__                               __|
-%
-%We could represent the net graph as a multigraph (where a vertex, which is a box, a synch, a net or a merger can have several inputs and several outputs).
-%But it is inconvenient because we cannot specify the connections to the net inputs and outputs. In order to specify this connections, we can have ports as vertices of a graph.
-
-%We assume that the ports graph is a connected graph.
-
-%We can filter the subgraph those vertices are only mergers and nets. In this case with the assumption of the original graph connectivity, the resulting graph is a connected graph by construction.
-%We construct this graph by traversing all the vertices from the 'start' vertex (we have to keep it in the graph structure). We take the successors of the current vertex and check their 'type'. If the successor is a merger, we add it to the resulting graph and traverse it. (Anyway, generating such a graph seems useless since we can detect the paths we need with just a single traversal)
-%
-%Or we can leave the graph as is and just put a condition of every vertex we visit that it must be net or merger.
-
 
     \subsection{Reverse Fixed Point Detection\label{rfp_detect}}
 %%% Synch state conditions for the reverse fixpoint state
