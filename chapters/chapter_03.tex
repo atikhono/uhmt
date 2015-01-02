@@ -201,7 +201,7 @@ The fixed point detection algorithm (Fig. \ref{fig:ffp_detect}) is based on the 
 
 \item If the search encounters a box, the traversed path is rejected
 
-\item If the search encounters a synchroniser, the fixed point condition of the synchroniser is extracted using the function $extract_ffp$ in Fig. \ref{fig:ffp_extract}. If the synchroniser has no fixed point condition, the traversed path is rejected. Otherwise, the search continues only for the successors of the node that were detected by $extract_ffp$
+\item If the search encounters a synchroniser, the fixed point condition of the synchroniser is extracted using the function $extract\_ffp$ in Fig. \ref{fig:ffp_extract}. If the synchroniser has no fixed point condition, the traversed path is rejected. Otherwise, the search continues only for the successors of the node that were detected by $extract\_ffp$
 
 \item If the search encounters a merger, it immediately continues with its only successor
 
@@ -211,46 +211,48 @@ The fixed point detection algorithm (Fig. \ref{fig:ffp_detect}) is based on the 
 The fixed point detection algorithm runs only on acyclic networks. The wrap-around wiring makes \ak\ networks cyclic, however, the wrap-around channels cannot carry a fixed point. Therefore, these channels must be filtered before the fixed point detection is run.
 
 
-\begin{figure}[h!]
+%\begin{figure}[h!]
+%\noindent\fbox{%
+%\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+%\begin{algorithmic}[1]
+%
+%\Require an operand network ($net$), a channel to test for a forward fixed point ($x$)
+%\Ensure a set of fixed point conditions on the channel
+%
+%\Statex
+%
+%\Function{detect\_ffp}{$net, x$}
+%  \State $start\gets$\emph{get a node that has an input port x}
+%  \State $end\gets$\emph{get a node that has an output port x}
+%  \Statex
+%
+%  \State \textbf{return} $get\_cond\_list$($net, x, start, end$)\Comment{\emph{Fig. \ref{fig:ffp_get_cond}}}
+%%  \If{$|Lists| \neq 1$}
+%%    \State \textbf{return} \emph{error}
+%%  \EndIf
+%%  \State \textbf{return} $Lists$
+%\EndFunction
+%\end{algorithmic}
+%\end{minipage}%
+%}
+%\caption{A forward fixed point detection in channel $x$ (assumes the network graph is connected)\label{fig:ffp_detect}}
+%\end{figure}
+
+
+\begin{figure}%[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
+\Require an operand network graph ($graph$), a channel to test for a forward foxed point ($x$), the first and the last node in the fixed point path ($start$, $end$), the list of fixed point conditions gathered along the path ($cond\_list$, optional with the default value $empty\_list$)
 
-\Require an operand network ($net$), a channel to test for a forward fixed point ($x$)
 \Ensure a set of fixed point conditions on the channel
 \Statex
 
-\Function{detect\_ffp}{$net, x$}
-  \State $start\gets$\emph{get a node that has an input port x}
-  \State $end\gets$\emph{get a node that has an output port x}
-  \Statex
-
-  \State \textbf{return} $get\_cond\_list$($net, x, start, end$)\Comment{\emph{Fig. \ref{fig:ffp_get_cond}}}
-%  \If{$|Lists| \neq 1$}
-%    \State \textbf{return} \emph{error}
-%  \EndIf
-%  \State \textbf{return} $Lists$
-\EndFunction
-\end{algorithmic}
-\end{minipage}%
-}
-\caption{A forward fixed point detection in channel $x$ (assumes the network graph is connected)\label{fig:ffp_detect}}
-\end{figure}
-
-
-
-\begin{figure}[h!]
-\noindent\fbox{%
-\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
-\begin{algorithmic}[1]
-\Require an operand network graph ($graph$), a channel to test for a forward foxed point ($x$)
-%\Ensure
-\Statex
-
-\Function{get\_cond\_list}{$graph, x, start, end, cond\_list=empty\_list$}
+\Function{detect\_ffp}{$graph$, $x$, $start$, $end$, $cond\_list=empty\_list$}
   \If{$start$ \emph{is a box}}
     \State \textbf{return} $empty\_list$
   \EndIf
+  \Statex
 
   \If{$start$ \emph{is a synchroniser}}
     \State $CondDict\gets extract\_ffp$($start, x$)
@@ -270,71 +272,91 @@ The fixed point detection algorithm runs only on acyclic networks. The wrap-arou
           \State \textbf{return} $cond\_list$
         \EndIf
 
-        \State $NewLists\gets get\_cond\_list$($graph, out\_port, succ\_node, end, cond\_list$)
+        \State $NewLists\gets detect\_ffp$($graph, out\_port, succ\_node, end, cond\_list$)
 
         \For{\emph{new\_list in NewLists}}
-          \State $Lists\gets Lists$ \textbf{..} $new\_list$
+          \State $Lists\gets Lists$ \textbf{..} $new\_list$\Comment{\emph{the fixed point path branches if $|Lists|>1$ }}
         \EndFor
-%If Lists contains more than one list - the fixed point path branches
 
       \EndIf
     \EndFor
 
     \State \textbf{return} $Lists$
   \EndIf
+  \Statex
 
   \If{$start$ \emph{is a merger}}
+    \If{$start = end$}
+      \State \textbf{return} $cond\_list$
+    \EndIf
     \State $out\_port\gets get\_out\_port$($start$)\Comment{a merger has a single output port}
     \State $succ\_node\gets get\_succ\_node$($start$)
-    \State \textbf{return} $get\_cond\_list$($graph, out\_port, succ\_node, end, cond\_list$)
+    \State \textbf{return} $detect\_ffp$($graph, out\_port, succ\_node, end, cond\_list$)
   \EndIf
+  \Statex
 
+% It does not work for 2 consecutive nets in the path
   \If{$start$ \emph{is a network}}
-    \State \textbf{return} $detect\_ffp$($start,x$) %it can be empty_list as well if the network does not have a fixed point, then the path is rejected
+    \State $start\gets$\emph{get a node that has an input port x}
+    %run detection for every node that has no successors, must be one path in total
+    %\State $end\gets$\emph{get a node that has an output port x} %not x, the channel is unknown
+
+    \State $Lists\gets detect\_ffp$($graph, x, start, end$) %it can be empty_list as well if the network does not have a fixed point, then the path is rejected
+    \If{$start = end$}
+      
+      \State \textbf{return} $cond\_list$ \textbf{..} $Lists$
+
+    \EndIf
+    \State \textbf{return} $Lists$
   \EndIf
 
 \EndFunction
 \end{algorithmic}
 \end{minipage}%
 }
-\caption{TODO\label{fig:ffp_get_cond}}
+\caption{A forward fixed point detection in channel $x$ (assumes the network graph is connected)\label{fig:ffp_detect}}
 \end{figure}
 
 
 
-
-
-
-
     \subsection{Discussion}
-2) wire-through (applicable to detect non-integer fixed points, for iterative computation with the floating-point presicion)
-
+The approach we have presented relies on the ability of synchronisers to encode some checks of the message content and perform different actions depending on the result of a check. Since synchronisers can only check values of record fields that are known to be integers, the approach is not applicable for iterative computation with the floating-point precision. %However, to the best of our knowledge this is in accordance with S-Net, where the fixed point matching pattern
+To enable this class of algorithms, in addition to the synchroniser-based approach we provide a fixed point detection strategy 
+%
+%
+%only detects integer fields like S-Net)
+%2) wire-through (applicable to detect non-integer fixed points, for iterative computation with the floating-point presicion)
+%
 %%%%%%%%%
-In \ak\, a message leaves the replication pipeline exclusively via a special complement channel that is wired to the rest of the \ak\ network. The programmer has to make sure that the messages to be sent on are detected within the operand network and sent to this channel. 
+%In \ak\, a message leaves the replication pipeline exclusively via a special complement channel that is wired to the rest of the \ak\ network. The programmer has to make sure that the messages to be sent on are detected within the operand network and sent to this channel. 
+%
+%Thus, the serial replication in \ak\ enforces a topological property of the operand network that is formally defined as follows. Consider the serial replication $N^{*}$ of an operand network $N$ with the input and output channel sets $\mathcal{I}$ and $\mathcal{O}$ respectively. Consequently, the set of matched inputs and outputs is $\mathcal{M}(\mathcal{I}, \: \mathcal{O}) = \mathcal{I} \cap \mathcal{O}$. In order for the serial replication $N^{*}$ to be able to produce output to the channel $x \in \mathcal{M}(\mathcal{I}, \: \mathcal{O})$, at least one box or a synchroniser in $N$ must have the output port wired to the complement channel $x'$. The \ak\ compiler recognizes the use of complement channels and checks whether the operand network topology has this property. If it does not, the compiler reports an error and aborts the compilation.
+%
+%The \ak\ runtime is committed to support the dynamic rewiring for complement channels. The serial replication implementation depends on the \ak\ runtime implementation, particularly the primitives the runtime system provides for the network construction. We briefly describe two approaches to the serial replication implementation with respect to the available primitives.
+%%%%%%%%%
+%
+that relies on a special port wiring primitive $P$ that transmits messages immediately from one port to another without storing them. The programmer now has to make sure that the fixed point messages are detected within the operand network\footnote{It can be done in a box} and sent to $P$. The messages cascade through all the active replicas via a chain of $P$ wires and leave the replication network when they encounter an inactive replica. The example in Fig. \ref{fig:ffp_new} demonstrates how the approach works.
 
-Thus, the serial replication in \ak\ enforces a topological property of the operand network that is formally defined as follows. Consider the serial replication $N^{*}$ of an operand network $N$ with the input and output channel sets $\mathcal{I}$ and $\mathcal{O}$ respectively. Consequently, the set of matched inputs and outputs is $\mathcal{M}(\mathcal{I}, \: \mathcal{O}) = \mathcal{I} \cap \mathcal{O}$. In order for the serial replication $N^{*}$ to be able to produce output to the channel $x \in \mathcal{M}(\mathcal{I}, \: \mathcal{O})$, at least one box or a synchroniser in $N$ must have the output port wired to the complement channel $x'$. The \ak\ compiler recognizes the use of complement channels and checks whether the operand network topology has this property. If it does not, the compiler reports an error and aborts the compilation.
-
-The \ak\ runtime is committed to support the dynamic rewiring for complement channels. The serial replication implementation depends on the \ak\ runtime implementation, particularly the primitives the runtime system provides for the network construction. We briefly describe two approaches to the serial replication implementation with respect to the available primitives.
-
-
-The first approach relies on a port wiring primitive $P$ that transmits messages immediately from one port to another without storing them. The operand network $A$ in Fig. \ref{fig:ffp_new} has a single input port $x$ and two output ports. The output port $x$ is intended for the messages that proceed to the the next replica of $A$ in the chain, and the output port $x'$ is a complement port for the messages that are supposed to leave the replication pipeline. The serial replication network $A^{*}$ has a single input and a single output port both named $x$. During the compilation, the operand network $A$ is encapsulated into the special network $N$ it as shown in Fig. \ref{fig:ffp_new}. The network $N$ inherits all the ports from $A$ and adds a corresponding input port $x'$. The input and output ports $x'$ of $N$ are connected with the wiring primitive $P$. The output and the input ports $x'$ of the consequent replicas of $N$ are connected with the wiring primitive $P$ as well.
+The operand network $A$ in Fig. \ref{fig:ffp_new} has a single input port $x$ and two output ports. The output port $x$ is intended for the messages that proceed to the the next replica of $A$ in the chain, and the output port $x'$ is a complement port for the messages that are supposed to leave the replication pipeline. The serial replication network $A^{*}$ has a single input and a single output port both named $x$. During the compilation, the operand network $A$ is encapsulated into the special network $N$ it as shown in Fig. \ref{fig:ffp_new}. The network $N$ inherits all the ports from $A$ and adds a corresponding input port $x'$. The input and output ports $x'$ of $N$ are connected with the wiring primitive $P$. The output and the input ports $x'$ of the consequent replicas of $N$ are connected with the wiring primitive $P$ as well.
 \begin{figure}[h!]
 \centering
 \includegraphics[scale=0.8]{figs/chapter_04_ffp_new.pdf}
 \caption{The operand network $A$ (top) and a possible implementation of its serial replication $A^{*}$ (bottom)}
 \label{fig:ffp_new}
 \end{figure}
-A message that $A$ sends to the output port $x'$ cascades through all the active replicas. Once it has reached an inactive replica, the output channel $x$ of $A^{*}$ is dynamically wired to the output port $x'$ of the last active replica of $N$. When the replica becomes active, the port $x'$ is rewired with the input port of this replica using $P$.
+A message that $A$ sends to the output port $x'$ cascades through all the active replicas. Once it has reached an inactive replica, the output channel $x$ of $A^{*}$ is dynamically wired to the output port $x'$ of the last active replica of $N$. When an inactive replica becomes active, the port $x'$ is rewired with the input port of this replica using $P$.
 
-The second approach to the serial replication implementation relies on a merger with variable number of inputs. When a replica of $A$ sends a message to the output port $x'$, a new input channel is created for the merger $M$ and wired to the output port $x'$ of the replica as shown in Fig. \ref{fig:ffp_new_1}. The merger's output port is wired to the output channel $x$ of $A^{*}$.
-\begin{figure}[h]
-\centering
-\includegraphics[scale=0.8]{figs/chapter_04_ffp_new_1.pdf}
-\caption{Another possible implementation of the serial replication $A^{*}$}
-\label{fig:ffp_new_1}
-\end{figure}
 
-%The serial replication implements a loop with variable tripcount
+
+%The second approach to the serial replication implementation relies on a merger with variable number of inputs. When a replica of $A$ sends a message to the output port $x'$, a new input channel is created for the merger $M$ and wired to the output port $x'$ of the replica as shown in Fig. \ref{fig:ffp_new_1}. The merger's output port is wired to the output channel $x$ of $A^{*}$.
+%\begin{figure}[h]
+%\centering
+%\includegraphics[scale=0.8]{figs/chapter_04_ffp_new_1.pdf}
+%\caption{Another possible implementation of the serial replication $A^{*}$}
+%\label{fig:ffp_new_1}
+%\end{figure}
+%
+%%The serial replication implements a loop with variable tripcount
 
 
 
