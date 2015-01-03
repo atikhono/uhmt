@@ -117,7 +117,7 @@ The existence of a forward fixed point requires the synchronisers that are trave
 start {
   on:
     x.$p$ {
-      send this => x;
+      send this => out;
     }
   ...
 }
@@ -136,7 +136,7 @@ We shall note, that there exists no more transition on the channel from the star
 \Ensure a dictionary $(a, CondList)$, where $a$ is the output label of the fixed point channel and $CondList$ is the list of atomic fixed point conditions
 
 \Statex
-\Function{extract\_ffp}{$synch, x$}
+\Function{extract\_fp}{$synch, x$}
   \State $state\gets get the start state tree from synch$
 
   \State $CondDict\gets nil$
@@ -201,7 +201,7 @@ The fixed point detection algorithm (Fig. \ref{fig:ffp_detect}) is based on the 
 
 \item If the search encounters a box, the traversed path is rejected
 
-\item If the search encounters a synchroniser, the fixed point condition of the synchroniser is extracted using the function $extract\_ffp$ in Fig. \ref{fig:ffp_extract}. If the synchroniser has no fixed point condition, the traversed path is rejected. Otherwise, the search continues only for the successors of the node that were detected by $extract\_ffp$
+\item If the search encounters a synchroniser, the fixed point condition of the synchroniser is extracted using the function $extract\_fp$ in Fig. \ref{fig:ffp_extract}. If the synchroniser has no fixed point condition, the traversed path is rejected. Otherwise, the search continues only for the successors of the node that were detected by $extract\_fp$
 
 \item If the search encounters a merger, it immediately continues with its only successor
 
@@ -255,7 +255,7 @@ The fixed point detection algorithm runs only on acyclic networks. The wrap-arou
   \Statex
 
   \If{$start$ \emph{is a synchroniser}}
-    \State $CondDict\gets extract\_ffp$($start, x$)
+    \State $CondDict\gets extract\_fp$($start, x$)
     %What if there're few synch paths and the synch does not have the fixed point???
     \If{$CondDict = nil$}
       \State \textbf{return} $empty\_list$
@@ -363,28 +363,33 @@ A message that $A$ sends to the output port $x'$ cascades through all the active
     \section{Reverse Fixed Point\label{rfp}}
 % TODO: I don't like the reason. Why was the reverse fixed point introduced?
 % reverse fixed point is the basic optimisation that preserves growth of the replicas chain.
-As the chain of replicas evolves, it may be the case that some replicas in the head of the chain are active yet they just transmit messages without a change. \ak\ is commited to detect such replicas and optimise the connection so that the data are sent directly to a replica that is ready to process it. 
+The reverse fixed point on channel $x$ is a state of a replica, in which it transmits messages from channel $x$ unchanged. A state of a replica if formed by the states of its synchronisers. \ak\ does not analyse boxes and it can conclude about the operand network behaviour only from its synchronisers. Thus, in order for the operand network to be analysable by \ak\ for the required behaviour, it must contain a path that does not traverse boxes and may traverse synchronisers. Every synchroniser that is traversed by the path must have at least one state, in which it accepts a message from channel $x$ unconditionally and sends it on to the next synchroniser along the path without storing or modifying the message.
 
-In this section we provide the approach to the reverse fixed point.
+The existence of the reverse fixed point state requires the operand network to have some topological properties that are formally defined as follows. 
+%
+%
+%As the chain of replicas evolves, it may be the case that some replicas in the head of the chain are active yet they just transmit messages without a change. \ak\ is commited to detect such replicas and optimise the connection so that the data are sent directly to a replica that is ready to process it. 
+%
+Consider a network $N$ that has an input and an output channel, both named $x$.
 
-Consider a vertex $v$ that has an input and an output channel, both named $x$.
-
-\begin{definition} The vertex $v$ is said to have a reverse fixed point in $x$ if and only if the following statements hold:
+\begin{definition} The network $N$ is said to have a reverse fixed point in $x$ if and only if the following requirements are satisfied:
 
 \begin{enumerate}
-\item A unique non-branching path from the input to the output channel $x$ exists that does not traverse any boxes.
+\item A unique non-branching path from the input to the output channel $x$ exists that does not traverse any boxes
 
-\item Every synchroniser $S_i$ on the path has a subset of states, which we denote as $s_i$, such that in each of these states every message on the path is immediately transferred without being changed or even stored, causing the synchroniser to remain in the same state\footnote{It should also be borne in mind that the values of any state variables form a part of the synchroniser state}. In a state from $s_i$ the synchroniser $S_i$ may still be sensitive to other input channels, as long as this does not, under any circumstances, cause a transition to a state outside $s_i$.
+\item Every synchroniser $S_i$ on the path has a subset of states, which we denote as $s_i$, such that in each of these states every message on the path is immediately transferred without being changed or stored, causing the synchroniser to remain in the same state\footnote{We shall note that the values of any state variables form a part of the synchroniser state}. In a state from $s_i$ the synchroniser $S_i$ may still be sensitive to other input channels, as long as this does not, under any circumstances, cause a transition to a state outside $s_i$
 \end{enumerate}
+The network $N$ is said to be in a reverse fixed point state on channel $x$ when each $S_i$ is in a state that belongs to its $s_i$.
 \end{definition}
 
-The vertex $v$ is said to be in a reverse fixed point state on channel $x$ when each $S_i$ is in a state that belongs to its $s_i$.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%
 %%  Motivation for the reverse fixpoint
 %%%%%%%%%
-The reverse fix-point is defined to unify backslash \ combinatior and the star in terms of their functionality, which was never done in S-Net(TODO which patterns??). The intention is that they only differ in the pressure propagation strategy. The backslash creates no pressure (TODO why??) in its looped channel, and the start mantains and propagates the pressure in channels between instanses.
-
+%The reverse fix-point is defined to unify backslash \ combinatior and the star in terms of their functionality, which was never done in S-Net(TODO which patterns??). The intention is that they only differ in the pressure propagation strategy. The backslash creates no pressure (TODO why??) in its looped channel, and the start mantains and propagates the pressure in channels between instanses.
+%
 % probably a picture
 %
 % backslash (* is the synchroniser)
@@ -401,62 +406,83 @@ The reverse fix-point is defined to unify backslash \ combinatior and the star i
 %   |    __ \|/ __ \|/ __ \|/ __
 % --*---|__|-*-|__|-*-|__|-*-|__|-- ...
 %
-
-The reverse fix point is more the way to write code. It is the way to program a loop dependency, when the result of the iteration depends not only on the result of the previous iteration but on the new incoming data. The difference with backslash is in the pressure propagation.
-
-If you want the feature, you must define a closed set of translating states in every synchroniser on the fp path.
-
-
-    \subsubsection{Rewiring of the Reverse FPS}
-The reverse fixed point optimises an input connection that has to cascade through the chain to a replica that is ready to accept the data. Any input channel $x$ wired to an active replica $A_i$ that transitions to a reverse fixed point state on that channel is disconnected from $A_i$ and dynamically rewired to the input channel $x$ of the next replica on the chain $A'_{i+1}$.
-
-%pic
-
-
-
-%\section{Fixed Point Detection Algorithms}
 %
-%    \subsection{Forward Fixed Point Detection\label{ffp_detect}}
-%The approch we proposed in section \ref{approach} makes the forward fixed-point detection trivial. The forward fixed-point detection does not require synchroniser analysis anymore. The \ak\ compiler just checks that the forward fixed-point exists in the network topology.
+%The reverse fix point is more the way to write code. It is the way to program a loop dependency, when the result of the iteration depends not only on the result of the previous iteration but on the new incoming data. The difference with backslash is in the pressure propagation.
 %
-%We split the forward fixed-point detection problem into the following subproblems:
-%\begin{itemize}
-%\item Choose a data structure to represent a net
-%\item Provide an algoritm for the fixed-point path detection
-%\item Provide an algoritm for recursive fixed-point check
-%\end{itemize}
-%
-%% Provide detection algorithm
-%
-%\ak\ compiler needs to just detect the forward fixpoint from the network topology (answer 'yes' or 'no' if the fixpoint exists). If the fixpoint was not found then the network is infinite and inconsistent.
-%
-%Forward fixpoint detection is pure network topology analysis. Find a way in a net graph that goes exclusively through mergers and some other vertex output to this channel.
-%
+%If you want the feature, you must define a closed set of translating states in every synchroniser on the fp path.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+    \subsubsection{Rewiring of the Reverse Fixed Point}
+The reverse fixed point optimises an input connection that has to cascade through the chain to a replica that is ready to accept the data.
+
+The operand network $N$ in Fig. \ref{fig:rfp_wiring} has two input and two output channels $x$ and $y$. Any input channel $x$ wired to an active replica of $N$ that transitions to a reverse fixed point state on that channel is disconnected from the replica and dynamically rewired to the input port $x$ of the next replica in the chain.
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.8]{figs/chapter_04_rfp_wiring.pdf}
+\caption{Rewiring of a Reverse Fixed Point replica $N\:(rfp)$ on channel $x$}
+\label{fig:rfp_wiring}
+\end{figure}
+
+If a replica transitions to a reverse fixed point state on every of its input channels, there is no box running and the channels are empty, the replica is removed from the chain.
+
+The reverse fixed point optimisation on a channel does not preserve the ordering of messages in that channel. For example, this is the case when an input message makes a replica transit to the reverse fixed point state, but the message is not send on to the next replica immediately. Then, further messages bypass the replica, because the input channel is already rewired to the next replica. This behaviour can be fixed by inserting a synchroniser that blocks messages in the rewired channel until the replica finishes processing and sends the message on to the next replica.
+
 
     \subsection{Reverse Fixed Point Detection\label{rfp_detect}}
-%%% Synch state conditions for the reverse fixpoint state
-A message is not changed by the synchroniser in some state when:
-- message is sent out by the synchroniser without any changes and storing in any transition including user-specified $else$ ($this$)
+The existence of a reverse fixed point on channel $x$ requires the synchronisers that are traversed by the fixed point path to have at least one state, in which they unconditionally accept messages from that channel, send them on along the path unchanged and then transit back to the same state. A synchroniser that is in the reverse fixed point state never transits from it. Coded in the synchroniser language, a transition that makes a state of a synchroniser the reverse fixed point state on channel $x$ is given in Fig. \ref{fig:rfp_trans}.
+\begin{figure}[h!]
+\begin{lstlisting}[frame=single,mathescape]
+s {
+  on:
+    x {
+      send this => out;
+      goto s;
+    }
+  ...
+}
+\end{lstlisting}
+\caption{The reverse fixed point state $s$ of a synchroniser on channel $x$}
+\label{fig:rfp_trans}
+\end{figure}
 
-A message sent in autogenerated $else$ transition is disregarded by the synchroniser.
+We shall note that all other transitions from state $s$ must transition back to state $s$. As long as they do they can even change the state variables of the synchroniser; the reverse fixed point is unconditional and it exists for any values of the store variables.
 
-If a message is sent out in a user-defined $else$ then we have to make sure that the message get to this $else$. Before $else$ the channel may be tested for variants and segmantation marks, so we have to make sure that the message doesn't contain these variants/not a segmentation mark whatever.
-%%%%%%
+The algorithm in Fig. \ref{fig:rfp_extract} checks if a reverse fixed point exists on channel $x$ and extracts all fixed point states from the synchroniser source code. The algorithm is designed to work with the detection algorithm in Fig. \ref{fig:ffp_detect}.
+%The algorithm supports the renaming of the fixed point channel in the synchroniser. Similarly, the branching of the fixed point path is resolved in the context of the whole network.
+
+TODO
+\begin{figure}[h!]
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+\Require the abstract syntax tree of the synchroniser program ($synch$), the input label of a channel to test for a forward fixed point ($x$)
+\Ensure a dictionary $(a, StateList)$, where $a$ is the output label of the fixed point channel and $StateList$ is the list of the reverse fixed point states of the synchroniser
+
+\Statex
+\Function{extract\_fp}{$synch, x$}
+  \State $StateDict\gets nil$
+  \Statex
+
+% TODO
+
+  \State \textbf{return} $StateDict$
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
+}
+\caption{Extracting the reverse fixed point from a synchroniser (assumes that channel $x$ is declared as an input and an output channel of the synchroniser)\label{fig:rfp_extract}}
+\end{figure}
 
 
-Choose any convenient structure for nets to resolve fix points. It may be a kind of graph that traversing it it's easy to find paths that only consist of synchronisers.
-It could be a hypergraph (each vertex may have several inputs and several outputs) with type vertices (something that indicates whether vertex is a synchroniser or a box)
-
-This chosen structure can be build in the net parser of from the net compiler internal data structure.
-
-Then we need to represent a set of possible paths in this hypergraph that only contain synchronisers. And a traversal of the hypergraph to find all these paths.
-
-Then we analyse every synchroniser in each path for the satisfiability of fix point conditions.
-
-
-    \subsection{Discussion}
-%channels are ordered, need to insert synchronisers
-Order of messages in the reverse fixed point may be changed, because a message may put the replica into the reverse fixed-point state and go for processing into this replica. In this case the messages that came to the replica that is in the reverse fixed-point state may overcome the message processed in the replica. This changes the order of messages. If the progrmmer wants to preserve the order, he must mind it. It may be fixed by creating a separate channel for RFP messages and putting a synchroniser that blockes the RFP channel while there's no message from the output channel (this is for operand network with one input channel, with two it can be more dificult if there're races between the channels that wire replicas).
-
-The replication combinator is just a wiring pattern that does not have to guarantee race-safety. For example, if the operand network is not race-safe, the star is not race-safe as well.
-
+%
+%    \subsection{Discussion}
+%%channels are ordered, need to insert synchronisers
+%In general, the reverse fixed point optimisation on a channel does not preserve the ordering of messages in that channel. For example, this is the case when an input message makes a replica transit to the reverse fixed point state, but the message is not send on to the next replica immediately. Then, further messages bypass the replica, because the input channel is already rewired to the next replica.
+%
+%It is the programmer's duty to ensure the ordering of messages in the input channels of the serial replication network with the reverse fixed point. An operand network must be programmed keeping race conditions in mind.
+%
+%It may be fixed by creating a separate channel for RFP messages and putting a synchroniser that blockes the RFP channel while there's no message from the output channel (this is for operand network with one input channel, with two it can be more dificult if there're races between the channels that wire replicas).
+%
+%The replication combinator is just a wiring pattern that does not have to guarantee race-safety. For example, if the operand network is not race-safe, the star is not race-safe as well.
+%
