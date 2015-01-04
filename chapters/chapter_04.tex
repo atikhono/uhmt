@@ -1,12 +1,21 @@
-\chapter{Towards statistical properties of synchronisers}
-Brief explanation of the role of synchronisers in learning for proliferation (that initial throughput value estimation is needed as well as initial channel sizes)
+%\chapter{Towards statistical properties of synchronisers}
+\chapter{The Statistical Model of A Synchroniser}
+The long-term goal of the \ak\ project is to provide an environment for development of scalable concurrent applications that do not require manual tuning efforts. One of the ways to regulate the concurrency in such a streaming network is to 
 
-How did we come to the idea of using a statistical model?
-What is a statistical model in general? (See wiki page) How are they used?
-The practical side of statistical model: The model of the relatioships between various object parameters
- 
-In absence of environment for experiments and example applications artificial load is used.
+Processes in \ak\ communicate via channels. A process consumes messages from its input channels and produces messages according to some distributions. The output distribution of a process depends on the input distribution, its code (how it processes messages, how long it takes to process a single message and variations of that time) and the queues length (because when the output queue is full the process can't output a message and it changes the output distribution). When the input queue is empty, it influences the input distribution as well, because there's no message in the queue to take for processing. The filling of the input and output queues depends on the processes connected to them (how fast they produce or consume messages).
 
+In order to be able to balance the network, we need to know how the process code transforms the input distribution. For boxes there's a method based on the box algorithm complexity.
+
+In this chapter we describe the statistical model of a synchroniser and model the synchroniser's behaviour under the statistical load.
+
+%Brief explanation of the role of synchronisers in learning for proliferation (that initial throughput value estimation is needed as well as initial channel sizes)
+%
+%How did we come to the idea of using a statistical model?
+%What is a statistical model in general? (See wiki page) How are they used?
+%The practical side of statistical model: The model of the relatioships between various object parameters
+%
+%In absence of environment for experiments and example applications artificial load is used.
+%
 %Практический смысл статистической модели:
 %1) Характеристики $T'_{i}, \; j'_{i}$ являются начальными значениями для алгоритма пролиферации
 %2) Начальные размеры каналов

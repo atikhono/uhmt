@@ -1,8 +1,8 @@
 \chapter{The syntax of the \ak\ syncroniser}
 
-  \section{The full grammar\label{sync_syntax}}
+  \section{The Full Grammar\label{sync_syntax}}
 \setlength{\grammarindent}{8em} % increase separation between LHS/RHS
-\begin{figure}[h!]
+\begin{figure}%[h!]
 \scriptsize
 \begin{grammar}
 <sync> ::= `synch' <ID> `(' <input> [`,' <input>]* `|' <output> [`,' <output>]* `)' \\
@@ -67,9 +67,9 @@
 \end{figure}
 
 
-    \section{The integer expression grammar\label{int_exp_gr}}
+    \section{The Integer Expression Grammar\label{int_exp_gr}}
 \setlength{\grammarindent}{8em} % increase separation between LHS/RHS
-\begin{figure}[h!]
+\begin{figure}%[h!]
 \scriptsize
 \begin{grammar}
 <int\_exp\_c> ::= <NUMBER>
@@ -100,9 +100,9 @@
 \end{figure}
 
 
-    \section{Keywords, reserved words and punctuation\label{sync_kw}}
+    \section{Keywords, Reserved Words and Punctuation\label{sync_kw}}
 The keywords, the reserved words and the punctuation used in the \ak\ synchroniser syntax are given in Fig. \ref{sync_kw}.
-\begin{figure}[h!]
+\begin{figure}%[h!]
 \centering
 \begin{tabular}{|c|p{0.7\textwidth}|}
 \hline
@@ -115,3 +115,95 @@ Punctuation & braces, brackets, parantheses, the comma, the dot, the semicolon, 
 \end{tabular}
 \caption{\ak\ synchroniser keywords, reserved words and punctiation}
 \end{figure}
+
+
+    \section{The Abstract Syntax Tree of the Synchroniser}
+Each entry is a Node sub-class name, listing the attributes and child nodes of the class: \iangled{name}* - a child node, \iangled{name}** - a sequence of child nodes, \iangled{name} - an attribute.
+
+\begin{figure}%[h!]
+\scriptsize
+\begin{lstlisting}[frame=single]
+# inputs -> PortList
+# outputs -> PortList
+# decls -> DeclList
+# states -> StateList
+Sync: [name, inputs*, outputs*, decls*, states*]
+
+# ports -> [Port, ...]
+PortList: [ports**]
+
+# depth_exp -> ID | NUMBER | DepthExp | DepthNone
+Port: [name, depth_exp*]
+
+DepthExp: [depth, shift]
+DepthNone: []
+
+# decls -> [StoreVar | StateVar, ...]
+DeclList: [decls**]
+
+StoreVar: [name]
+
+# type -> IntType | EnumType
+StateVar: [name, type*]
+IntType: [size]
+
+# labels -> [ID, ...]
+EnumType: [labels**]
+
+# states -> [State, ...]
+StateList: [states**]
+
+# trans_orders -> [TransOrder, ...]
+State: [name, trans_orders**]
+
+# trans_stmt -> [Trans, ...]
+TransOrder: [trans_stmt**]
+
+# condition -> CondSegmark | CondDataMsg | CondEmpty | CondElse
+# guard -> IntExp
+# actions -> [Assign | Send | Goto, ...]
+Trans: [port, condition*, guard*, actions**]
+
+CondSegmark: [depth]
+
+# labels -> [ID, ...]
+CondDataMsg: [choice, labels**, tail]
+
+CondEmpty: []
+CondElse: []
+
+# rhs -> DataExp | IntExp
+Assign: [lhs, rhs*]
+
+# items -> [ItemThis | ItemVar | ItemExpand | ItemPair, ...]
+DataExp: [items**]
+
+ItemThis: []
+ItemVar: [name]
+ItemExpand: [name]
+
+# value -> ID | IntExp
+ItemPair: [label, value*]
+
+# msg -> MsgSegmark | MsgData | MsgNil
+Send: [msg*, port]
+
+# depth -> ID | IntExp
+MsgSegmark: [depth*]
+
+# data_exp -> DataExp
+MsgData: [choice, data_exp*]
+MsgNil: []
+
+# states -> [ID, ...]
+Goto: [states**]
+
+ID: [name]
+NUMBER: [value]
+IntExp: [exp]
+
+\end{lstlisting}
+%\caption{The synchroniser header}
+%\label{min_sync_head}
+\end{figure}
+

@@ -377,31 +377,83 @@ A message received on a channel is referred to by the keyword $this$ within the 
 
 
 \section{Execution Order of Synchroniser\label{execod}}
-\ak\ works under assumption that synchronisers process messages in zero time. In order to do this, there're several kinds of non-determinism introduces to sycnhronisers.
+In order to achieve the highest throughput, an \ak\ synchroniser exploits a non-deterministic behaviour. In a certain state more than one input channel may be ready, however, a state machine receives one input message at a time. The synchroniser does not take any transition that potentially causes sending to a blocked channel. Among the transitions that do not send to blocked channels which will be triggered is defined by the fairness policy: when more than one transition is possible in a given state, all choices will be made with the same frequency. If transitions are prioritised, the choices are made within each scope at first.
 
-\begin{itemize}
-\item Fairness policy
-%In a certain state both input channels may be ready, but a state machine receives input symbols one at a time. Which transition will be triggered under such circumstances is defined by the fairness policy: the coordinator will ensure that when more than one transition is possible in a given state, all choices will be made with the same frequency.
+Once the transition has been chosen and the associated actions have been executed, the synchroniser transits to the destination state. In order to avoid the transition to a state, in which there are no ready input channels, the synchroniser may be provided with a set of destinations to choose. In the synchroniser language such behaviour is expressed in a goto clause with multiple states. The algorithm in Fig. \ref{fig:execod_alg} defines the ordering of the choices that a synchroniser makes during the execution.
 
-\item Non-deterministic $goto$
+\begin{figure}[h!]
+\noindent\fbox{%
+\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\begin{algorithmic}[1]
+\Require The current state of the synchroniser ($curr\_state$)
+\Ensure The state, to which the synchroniser transits from the current state
+\Function{run}{$curr\_state$}
+  \State $ReadyInputs\gets$ \emph{ready channels that are read in $curr\_state$}
 
-%The purpose of non-deterministic gotos comes from the requirement that the synchroniser must not block the execution. If non-deterministic goto is the case then the synchroniser makes a fair transition to the state that sends messages to the channel that is not blocked.
-%
-%In other words, the synchoniser avoids to make transitions to the states that send messages to blocked channels.
+%  \Statex
+  \For{\textbf{each} $channel$ in $ReadyInputs$}
+    \State $trans\gets$ \emph{transitions from $curr\_state$ that read from} $channel$
 
-\item Algorithm of the execution of synchroniser
-%on-elseon execution order, dead $elseon$ code with $\langle chan \rangle .else$
-\end{itemize}
+    \If{$\exists \: t \in trans$ $\land$ \emph{t causes sending to a blocked channel}}
+      \State \textbf{remove} $channel$ \emph{from} $ReadyInputs$
+    \EndIf
+  \EndFor
 
-%1) The ability to read from several input channels in some state makes synchronisers non-deterministic. When several messages are ready at the same time, the synchroniser chooses non-deterministically what transition to make. 
-%It considers many things when it make a choice:
-%- if it sends something in the transition it is going to take, it checks if the channel it sends to is not blocked
-%-...
-%- if the transitions it chooses among are all equall, it follows the fairness policy: it should keep the statistics of how many times every transition was chosen, and then it choses the transition that was chosen the least number of times.
-%
-%1) Non-deterministic goto
-%-It choses the state that reads from channels that have messages in it
-%
+%  \Statex
+  \If{$ReadyInputs = \emptyset$}
+    \State \textbf{return} $curr\_state$
+  \EndIf
+
+  \Statex
+  \State $channel\gets$ \emph{the least frequently taken channel from} $ReadyInputs$
+  \State $message\gets$ \emph{fetch a message from} $channel$
+
+%  \Statex
+  \For{\textbf{each} \emph{priority} $P$ \emph{in} $curr\_state$}\Comment{\emph{iterate over transition priorities from the highest to the lowest}}
+    \State $trans\gets$ \emph{all transitions that read from} $channel$ \emph{with the priority} $P$
+    \State $valid\_trans\gets$ \emph{all transitions from} $trans$ \emph{with satisfied conditions}
+    \State $else\_trans\gets$ \emph{the} \texttt{.else} \emph{transition from} $trans$ \emph{with the satisfied condition}
+
+%    \Statex
+    \If{$valid\_trans = \emptyset$}
+      \If{$else\_trans = nil$}
+        \State \textbf{continue}
+      \Else
+        \State choose($else\_trans$)
+      \EndIf
+    \Else %valid_trans is not empty
+      \State choose(\emph{the least frequently taken transition from} $valid\_trans$)
+    \EndIf
+  \EndFor
+
+  \If{\emph{no transition has been chosen}}
+    \State \textbf{return} $curr\_state$
+  \EndIf
+  \State \emph{act}()\Comment{\emph{perform the actions associated with the chosen transition}}
+  \State $ImmediateStates\gets$ \emph{states listed by the goto clause}
+  \Statex
+
+  \For{\textbf{each} $state$ in $ImmediateStates$}
+    \State $ReadyInputs\gets$ \emph{ready channels that are read in $state$}
+    \State $trans\gets$ \emph{transitions from $state$ that read from} $ReadyInputs$
+
+    \If{$ReadyInputs = \emptyset$ $\lor$ $\exists \: t \in trans$ $\land$ \emph{t causes sending to a blocked channel}}
+      \State \textbf{remove} $state$ \emph{from} $ImmediateStates$
+    \EndIf
+  \EndFor
+
+  \If{$ImmediateStates \neq \emptyset$}
+    \State \textbf{return} \emph{the least frequently taken state from} $ImmediateStates$    
+  \EndIf
+  \State \textbf{return} \emph{the least frequently taken state from the goto clause list}
+\EndFunction
+\end{algorithmic}
+\end{minipage}%
+}
+\caption{The execution of a synchroniser\label{fig:execod_alg}}
+\end{figure}
+
+
 
 
 \section{The Implementation of the $aksync$ Compiler}
@@ -1185,4 +1237,4 @@ In this chapter we have presented the language for \ak\ synchronisers. We have d
 The presented language does not consider flow inheritance in synchronisers because the synchroniser code only needs to access the label-value parts of the message it matches. Thus, the flow inheritance should be supported outside of the synchroniser definition and the question how it should be done is left open.
 %Decide how to do flow inheritance in synchronisers. This will be done outside of synchronisers. Need to somehow specify which fields are inherited and which are not. In synchroniser transitions we can pick fields of an accepted message, with ehich we want to do something in synchroniser. However, there may be many fields in the message and some of them do not need to be inherited. In theory we could pick all the fields that we want to inherit along with the fields we want to work with, and them concat them and send them to then output channel. But there may be too many to specify manually for eack transition in the synchroniser caused by the channel.
 
-The compiler we have implemented does not optimise the code deeply. We have only implemented an elimination of unused states. However, based on the synchroniser execution algorithm we provided, a wider set of dead code elimination optimisations can be implemented\footnote{E.g. all transitions that are specified after the \texttt{.else} transition on a particular channel can be removed}.
+The compiler we have implemented does not optimise the code deeply. We have only implemented an elimination of unused states. However, based on the synchroniser execution algorithm we provided, a wider set of dead code elimination optimisations can be implemented\footnote{E.g. all transitions that are specified after the \texttt{.else} transition on a particular channel can be removed}. TODO this is not right.
