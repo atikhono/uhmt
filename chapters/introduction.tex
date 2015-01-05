@@ -1,36 +1,30 @@
 \chapter{Introduction}
-For years, processor manufacturers have delivered increases in clock rates. While manufacturing technology still improves, physical limitations of semiconductor-based electronics have become a major concern of design. In order for the processors to continue to improve in performance, multi-core design has become necessary.
-
-Unlike the increase in clock frequency, increasing the number of processor cores does not provide automatic benefits for conventional programs. Parallel programming in the conventional style is difficult because computation is mixed with concurrency management, which includes ensuring the correct sequencing of the interactions between different computational executions, and coordinating access to resources that are shared among executions. One of the approaches that addresses the issue of mixed computation and coordination is to separate these concerns. The approach requires explicit parallelisation of an application and specification of component communication in so-called coordination language.
+For years, processor manufacturers have delivered increases in clock rates. While manufacturing technology still improves, physical limitations of semiconductor-based electronics have become a major concern of design. In order for the processors to continue to improve in performance, multi-core design has become necessary. However, increasing the number of processor cores does not provide automatic benefits for legacy applications. Parallelisation of the performance-demanding parts of an application is difficult because computation concurrency management are mixed within the application code. 
+%, which includes ensuring the correct sequencing of the interactions between different computational executions, and coordinating access to resources that are shared among executions. 
+One approach to address this issue is to present the application as a collection of independent components and specify their communication in a so-called coordination language, thus separating the concerns of computation, coordination and concurrency management.
 
 %ak is motivated by KPNs
-The concept of a new coordination language \ak\ is described in \cite{astrakahn}. The language defines the coordination behaviour of asynchronous components (boxes) and their orderly interconnection via stream-carrying channels. The \ak\ computation model is based on Kahn process networks, where processes communicate via unbounded FIFO channels. However, in real-world applications, a large number of concurrent processes and their communication facilities share a very limited amount of resources. In order to deal with the issue of application progress, \ak\ attempts to provide a self-regulatory concurrency mechanism based on the concept of communication pressure. Concurrency regulation supposes that several copies of a box may run in parallel, thus \ak\ requires boxes to keep no state. A stateless box knows nothing about synchronisation, therefore data must be synchronised before they are sent to a box. \ak\ provides a synchronisation facility -- a synchroniser -- that is able to store received data and retrieve them for the sole purpose of sending them on, either as they are, or combined with other stored or received data and with trivial data extensions computed by the synchroniser itself.
-% ak achieves separation of coordination and synchronisation concerns as well
+The concepts of the new coordination language \ak\ are described in \cite{astrakahn}. The language defines the coordination behaviour of asynchronous stateless components (\emph{boxes}) and their orderly interconnection via stream-carrying channels with finite capacity. \ak\ structures the interconnection using a fixed set of wiring primitives, wiz. serial and parallel composition, wrap-around connection and serial replication. Boxes are connected to the network with one or two input channels and one or more output channels. A stateless box does not synchronise data on its input and output channels; to this end, \ak\ provides a synchronisation facility called \emph{synchroniser}. In order to deal with the issue of application progress, \ak\ attempts to provide an automatic resource and concurrency management based on communication demand.
 
-Boxes are connected to the streaming network with one or two input channels and one or more output channels. Synchronisers may have many input channels. Streaming networks in \ak\ are expressed with four wiring patterns, namely serial and parallel composition, wrap-around connection and serial replication.
-
-
-    \section{Motivation}
-%write about the state of the project. the runtime system needs to be developed before the regulation research.
-%The \ak\ project is now in its initial state and there is yet no implementation. The playground environment need to be developed for the research towards the self-regulation.
-
-%The aim of this thesis is to identify the role of the synchroniser analysis in the project. It includes implementation of the \ak\ synchroniser and integration of the implementation into the runtime system prototype. The output form the infinite replication relies on the synchroniser analysis.
-
-%explain about pressure propagation and statistics
-%The long-term goal of the \ak\ project is to provide an environment for development of scalable concurrent applications that do not require manual tuning efforts. Though the adaptive self-regulation mechanism is not known to propose something for synchronisers, we try to review the possible strategies for the pressure propagation through synchroniser.
+%Concurrency regulation assumes that several copies of a box may run in parallel, thus \ak\ requires boxes to have no state.
+%\ak\ is motivated by Kahn process networks, which is a theoretical model (for what?) where processes communicate via unbounded FIFO channels. However, in real-world applications, a large number of concurrent processes and their communication facilities share a very limited amount of resources.
 
 
-%An Astra\emph{Kahn} approach to adaptive concurrency relies on the concept of communication pressure propagation across a network. Since pressure propagation directly affects proliferation levels of certain vertices, effectiveness of concurrency self-regulation depends largely on correctness of pressure propagation strategy. An important part of this strategy is pressure propagation through synchronisers because, unlike other vertices in Astra\emph{Kahn}, they induce negative pressure that represents a demand for messages in a certain part of a network.
+    \section{Motivation and Contribution}
+At the moment, the \ak\ project is on the initial stage and there exists no software implementation at all. In order to carry out research towards automatic resource and concurrency management, an execution environment for \ak\ applications must be developed. In brief, such an environment includes a compiler to generate an intermediate representation of the application source code and a runtime system to interprete the representation under the input data. Before the execution environment can be implemented, the main concepts of \ak\ must be well-established.
 
-%This project is focused on synchroniser analysis and development of supporting tools. Since the synchroniser is programmed in a dedicated language, a compiler for this language is needed. Target architecture assembly generation is of no concern within the project, thus, the compiler translates a given source code into a C program and then calls available C compiler to generate an executable file. Also, the compiler provides various syntactic and semantic checks.
-
-%In order to propagate pressure through a synchroniser, Astra\emph{Kahn} coordinator needs to know its \emph{transfer function}. The transfer function describes relations between demands of messages on a synchroniser's input and output channels. Derivation of the transfer function is a concern of static analysis, in particular, execution path analysis. Because synchronisers are non-deterministic, there may be potentially an infinite number of possible execution paths and therefore more than one transfer function. It may be impossible to determine an exact execution path at compile time, because it may depend on incoming message content. If synchroniser has an inner loop, the transfer function must consider the number of iterations in this loop. Thus, transfer function derivation relates to induction variable analysis.
-
-%These issues are subject to synchroniser analysis in the project. Once a set of transfer functions is obtained, it is up to TPL how to choose a particular transfer function and propagate pressure through a synchroniser. Also, synchroniser analysis includes passport generation for Constraint Aggregation Layer.
+This thesis focuses on the implementation of synchronisers and their role in the serial replication wiring pattern. Synchronisers are programmed in a dedicated language that is described in \cite{astrakahn}. We provide some minor syntax improvements and explain how each language construct should be used in a detailed guide. An \ak\ synchroniser has non-deterministic behaviour. We give an execution algorithm which defines the ordering of non-deterministic choices made by the synchroniser, and is a basis for the synchroniser runtime. We implement the synchroniser language compiler that generates the data structure to be interpreted by the runtime. The compiler performs some semantic and type checking and reports errors in the source code.
 
 
-    \section{Contribution}
-%The contribution of the research is a technique for pressure propagation through synchronisers. This mechanism is an important part of concurrency self-regulating mechanism in Astra\emph{Kahn}. An approach to the problem will be provided in accordance with runtime system regulation policies and a tool for pressure propagation support on runtime will be implemented. The chosen pressure propagation strategy will be tested with a runtime system prototype to decide on its usability for adaptive concurrency regulation. Depending on the result, synchronisation model nondeterminism restrictions and/or strategy changes can be provided to enable efficient concurrency self-regulation on runtime.
+
+CAL passport generation
+
+
+role of synch-s in serial replication defined by fixed point
+We show that how the output condition can be present in the operand network
+We show the growth of the replica chain can be suppressed defining a reverse fixed point
+and provide etection algoritms for both types
+however the approach is too complex, we describe the more simple yet functional alternative
 
 
     \section{Outline}
