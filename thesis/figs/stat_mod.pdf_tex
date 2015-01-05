@@ -1,0 +1,75 @@
+%% Creator: Inkscape inkscape 0.48.4, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'stat_mod.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{484.89609955bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.24983501)%
+    \put(0,0){\includegraphics[width=\unitlength]{stat_mod.pdf}}%
+    \put(0.02079272,0.23525027){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$T_1, \; j_1$}}}%
+    \put(0.41008692,0.135078){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.08014835\unitlength}\centering transition diagram\end{minipage}}}%
+    \put(0.7806136,0.25043571){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.20582142\unitlength}\raggedright $T_{m+1}, \; j_{m+1}$\end{minipage}}}%
+    \put(0.79947953,0.14298146){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.20500465\unitlength}\raggedright $T_{m+2}, \; j_{m+1}$\end{minipage}}}%
+    \put(0.78130558,0.01762001){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.10291066\unitlength}\raggedright $T_n, \; j_n$\end{minipage}}}%
+    \put(0.33315858,0.16945372){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$T'_{1}, \; j'_{1}$}}}%
+    \put(0.28742049,0.12698268){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$T'_{2}, \; j'_{2}$}}}%
+    \put(0.2851288,0.0788527){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$T'_{m}, \; j'_{m}$}}}%
+    \put(0.52342058,0.12695347){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$T'_{m+2}, \; j'_{m+2}$}}}%
+    \put(0.50725239,0.16414018){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$T'_{m+1}, \; j'_{m+1}$}}}%
+    \put(0.53069632,0.08814991){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$T'_{n}, \; j'_{n}$}}}%
+    \put(-0.00139298,0.13841717){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.10127721\unitlength}\raggedright $T_2, \; j_2$\end{minipage}}}%
+    \put(0.00742997,0.01959316){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.11516197\unitlength}\raggedright $T_m, \; j_m$\end{minipage}}}%
+    \put(0.12079487,0.07879434){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.06043962\unitlength}\raggedright ...\end{minipage}}}%
+    \put(0.23371628,0.21356884){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.07840814\unitlength}\raggedright $L_1$\end{minipage}}}%
+    \put(0.22813166,0.06512893){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.07432438\unitlength}\raggedright $L_m$\end{minipage}}}%
+    \put(0.2160426,0.12630665){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.05472235\unitlength}\raggedright $L_2$\end{minipage}}}%
+    \put(0.64084518,0.21278546){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.10617771\unitlength}\raggedright $L_{m+1}$\end{minipage}}}%
+    \put(0.65058639,0.12755025){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.10046042\unitlength}\raggedright $L_{m+2}$\end{minipage}}}%
+    \put(0.65585595,0.06036803){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.09801018\unitlength}\raggedright $L_n$\end{minipage}}}%
+    \put(0.76112803,0.09104561){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.02531933\unitlength}\raggedright ...\end{minipage}}}%
+  \end{picture}%
+\endgroup%

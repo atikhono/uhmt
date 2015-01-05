@@ -1,0 +1,206 @@
+\chapter{The Syntax of the \ak\ Syncroniser}
+
+  \section{Full Grammar} \label{sync_syntax}
+The full grammar of the synchroniser language can be found in Fig. \ref{grammar_sss}
+\setlength{\grammarindent}{8em} % increase separation between LHS/RHS
+\begin{figure}%[h!]
+\scriptsize
+\begin{grammar}
+<sync> ::= `synch' <ID> `(' <input> [`,' <input>]* `|' <output> [`,' <output>]* `)' \\
+           `{' <decl>* <state>$^+$ `}'
+
+<input>  ::= <ID> [`:' (<ID> | <NUMBER>)]
+
+<output>  ::= <ID> [`:' <depth\_exp>]
+
+<depth\_exp> ::= <ID> | <NUMBER> | <ID> `+' <NUMBER> | <ID> `-' <NUMBER>
+
+<decl> ::= `store' <id\_list> `;'
+        \alt `state' <type> <id\_list> `;'
+
+<type> ::= `int' `(' <NUMBER> `)'
+                  \alt `enum' `(' <id\_list> `)'
+
+<state> ::= <ID> `{' `on:' <trans\_stmt>$^+$ [`elseon:' <trans\_stmt>$^+$]* `}'
+
+<trans\_stmt> ::= <ID> [`.' <condition>] [`&' <int\_exp> ] <actions>
+
+<condition> ::= `@' <ID>
+             \alt `?' <ID>
+             \alt [`?' <ID>] `(' <id\_list> [`||' <ID> ]`)'
+             \alt `else'
+
+<actions> ::= `{' [<set\_stmt>] [<send\_stmt>] [<goto\_stmt>] `}'
+
+<set\_stmt> ::= `set' <assign> [`,' <assign>]* `;'
+
+<assign> ::= <ID> `=' (<int\_exp> | <data\_exp>)
+
+<send\_stmt> ::= `send' <dispatch> [`,' <dispatch>]*  `;'
+
+<dispatch> ::= <msg\_exp> `=>' <ID>
+
+<msg\_exp> ::= `@' <ID>
+           \alt `@' <int\_exp>
+           \alt [`?' <ID>] <data\_exp>
+           \alt `nil'
+
+<data\_exp> ::= <data>
+             \alt `(' <data> `)'
+
+<data> ::= <item> [`||' <item>]*
+
+<item> ::= `this'
+        \alt <ID>
+        \alt `\'' <ID>
+        \alt <ID> `:' <rhs>
+
+<rhs> ::= <int\_exp>
+          \alt <ID>
+
+<goto\_stmt> ::= `goto' <id\_list> `;'
+
+<id\_list> ::= <ID> [`,' <ID>]*
+
+<int\_exp> ::= `[' <int\_exp\_c> `]'
+\end{grammar}
+\caption{The syntax of the \ak\ synchroniser}
+\label{grammar_sss}
+\end{figure}
+
+The grammar of integer expression used in the synchroniser implementation can be found in Fig. \ref{int_exp_gr}.
+\setlength{\grammarindent}{8em} % increase separation between LHS/RHS
+\begin{figure}%[h!]
+\scriptsize
+\begin{grammar}
+<int\_exp\_c> ::= <NUMBER>
+                \alt <ID>
+                \alt `(' <int\_exp\_c> `)'
+                \alt <int\_exp\_c> `+' <int\_exp\_c>
+                \alt <int\_exp\_c> `-' <int\_exp\_c>
+                \alt <int\_exp\_c> `*' <int\_exp\_c>
+                \alt <int\_exp\_c> `/' <int\_exp\_c>
+                \alt <int\_exp\_c> `\%' <int\_exp\_c>
+                \alt <int\_exp\_c> `<<' <int\_exp\_c>
+                \alt <int\_exp\_c> `>>' <int\_exp\_c>
+                \alt <int\_exp\_c> `|' <int\_exp\_c>
+                \alt <int\_exp\_c> `&' <int\_exp\_c>
+                \alt <int\_exp\_c> `^' <int\_exp\_c>
+                \alt `-' <int\_exp\_c> %prec UMINUS
+                \alt <int\_exp\_c> `<' <int\_exp\_c>
+                \alt <int\_exp\_c> `>' <int\_exp\_c>
+                \alt <int\_exp\_c> `==' <int\_exp\_c>
+                \alt <int\_exp\_c> `!=' <int\_exp\_c>
+                \alt <int\_exp\_c> `<=' <int\_exp\_c>
+                \alt <int\_exp\_c> `>=' <int\_exp\_c>
+                \alt `!' <int\_exp\_c>
+                \alt <int\_exp\_c> `&&' <int\_exp\_c>
+                \alt <int\_exp\_c> `||' <int\_exp\_c>
+\end{grammar}
+\caption{The syntax of the integer expression in \ak\ synchroniser}
+\label{int_exp_gr}
+\end{figure}
+
+
+    \section{Keywords, Reserved Words and Punctuation\label{sync_kw}}
+The keywords, the reserved words and the punctuation used in the \ak\ synchroniser syntax are given in Fig. \ref{fig:sync_kw}.
+\begin{figure}%[h!]
+\centering
+\begin{tabular}{|c|p{0.7\textwidth}|}
+\hline
+Keywords & synch, store, state, int, enum, start, on, elseon, else, do, send, goto\\
+\hline
+Reserved words & nil, this\\
+\hline
+Punctuation & braces, brackets, parantheses, the comma, the dot, the semicolon, the plus sign, the minus sign, the ampersand, the at sign, the question mark, the bar-bar sign, the equality sign, the arrow\\
+\hline
+\end{tabular}
+\caption{\ak\ synchroniser keywords, reserved words and punctiation\label{fig:sync_kw}}
+\end{figure}
+
+
+    \section{The Abstract Syntax Tree of the Synchroniser}
+The structure of the abstract syntax tree used in the synchroniser compiler is described in Fig. \ref{ast_struc}.
+Each entry is a Node sub-class name, listing the attributes and child nodes of the class: \iangled{name}* - a child node, \iangled{name}** - a sequence of child nodes, \iangled{name} - an attribute.
+
+\begin{figure}%[h!]
+\scriptsize
+\begin{lstlisting}[frame=single]
+# inputs -> PortList, outputs -> PortList, decls -> DeclList, states -> StateList
+Sync: [name, inputs*, outputs*, decls*, states*]
+
+# ports -> [Port, ...]
+PortList: [ports**]
+
+# depth_exp -> ID | NUMBER | DepthExp | DepthNone
+Port: [name, depth_exp*]
+DepthExp: [depth, shift]
+DepthNone: []
+
+# decls -> [StoreVar | StateVar, ...]
+DeclList: [decls**]
+
+StoreVar: [name]
+
+# type -> IntType | EnumType
+StateVar: [name, type*]
+IntType: [size]
+
+# labels -> [ID, ...]
+EnumType: [labels**]
+
+# states -> [State, ...]
+StateList: [states**]
+
+# trans_orders -> [TransOrder, ...]
+State: [name, trans_orders**]
+
+# trans_stmt -> [Trans, ...]
+TransOrder: [trans_stmt**]
+
+# condition -> CondSegmark | CondDataMsg | CondEmpty | CondElse
+# guard -> IntExp
+# actions -> [Assign | Send | Goto, ...]
+Trans: [port, condition*, guard*, actions**]
+
+CondSegmark: [depth]
+
+# labels -> [ID, ...]
+CondDataMsg: [choice, labels**, tail]
+
+CondEmpty: []
+CondElse: []
+
+# rhs -> DataExp | IntExp
+Assign: [lhs, rhs*]
+
+# items -> [ItemThis | ItemVar | ItemExpand | ItemPair, ...]
+DataExp: [items**]
+ItemThis: []
+ItemVar: [name]
+ItemExpand: [name]
+# value -> ID | IntExp
+ItemPair: [label, value*]
+
+# msg -> MsgSegmark | MsgData | MsgNil
+Send: [msg*, port]
+
+# depth -> ID | IntExp
+MsgSegmark: [depth*]
+
+# data_exp -> DataExp
+MsgData: [choice, data_exp*]
+MsgNil: []
+
+# states -> [ID, ...]
+Goto: [states**]
+
+ID: [name]
+NUMBER: [value]
+IntExp: [exp]
+
+\end{lstlisting}
+\caption{The abstract syntax tree of a synchroniser}
+\label{ast_struc}
+\end{figure}
+
