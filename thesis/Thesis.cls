@@ -211,20 +211,20 @@
     \vskip 60\p@
     \begin{center}
       \setlength{\parskip}{0pt}
-      {\large\textbf{\univname}\par}
+      %{\large\textbf{\univname}\par}
       \vfill
       {\huge \bf \@title \par}
       \vfill
-      {\LARGE by \par}
+      %{\LARGE by \par}
       \smallskip
       {\LARGE \authornames \par}
       \vfill
-      {\large A thesis submitted in partial fulfillment for the \par}
-      {\large degree of\par}
+      {\large A thesis submitted to the University of Hertfordshire\par}
+      {\large in partial fulfilment of the requirements of the degree of\par}
       \bigskip
       {\LARGE Master of Science by Research \par}
-      \bigskip
-      {\large in Computer Science \par}
+      %\bigskip
+      %{\large in Computer Science \par}
       %{\large \facname \par}
       %{\large \deptname \par}
       \bigskip
