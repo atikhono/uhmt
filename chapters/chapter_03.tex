@@ -308,26 +308,10 @@ The fixed point detection algorithm runs only on acyclic networks. The wrap-arou
 \end{figure}
 
 
-
     \subsection{Discussion}
-The approach we have presented relies on the ability of synchronisers to encode some checks of the message content and perform different actions depending on the result of a check. Since synchronisers can only check values of record fields that are known to be integers, the approach is not applicable for iterative computation with the floating-point precision. %However, to the best of our knowledge this is in accordance with S-Net, where the fixed point matching pattern
-To enable this class of algorithms, in addition to the synchroniser-based approach we provide a fixed point detection strategy 
-%
-%
-%only detects integer fields like S-Net)
-%2) wire-through (applicable to detect non-integer fixed points, for iterative computation with the floating-point presicion)
-%
-%%%%%%%%%
-%In \ak\, a message leaves the replication pipeline exclusively via a special complement channel that is wired to the rest of the \ak\ network. The programmer has to make sure that the messages to be sent on are detected within the operand network and sent to this channel. 
-%
-%Thus, the serial replication in \ak\ enforces a topological property of the operand network that is formally defined as follows. Consider the serial replication $N^{*}$ of an operand network $N$ with the input and output channel sets $\mathcal{I}$ and $\mathcal{O}$ respectively. Consequently, the set of matched inputs and outputs is $\mathcal{M}(\mathcal{I}, \: \mathcal{O}) = \mathcal{I} \cap \mathcal{O}$. In order for the serial replication $N^{*}$ to be able to produce output to the channel $x \in \mathcal{M}(\mathcal{I}, \: \mathcal{O})$, at least one box or a synchroniser in $N$ must have the output port wired to the complement channel $x'$. The \ak\ compiler recognizes the use of complement channels and checks whether the operand network topology has this property. If it does not, the compiler reports an error and aborts the compilation.
-%
-%The \ak\ runtime is committed to support the dynamic rewiring for complement channels. The serial replication implementation depends on the \ak\ runtime implementation, particularly the primitives the runtime system provides for the network construction. We briefly describe two approaches to the serial replication implementation with respect to the available primitives.
-%%%%%%%%%
-%
-that relies on a special port wiring primitive $P$ that transmits messages immediately from one port to another without storing them. The programmer now has to make sure that the fixed point messages are detected within the operand network\footnote{It can be done in a box} and sent to $P$. The messages cascade through all the active replicas via a chain of $P$ wires and leave the replication network when they encounter an inactive replica. The example in Fig. \ref{fig:ffp_new} demonstrates how the approach works.
+The approach we have presented relies on the ability of synchronisers to encode some checks of the message content and perform different actions depending on the result of a check. As the analysis in previous sections shows, the construction of an operand network with a complex fixed point condition can be quite complicated. In order to avoid having to construct complicated operand networks, we provide an additional fixed point detection strategy that relies on a special port wiring primitive $P$ that transmits messages immediately from one port to another without storing them. The programmer now has to make sure that the fixed point messages are detected within the operand network\footnote{It can be done in a box} and sent to $P$. The messages cascade through all the active replicas via a chain of $P$ wires and leave the replication network when they encounter an inactive replica. The example in Fig. \ref{fig:ffp_new} demonstrates how the approach works.
 
-The operand network $A$ in Fig. \ref{fig:ffp_new} has a single input port $x$ and two output ports. The output port $x$ is intended for the messages that proceed to the the next replica of $A$ in the chain, and the output port $x'$ is a complement port for the messages that are supposed to leave the replication pipeline. The serial replication network $A^{*}$ has a single input and a single output port both named $x$. During the compilation, the operand network $A$ is encapsulated into the special network $N$ it as shown in Fig. \ref{fig:ffp_new}. The network $N$ inherits all the ports from $A$ and adds a corresponding input port $x'$. The input and output ports $x'$ of $N$ are connected with the wiring primitive $P$. The output and the input ports $x'$ of the consequent replicas of $N$ are connected with the wiring primitive $P$ as well.
+The operand network $A$ in Fig. \ref{fig:ffp_new} has a single input port $x$ and two output ports. The output port $x$ is intended for the messages that proceed to the the next replica of $A$ in the chain, and the output port $x'$ is a auxiliary port for the messages that are supposed to leave the replication pipeline. The serial replication network $A^{*}$ has a single input and a single output port both named $x$. During the compilation, the operand network $A$ is encapsulated into the special network $N$ it as shown in Fig. \ref{fig:ffp_new}. The network $N$ inherits all the ports from $A$ and adds the corresponding input port $x'$. The input and output ports $x'$ of $N$ are connected with the wiring primitive $P$. The output and the input ports $x'$ of the consequent replicas of $N$ are connected with the wiring primitive $P$ as well.
 \begin{figure}[h!]
 \centering
 \includegraphics[scale=0.8]{figs/chapter_04_ffp_new.pdf}
@@ -353,14 +337,9 @@ A message that $A$ sends to the output port $x'$ cascades through all the active
     \section{Reverse Fixed Point\label{rfp}}
 % TODO: I don't like the reason. Why was the reverse fixed point introduced?
 % reverse fixed point is the basic optimisation that preserves growth of the replicas chain.
-The reverse fixed point on channel $x$ is a state of a replica, in which it transmits messages from channel $x$ unchanged. A state of a replica if formed by the states of its synchronisers. \ak\ does not analyse boxes and it can conclude about the operand network behaviour only from its synchronisers. Thus, in order for the operand network to be analysable by \ak\ for the required behaviour, it must contain a path that does not traverse boxes and may traverse synchronisers. Every synchroniser that is traversed by the path must have at least one state, in which it accepts a message from channel $x$ unconditionally and sends it on to the next synchroniser along the path without storing or modifying the message.
+A reverse fixed point on channel $x$ is a state of a replica, in which it transmits messages from channel $x$ unchanged. A state of a replica is formed by the states of its synchronisers. \ak\ does not analyse boxes and it can determine the operand network behaviour only from its synchronisers. Thus, in order for the operand network to be analysable by \ak\, it must contain a path that does not traverse boxes and which may traverse synchronisers. Every synchroniser that is traversed by the path must have at least one state, in which it accepts a message from channel $x$ unconditionally and sends it on to the next synchroniser along the path without storing or modifying the message.
 
-The existence of the reverse fixed point state requires the operand network to have some topological properties that are formally defined as follows. 
-%
-%
-%As the chain of replicas evolves, it may be the case that some replicas in the head of the chain are active yet they just transmit messages without a change. \ak\ is commited to detect such replicas and optimise the connection so that the data are sent directly to a replica that is ready to process it. 
-%
-Consider a network $N$ that has an input and an output channel, both named $x$.
+The existence of a reverse fixed point state requires the operand network to have some topological properties that are formally defined as follows. Consider a network $N$ that has an input and an output channel, both named $x$.
 
 \begin{definition} The network $N$ is said to have a reverse fixed point in $x$ if and only if the following requirements are satisfied:
 
@@ -414,13 +393,12 @@ The operand network $N$ in Fig. \ref{fig:rfp_wiring} has two input and two outpu
 \label{fig:rfp_wiring}
 \end{figure}
 
-If a replica transitions to a reverse fixed point state on every of its input channels, there is no box running and the channels are empty, the replica is removed from the chain.
+If a replica transitions to a reverse fixed point state on every one of its input channels, no box is running and the channels are empty, the replica is removed from the chain.
 
-The reverse fixed point optimisation on a channel does not preserve the ordering of messages in that channel. For example, this is the case when an input message makes a replica transit to the reverse fixed point state, but the message is not send on to the next replica immediately. Then, further messages bypass the replica, because the input channel is already rewired to the next replica. This behaviour can be fixed by inserting a synchroniser that blocks messages in the rewired channel until the replica finishes processing and sends the message on to the next replica.
 
 
     \subsection{Reverse Fixed Point Detection\label{rfp_detect}}
-The existence of a reverse fixed point on channel $x$ requires the synchronisers that are traversed by the fixed point path to have at least one state, in which they unconditionally accept messages from that channel, send them on along the path unchanged and then transit back to the same state. A synchroniser that is in the reverse fixed point state never transits from it. Coded in the synchroniser language, a transition that makes a state of a synchroniser the reverse fixed point state on channel $x$ is given in Fig. \ref{fig:rfp_trans}.
+The existence of a reverse fixed point on channel $x$ requires the synchronisers that are traversed by the fixed point path to have at least one state, in which they unconditionally accept messages from that channel, send them on along the path unchanged and then transition back to the same state. A synchroniser that is in the reverse fixed point state never transitions from it. Coded in the synchroniser language, a transition that makes a state of a synchroniser the reverse fixed point state on channel $x$ is given in Fig. \ref{fig:rfp_trans}.
 \begin{figure}[h!]
 \begin{lstlisting}[frame=single,mathescape]
 s {
@@ -436,7 +414,7 @@ s {
 \label{fig:rfp_trans}
 \end{figure}
 
-We shall note that all other transitions from state $s$ must transition back to state $s$. As long as they do they can even change the state variables of the synchroniser; the reverse fixed point is unconditional and it exists for any values of the store variables.
+Note that all other transitions from state $s$ must come back to state $s$. As long as they do they can even change the state variables of the synchroniser; the reverse fixed point is unconditional and it exists for any values of the store variables.
 
 The algorithm in Fig. \ref{fig:rfp_extract} checks if a reverse fixed point exists on channel $x$ and extracts all fixed point states from the synchroniser source code. The algorithm is designed to work with the detection algorithm in Fig. \ref{fig:ffp_detect}.
 %The algorithm supports the renaming of the fixed point channel in the synchroniser. Similarly, the branching of the fixed point path is resolved in the context of the whole network.
@@ -464,15 +442,3 @@ TODO
 \caption{Extracting the reverse fixed point from a synchroniser (assumes that channel $x$ is declared as an input and an output channel of the synchroniser)\label{fig:rfp_extract}}
 \end{figure}
 
-
-%
-%    \subsection{Discussion}
-%%channels are ordered, need to insert synchronisers
-%In general, the reverse fixed point optimisation on a channel does not preserve the ordering of messages in that channel. For example, this is the case when an input message makes a replica transit to the reverse fixed point state, but the message is not send on to the next replica immediately. Then, further messages bypass the replica, because the input channel is already rewired to the next replica.
-%
-%It is the programmer's duty to ensure the ordering of messages in the input channels of the serial replication network with the reverse fixed point. An operand network must be programmed keeping race conditions in mind.
-%
-%It may be fixed by creating a separate channel for RFP messages and putting a synchroniser that blockes the RFP channel while there's no message from the output channel (this is for operand network with one input channel, with two it can be more dificult if there're races between the channels that wire replicas).
-%
-%The replication combinator is just a wiring pattern that does not have to guarantee race-safety. For example, if the operand network is not race-safe, the star is not race-safe as well.
-%
