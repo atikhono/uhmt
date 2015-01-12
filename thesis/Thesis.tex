@@ -125,7 +125,9 @@
 \abstract{
 \addtocontents{toc}{\vspace{1em}}  % Add a gap in the Contents, for aesthetics
 
-%The Thesis Abstract is written here (and usually kept to just this page). The page is %kept centered vertically so can expand into the blank space above the title too\ldots
+In this thesis we present the \ak\ project that aims to provide environment for stream processing applications with an automatic resource and concurrency management based on communication demand. At the moment, the project is at an early stage and there exists no software implementation. The aim of my work is to implement a stream synchronisation facility called \emph{synchroniser} which is a part of the \ak\ concept. Synchronisers are programmed in a dedicated language. The thesis focuses on the implementation of the language compiler to be integrated into the runtime system prototype being developed in parallel.
+
+\ak\ structures streaming networks using a fixed set of wiring patterns, including the serial replication. This pattern dynamically replicates its operand network conceptually infinitely many times and wires the replicas in a chain. \ak\ provides an approach to extract messages from the chain based on the concept of fixed point. The thesis explores the role of synchronisers in forming output from a serial replication pipeline.
 
 }
 

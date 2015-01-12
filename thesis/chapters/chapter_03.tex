@@ -53,7 +53,7 @@ Definition \ref{ffp_def} requires the synchronisers that traverse the fixed poin
 %or at least in a closed subset of states
 
 
-    \subsubsection{Output from the Serial Replication Network}
+    \subsubsection*{Output from the Serial Replication Network}
 Now we will clarify how the serial replication network is wired to the rest of the \ak\ application network and how the output is produced. Strictly speaking, the serial replication is not just a wiring pattern since it does not simply wire the replicas of its operand network. It also creates a set of output channels and augments the replicas with some auxiliary synchronisers.
 
 The serial replication $N^{*}$ defines the output channel set $\mathcal{N}_{out}$ as follows:
@@ -377,7 +377,7 @@ The network $N$ is said to be in a reverse fixed point state on channel $x$ when
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-    \subsubsection{Rewiring of the Reverse Fixed Point}
+    \subsubsection*{Rewiring of the Reverse Fixed Point}
 The reverse fixed point optimises an input connection that has to cascade through the chain to a replica that is ready to accept the data.
 
 The operand network $N$ in Fig. \ref{fig:rfp_wiring} has two input and two output channels $x$ and $y$. Any input channel $x$ wired to an active replica of $N$ that transitions to a reverse fixed point state on that channel is disconnected from the replica and dynamically rewired to the input port $x$ of the next replica in the chain.
