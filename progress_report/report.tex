@@ -1,0 +1,184 @@
+%!TEX encoding = UTF-8 Unicode
+%!TEX TS-program = pdflatex
+\documentclass{article}
+\usepackage[pdftex,hyperindex,unicode]{hyperref}
+% define the title
+% Text layout
+\topmargin 0.0cm
+\oddsidemargin 0.5cm
+\evensidemargin 0.5cm
+\textwidth 16cm 
+\textheight 21cm
+\begin{document}
+\author{Anna Tikhonova}
+\title{Static Analysis of Behavioural Properties of Stream Synchronisers}
+\date{March 25, 2014}
+% generates the title
+\maketitle
+% insert the table of contents
+\tableofcontents
+%\begin{abstract}
+%The abstract abstract.
+%\end{abstract}
+
+\section{Introduction}
+For years, processor manufacturers have delivered increases in clock rates, so that single-threaded code executed faster on newer processor without any modifications. While manufacturing technology still improves, physical limitations of semiconductor-based electronics have become a major concern of design. In order for the processors to continue to improve in performance, multi-core design has become necessary \cite{sutter}.
+
+Unlike the increase in clock frequency for previous-generation processors, this shift in hardware design does not provide automatic benefits for software. The improvement in performance gained by the use of a multi-core processor depends significantly on the programming concepts, tools and infrastructure used for software implementation. Some parallel programming models such as OpenMP \cite{openmp}, MPI \cite{mpi}, Cilk Plus \cite{cilk} were developed for multi-core platforms. However, in most cases these models require massive software re-engineering to take advantage of multi-core processing.
+
+The main challenge in engineering of correct concurrent code is managing concurrency. Concurrency management includes ensuring the correct sequencing of the interactions between different computational executions, and coordinating access to resources that are shared among executions. The complexity comes from the fact that these actions are mixed with computations.
+
+Software parallelization is a significant topic of ongoing research. One of the research directions that addresses issues of efficient multi-core programming and difficult concurrency management is coordination programming. The idea of coordination programming is to represent a program as a set of computational processes and to specify relations between them in special coordination language. Potentially, this model allows execution of every single process on a dedicated processor core. However, in real-world applications, a large number of concurrent processes and their communication facilities have to share a very limited amount of resources. Thus, the issue of application progress becomes quite complicated. In order to boost application performance a programmer has to tune it manually.
+
+A new programming language called Astra\emph{Kahn} is described in \cite{astrakahn}. Astra\emph{Kahn} attempts to combine coordination programming with stream processing to provide a self-regulatory concurrency mechanism. The goal of the project is to provide an environment for development of scalable concurrent applications that does not require manual tuning efforts.
+
+\section{Background and Related Work}
+This section is an overview of relevant studies for both stream processing and coordination aspects of Astra\emph{Kahn}.
+
+\subsection{Stream Processing}
+Stream processing research, particularly the study of stream processing systems, has a long history. In general, a stream processing system can be described as a system comprised of a set of processing components that compute in parallel and communicate data via channels. Channels pass data as infinite sequences; these infinite sequences are referred to as streams.
+
+Examples of stream processing research are dataflow systems, reactive systems, signal processing systems, etc. An overview of the hystorical development and the discussion of the different techniques for streams programming is presented in the survey by R. Stephens \cite{stephens97}.
+
+Stephens identifies that the first type of stream processing systems are dataflow systems. The first dataflow programming language Lucid \cite{lucid} was designed in 1970s. In Lucid, each variable is an infinite stream of values. Computation is carried out by defining transformation functions that process these streams. Lucid is possibly the first language to introduce the idea of a block that transforms input message sequences into output sequences.
+
+In 1974 G. Kahn published his paper \cite{kahn74} outlining the semantics of a simple language for parallel programming. In his work Kahn suggests a distributed model of computation where a group of deterministic sequential processes communicate via unbounded FIFO channels. In this model a program is represented as a directed graph whose vertices are prefix monotonic\footnote{Process is prefix monotonic when it takes partial input stream - prefix - in order to produce partial output stream, i.e. for prefix monotonic process $f(x)$ and prefix $p : f(p)=r$ it is true that $f(p || t) = r || T$} computational processes and edges are stream-carrying channels with the following assumptions:
+\begin{itemize}
+\item[-]Channels are the only way for processes to communicate;
+\item[-]Channels transmit messages within a finite time;
+\item[-]At any given time a process is either performing computation or waiting for messages on one of its input channels;
+\item[-]Each process is a sequential program.
+\end{itemize}
+Kahn proved that the resulting process network exhibits deterministic behaviour, i.e. its output does not depend on computation or communication delays. This model is now referred to as Kahn Process Network (KPN). Astra\emph{Kahn} is based on KPNs.
+
+One of the latest KPN interpretations in programming languages is StreamIt \cite{streamit}. In StreamIt, basic computational unit is called \emph{filter}. A filter is a user-defined single-input, single-output block that translates input data sequences to output sequences. Notable feature of StreamIt is that it imposes structuring on applications with the following structural primitives:
+\begin{itemize}
+\item \emph{pipeline} specifies sequential composition of filters,
+\item \emph{splitjoin} specifies parallel composition of filters,
+\item and \emph{feedbackloop} provides a way to create loop constructs in stream graph.
+\end{itemize}
+
+Recall that KPN model is theoretical and works well under interpretation when resources are unlimited. In real world, concurrent processes and their communication facilities have to share a very limited pool of resources. Thus, several refinements to KPNs are needed to address resource limitations.
+
+The fundamental technique to deal with the issue is load balancing. Several static and dynamic approaches were suggested for load balancing in StreamIt applications. Static load balancing implies partitioning of a StreamIt program into a set of balanced patritions. Static strategies introduce heuristic approach \cite{streamit}, as well as use of ILP solvers \cite{kudlur}, approximation alghorithms \cite{farhad} and machine learning \cite{wang}. Dynamic load balancing technique proposed in \cite{collins} takes advantage of filters' statelessness\footnote{Regardless of input sequence $A$, stateless filter output sequence does not depend on input sequences that came before $A$.}. The approach is based on communication pressure that emerges from the channels' boundedness. Here communication pressure characterises the channel occupancy of some computational process and feedback from its co-located computational processes.
+
+Astra\emph{Kahn} proposes demand-driven self-regulatory mechanism. It is based on the same concept of communication pressure with a refinement to achieve fine-grained parallelism.
+
+In Astra\emph{Kahn} predecessor S-Net \cite{snet_intro} the problem with resource management persists. A programmer has to tune S-Net application manually.
+
+\subsection{Coordination programming}
+The coordination aspect of Astra\emph{Kahn} is related to significant amount of prior work in data-driven coordination. Main existing coordination technologies are described in details in the survey \cite{papadopoulos} by G. Papadopoulos and F. Arbab.
+
+Unlike a great many approaches to coordination programming, coordination and computation in Astra\emph{Kahn} are completely separate. This is achieved by introduction of a special type of process called a synchroniser. A synchroniser can be thought of as a facility that guarantees data availability on computational process inputs.
+
+S-Net is also the case. S-Net utilises \emph{synchrocells} in order to control synchronisation. Synchrocells are the only means in S-Net to combine messages from several channels into a single record; they only realise a functional mapping from input streams to the output stream. In constrant to synchrocells, synchronisers allow complex synchronisation patterns. They are programmed in a dedicated programming language which is a part of Astra\emph{Kahn}.
+
+Another related coordination technology is the language Reo \cite{Reo_Arbab04}. Like Astra\emph{Kahn} or S-Net, Reo is exogenous in terms of coordination. Reo's emphasis is on complex coordinators, or \emph{connectors}, and their composition out of simpler ones, rather than on the components that communicate via these connectors.
+
+A channel is an atomic connector in Reo. A channel is undirected, i.e. its ends may be either \emph{source} or \emph{sink}. Source and sink are connected to producer and to consumer nodes respectively. Channels in Reo are typed, however, no fixed set of types is assumed. Channels coincide in another fundamental entity called a \emph{node}. Reo defines sets of operations on channels and nodes, see \cite{Reo_Arbab04} for reference.
+
+Complex connector in Reo is represented as undirected graph contisting of channels and nodes. C. Baier et al. introduce \emph{constraint automata} and propose them as an operational model for component connectors in Reo \cite{baier_ca}. Concerns of equivalence or containment checks and verification are addressed in this paper as well as in \cite{Pourvatan}.
+
+\section{The AstraKahn approach to Streaming Networks}
+
+Astra\emph{Kahn} is an attempt to provide programming paradigm based on Kahn's model of process networks. Program in Atra\emph{Kahn} is represented as a directed graph of computational processes connected with edges that are stream-carrying channels. Detailed description of Astra\emph{Kahn} language is given in \cite{astrakahn}.
+
+Though Astra\emph{Kahn} preserves certain properties of KPNs, it provides the following refinements:
+\begin{description}
+\item[complete separation of coordination logic from computations]
+
+This refinement leaves computational components stateless and opens opportunities for easier parallelisation. Coordination logic is expressed in special vertices called \emph{synchronisers}. \emph{Synchronisers} are programmed in dedicated programming language;
+\item[self-regulatory concurrency mechanism] based on the concept of communication pressure. The mechanism address the issue of application progress under the interpretation when resources are limited. Behavioural classification of computational components is provided along with this mechanism;
+\item[separation into independent layers communicating by means of interfaces]
+
+This refinement addresses standard engineering issues such as abstraction, encapsulation and hierarchical development.
+\end{description}
+
+As the result of refinement, Astra\emph{Kahn} is seen as a construction of three independent layers:
+\begin{itemize}
+\item Topology and Progress Layer (TPL) defines the topology and provides concurrency regulatory mechanism
+\item Constraint Aggregation Layer (CAL) insures type safety all over network with data constraints provided by each component
+\item Data Instrumentation Layer (DIL) manages data distribution and concurrent memory access.
+\end{itemize}
+
+\subsection{Coordination and Synchronisation}
+As already mentioned before, Astra\emph{Kahn} defines a special type of vertex called a synchroniser. The intention of synchronisers is to separate coordination code from actual computation. Synchronisers are programs written in a dedicated language which is a part of the Astra\emph{Kahn} paradigm. The formal syntax of the language and examples are given in \cite{astrakahn}.
+
+From mathematical point of view, a synchroniser is represented as a non-deterministic finite state machine with conditional transitions. A transition fires if and only if corresponding predicate is true. This predicate can be used to check for
+\begin{itemize}
+\item[-] presence of a message in a certain channel,
+\item[-] certain structure of an incoming message,
+\item[-] value of C-style conditional expression on special \emph{state} variables.
+\end{itemize}
+\emph{State} variables are global to all states of a synchroniser. Since finite state machines read one symbol at a time, they do not require parallel access management. \emph{State} variables evolve with C-style assignment expressions that execute when the associated transition takes place.
+
+When a synchroniser is in the state in which it accepts only messages from certain input channels, other input channels are blocked. Blocked channels preserve messages until synchroniser makes a transition to another state in which it accepts messages from this channel, thus unblocking it.
+
+A synchroniser always has a start state and assumes cyclic behaviour. A correctly programmed synchroniser loops infinitely around its start state. 
+
+Also, synchronisers provide internal facilities to store messages. These facilities are called \emph{store} variables. A \emph{store} variable is associated with channel it stores message from. All store variables lose their associated values whenever the synchroniser reaches its start state again.
+
+\subsection{Pressure Propagation in Astra\emph{Kahn}}
+Astra\emph{Kahn}'s self-regulating concurrency mechanism relies on the concept of communication pressure. Communication pressure is a dynamic characteristic of a channel that indicates demand of messages in a certain part of streaming network. 
+
+Channels in Astra\emph{Kahn} are bounded FIFO queues. When a consumer node processes messages at a lower rate than they are produced, the storage capacity of connecting channel descreases. This descrease can be quantified by the number of messages in the queue. This number defines \emph{positive} pressure in a channel. Positive pressure becomes \emph{critical} when there is no storage for a fresh FIFO element. Channels under critical positive pressure become blocked. A blocked channel does not accept any further input, thus it directly affects a producer node. If the producer cannot output a message into a channel, then it is suspended. This can lead to a pressure increase in the corresponding input channel and eventual blocking of this channel.
+
+In such a way positive pressure propagates across the network. In case of sufficiently large difference of pressure on input and output channels of a node, Astra\emph{Kahn}'s coordinator can run several copies of this node in parallel. Increase of the processing rate of a node decreases pressure at this point. In Astra\emph{Kahn} this form of adjustment is called \emph{proliferation}.
+
+When a consumer node processes messages at higher rate than they are produced, there are no messages in a connecting channel waiting to be consumed. This demand for messages is quantified by the concept of \emph{negative} pressure. Since synchronisers are the only stateful vertices in Astra\emph{Kahn}, they are the only vertices within the network that induce negative pressure. A synchroniser assumes zero processing latency. Thus, negative pressure can be thought of as the number of messages that the synchroniser would accept immediately. Messages are accepted immediately when one of the synchroniser input channels is blocked due to unavailability of messages on another. For example, this situation occurs when a synchroniser performs the zip operation and one of the producer nodes supplies messages more slowly.
+
+Also, negative pressure can be exerted by a network consumer if the production rate of the whole network is insufficient. In an Astra\emph{Kahn} network, negative pressure propagates exclusively via synchronisers. In contrast to positive pressure, negative pressure is not associated with a physical state change of a channel; it is rather a mechanism that a TPL implementation can consider to adjust pressure in a more efficient way.
+
+\section{Motivation and Problem Statement}
+The long-term goal of the Astra\emph{Kahn} project is to provide an environment for development of scalable concurrent applications that does not require manual tuning efforts. An Astra\emph{Kahn} approach to adaptive concurrency relies on the concept of communication pressure propagation across a network. Since pressure propagation directly affects proliferation levels of certain vertices, effectiveness of concurrency self-regulation depends largely on correctness of pressure propagation strategy. An important part of this strategy is pressure propagation through synchronisers because, unlike other vertices in Astra\emph{Kahn}, they induce negative pressure that represents a demand for messages in a certain part of a network.
+
+This project is focused on synchroniser analysis and development of supporting tools. Since the synchroniser is programmed in a dedicated language, a compiler for this language is needed. Target architecture assembly generation is of no concern within the project, thus, the compiler translates a given source code into a C program and then calls available C compiler to generate an executable file. Also, the compiler provides various syntactic and semantic checks.
+
+In order to propagate pressure through a synchroniser, Astra\emph{Kahn} coordinator needs to know its \emph{transfer function}. The transfer function describes relations between demands of messages on a synchroniser's input and output channels. Derivation of the transfer function is a concern of static analysis, in particular, execution path analysis. Because synchronisers are non-deterministic, there may be potentially an infinite number of possible execution paths and therefore more than one transfer function. It may be impossible to determine an exact execution path at compile time, because it may depend on incoming message content. If synchroniser has an inner loop, the transfer function must consider the number of iterations in this loop. Thus, transfer function derivation relates to induction variable analysis.
+
+These issues are subject to synchroniser analysis in the project. Once a set of transfer functions is obtained, it is up to TPL how to choose a particular transfer function and propagate pressure through a synchroniser. Also, synchroniser analysis includes passport generation for Constraint Aggregation Layer.
+
+\section{Project Plan}
+\subsection{Research Plan}
+The research timeline is suggested as follows:
+\begin{itemize}
+\item Phase I (3 months)
+	\begin{itemize}
+	\item[-] A literature review on stream processing and coordination programming
+	\item[-] Understanding of computation model and basics of concurrency regulatory mechanism in Astra\emph{Kahn}
+	\item[-] Development of synchroniser compiler frontend
+	\end{itemize}
+\item Phase II (3 months)
+	\begin{itemize}
+	\item[-] Development of a transfer function derivation and pressure propagation techniques for synchronisers
+	\item[-] Prototyping of the technique and the compiler backend
+  \item[-] Demonstration of running example
+	\end{itemize}
+\item Phase III (6 months)
+	\begin{itemize}
+	\item[-] Development of the compiler backend
+  \item[-] Further development, testing and improvement of the transfer function derivation and pressure propagation techniques
+	\item[-] Thesis writing
+	\end{itemize}
+\end{itemize}
+
+\subsection{Research Training and Development}
+I have attended several general research trainings. During \emph{Thesis, What Thesis?} it was explained what the thesis and the dissertation actually are and what a well-written dissertation should contain. In this session many useful tips for paper writing were also covered.
+
+During \emph{Literature Search and Keeping Up-to-Date} session several techniques to search online databases in a more structured and sophisticated way in order to improve search results were demonstrated. Also, an overview of online services helping keep literature up-to-date was provided.
+
+During \emph{Initial Registration Assessment} training the process of initial registration was explained. The session covered the university requirements for structure of initial assessment report and what information should be included in each chapter.
+
+Aside of my research activities as a part of FSF community I plan to participate in GNU Tools Cauldron 2014 Workshop. This is to get an update of best practices with GNU tools and compilation technology.
+
+I also attend weekly group English classes for PhD/research students to improve my writing skills.
+
+\section{Conclusion and Progress}
+The contribution of the research is a technique for pressure propagation through synchronisers. This mechanism is an important part of concurrency self-regulating mechanism in Astra\emph{Kahn}. An approach to the problem will be provided in accordance with runtime system regulation policies and a tool for pressure propagation support on runtime will be implemented. The chosen pressure propagation strategy will be tested with a runtime system prototype to decide on its usability for adaptive concurrency regulation. Depending on the result, synchronisation model nondeterminism restrictions and/or strategy changes can be provided to enable efficient concurrency self-regulation on runtime.
+
+During the first three months of the research, synchroniser structure and properties were studied. As the result, a compiler frontend was implemented\footnote{Private git repository is at https://github.com/atikhono/aksync.} in the OCaml programming language. It includes parsing of synchroniser source code, basic syntactic and semantic checks, as well as building internal structures that are the basis for further analysis algorithms implementation. 
+
+\bibliographystyle{unsrt}
+\bibliography{report}
+
+\end{document}
