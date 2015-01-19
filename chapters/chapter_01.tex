@@ -1,6 +1,6 @@
 %Kahn's fixed-point semantics:
 %A network of continous functions is continous
-\chapter{Foundations and Related Work}
+\chapter{Foundations and Related Work}\label{chap_found}
 In this chapter we provide relevant theoretical background in coordination programming and stream processing. We pick a recent component-system example from each field. Then, we descride the combined approaches to coordination programming and stream processing, implemented in \textsc{S-Net} and \ak\, and explain the concepts behind \ak\ in more detail. We sum up the chapter with a comparisson of the four components systems, including their approaches to synchronisation.
 
 
@@ -75,7 +75,7 @@ Note that \ak\ does not have the parallel replication combinator which exists in
 In the following sections the concepts of \ak\ are explained in more detail.
 
 
-    \subsubsection{Channels}
+    \subsubsection*{Channels}
 Channels in \ak\ are named FIFO queues with a limited capacity. A channel carries a segmented stream that consists of message sequences and those may in turn consist of sequences in their own right. In order to mark the beginning and end of a sequence, \ak\ supports a special kind of message called a segmentation mark.
 
 Segmentation marks can be thought of as brackets. \ak\ requires that a stream of message sequences that flows through a channel has a static bracketing depth. Therefore, each message on a given channel is found between the same number of brackets. The sequence of messages starts with a certain number of opening brackets and ends with the same number of closing brackets. Within the sequence brackets can occur only in the following combination:
@@ -89,7 +89,7 @@ where $k \le d$, and $d$ is the number of opening brackets in the beginning of t
 is 3}.
 
 
-    \subsubsection{Boxes}
+    \subsubsection*{Boxes}
 Boxes are the atomic building blocks of \ak\ networks that perform the computation. An \ak\ box is deterministic in the sense that for every partial input stream it produces a deterministic output stream\footnote{For a function $f(x): \mathcal{I} \to \mathcal{O}$, where $\mathcal{I}$ is the totality of $f(x)$ input streams and $\mathcal{O}$ is the totality of $f(x)$ output streams, $\forall p \in \mathcal{I} \land \forall t:p \cup t \in \mathcal{I} \: : \; f(p \:||\: t) = f(p) \:||\: f(t)$}.
 
 Conceptually, boxes can be specified in any conventional programming language; however, they are subject to a contract that defines acceptable behaviour for boxes. Any guarantees that \ak\ offers are subject to the fulfilment of the contract on behalf of all the boxes. The interface between a box and the \ak\ runtime system is defined by the \ak\ Box-API for each supported box language.
@@ -116,7 +116,7 @@ An inductor has one input channel and one or more output channels and responds t
 \end{description}
 
 
-    \subsubsection{Synchronisers}
+    \subsubsection*{Synchronisers}
 Synchronisers are non-deterministic finite state machines for joining messages and sending them on to the output channels. \ak\ provides synchronisers with memory for storing received messages.
 
 A synchroniser can have any number of input and output channels. Unlike boxes, synchronisers maintain an internal state and generally accept messages from an input channel in certain states, while in another state the channel may be blocked until a state transition brings the synchroniser to a state in which messages from the channel are accepted.
@@ -131,7 +131,7 @@ The act of sending a message to an output channel is associated with a transitio
 %If a continous synchronisation is desired, the synchroniser must be programmed so that it looped around some state.
 
 
-    \subsubsection{Network Composition}
+    \subsubsection*{Network Composition}
 The construction of streaming networks in \ak\ is hierarchical: components are wired into a subnetwork, which in turn can act as a component in a larger network, etc. In order to wire the components, \ak\ provides a set of wiring patterns sufficient to achieve arbitrary wiring. Each pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result.
 
 Three patterns are static, applicable to one or two operands:
@@ -147,7 +147,7 @@ These three patterns are sufficient to achieve arbitrary wiring of the component
 The fourth pattern -- \textbf{serial replication} -- replicates the single operand network infinitely and wires up the replicas with the serial connection. In implementation, actual replication is demand-driven: the chain of replicas is extended dynamically. Messages are extracted from the chain and sent to the output channel when they satisfy the fixed point condition, see Chapter \ref{chap_sr}.
 
 
-    \subsubsection{The Type System of \ak\ }
+    \subsubsection*{The Type System of \ak\ }
 The type system of \ak\ is based on the Message Definition Language (MDL, \cite{astrakahn}) which is a language of abstract terms that are built recursively from the ground up. Structurally the terms are symbolic trees with the following kinds of leaf:
 \begin{description}
 \item[Symbol, Number, String] terms represent a certain finite quality
@@ -170,7 +170,7 @@ An \ak\ component, either a box or a synchroniser, is both a consumer and a prod
 
 
 %Change the title
-    \subsubsection{Structure of \ak\ }
+    \subsubsection*{Structure of \ak\ }
 \ak\ is motivated by a KPN, which is a theoretical model and its properties are only available under an interpretation with unlimited resources. The intention of \ak\ is to refine and structure KPNs in order to provide a component system with an automatic resource and concurrency management.
 
 %What properties of KPNs do \ak\ inherit? What are the differences?

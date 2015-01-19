@@ -28,7 +28,7 @@ $(MAIN).pdf:  $(MAIN).tex  $(MAIN).bib $(FIGURES)
 
 
 show: cclean $(MAIN).pdf
-	#open $(MAIN).pdf &
+	open $(MAIN).pdf &
 
 clean:
 	rm -fr *.bbl *.blg *.aux *.log *.lof *.lot *.loa *.out *.toc *.dvi *~

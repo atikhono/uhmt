@@ -1,8 +1,13 @@
-\chapter{Serial Replication in \ak\ }\label{chap_sr}
+% TODO change this uglyness
+\chapter{Serial Replication in \ak\ \label{chap_sr}}
 %The serial replication combinator implements recursive computations and the loop construct with pipeline parallelism.
 In this chapter we explain the machinery behind the serial replication in \ak\ and the role of synchronisers in it. We introduce the concept of the forward fixed point for the replication pipeline and show how it is used to organise the output from the infinite chain of replicas. In order to supress the growth of the replica chain, we present the concept of the reverse fixed point and show how it is used to optimise some replicas at the head of the chain.
+%Detection algorithms
 
+%TODO
 %First of all, the semantics of AstraKahn on the TPL is described in terms of structures put in place for the coordinator, i.e. a controlling agent, or indeed a group of agents, responsible for progress and communication of the KPN vertices.
+%
+
 
     \section{\ak\ Approach to Serial Replication}
 The serial replication combinator creates a conceptually infinite number of copies of its operand network, and connects them in a chain. Replication is demand-driven: the replicas are created dynamically. A fresh replica is \emph{inactive}\footnote{More generally, we call a replica inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running}, hence it does not necessarily require significant resouces since \ak\ boxes are stateless and since synchronisers require no resouces in their start state\footnote{When a synchroniser transitions back to the start state, it flushes its store variables}. Indeed the cost of replication is only felt when the replicas are active, which is the case from the time that the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
@@ -53,7 +58,7 @@ Definition \ref{ffp_def} requires the synchronisers that traverse the fixed poin
 %or at least in a closed subset of states
 
 
-    \subsubsection*{Output from the Serial Replication Network}
+    \subsubsection{Output from the Serial Replication Network}
 Now we will clarify how the serial replication network is wired to the rest of the \ak\ application network and how the output is produced. Strictly speaking, the serial replication is not just a wiring pattern since it does not simply wire the replicas of its operand network. It also creates a set of output channels and augments the replicas with some auxiliary synchronisers.
 
 The serial replication $N^{*}$ defines the output channel set $\mathcal{N}_{out}$ as follows:
@@ -377,7 +382,7 @@ The network $N$ is said to be in a reverse fixed point state on channel $x$ when
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-    \subsubsection*{Rewiring of the Reverse Fixed Point}
+    \subsubsection{Rewiring of the Reverse Fixed Point}
 The reverse fixed point optimises an input connection that has to cascade through the chain to a replica that is ready to accept the data.
 
 The operand network $N$ in Fig. \ref{fig:rfp_wiring} has two input and two output channels $x$ and $y$. Any input channel $x$ wired to an active replica of $N$ that transitions to a reverse fixed point state on that channel is disconnected from the replica and dynamically rewired to the input port $x$ of the next replica in the chain.
@@ -414,6 +419,7 @@ Note that all other transitions from state $s$ must come back to state $s$. As l
 The algorithm in Fig. \ref{fig:rfp_extract} checks if a reverse fixed point exists on channel $x$ and extracts all fixed point states from the synchroniser source code. The algorithm is designed to work with the detection algorithm in Fig. \ref{fig:ffp_detect}.
 %The algorithm supports the renaming of the fixed point channel in the synchroniser. Similarly, the branching of the fixed point path is resolved in the context of the whole network.
 
+TODO
 \begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
@@ -423,43 +429,11 @@ The algorithm in Fig. \ref{fig:rfp_extract} checks if a reverse fixed point exis
 
 \Statex
 \Function{extract\_fp}{$synch, x$}
-  \State $rfp\_states\gets$ \emph{all states from} $synch$ \emph{that have transitions like in Fig. \ref{fig:rfp_trans}}
-  \State $result\gets \emptyset$
-  \Statex
-
-  \While{$rfp\_states \neq result$}
-    \If{$result \neq \emptyset$}
-      \State $rfp\_states\gets result$
-      \State $result\gets \emptyset$
-    \EndIf
-
-    \For{\textbf{each} $state$ \emph{in} $rfp\_states$}
-      \State $gotos\gets$ \emph{all destination states in} $state$
-      \If{$gotos \setminus rfp\_states = \emptyset$}
-        \State $result\gets result \cup state$
-      \EndIf
-    \EndFor
-
-    \If{$result = \emptyset$}
-      \State \textbf{return} \emph{no reverse fixed point state found}
-    \EndIf
-
-  \EndWhile
-  \Statex
-
   \State $StateDict\gets nil$
-  \For{\textbf{each} $state$ in $result$}
-    \State $rfp\_out\gets$ \emph{output channel labels of the RPF transitions from} $state$
-    \For{\textbf{each} $out$ \emph{in} $rfp\_out$}
-      \If{$out \notin StateDict$}
-        \State $StateDict$($out$)$\gets state$
-      \Else
-        \State $StateDict$($out$)$\gets StateDict$($out$) \textbf{..} $state$
-      \EndIf
-    \EndFor
-  \EndFor
-
   \Statex
+
+% TODO
+
   \State \textbf{return} $StateDict$
 \EndFunction
 \end{algorithmic}

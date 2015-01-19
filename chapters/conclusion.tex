@@ -1,7 +1,15 @@
-\chapter{Conclusion}
+\chapter{Conclusion} \label{concl}
     \section{Summary}
+The implementation of \ak\ synchronisers and analysis of their role in the serial replication wiring pattern have been presented. A dedicated language that \ak\ provides for programing synchronisers was described in details. A synchroniser exploits non-deterministic dehaviour and in order to explain how the synchroniser makes choices, the synchronisers execution algorithm has been given. The language compiler that was implemented in the thesis project generates the data structure to be interpreted by the \ak\ runtime, and the communication passport of the synchroniser. The compiler performs static checking and reports source code errors.
+
+In \ak\ the output from the serial replication pipeline is defined using the concept of fixed point. In order to detect fixed point messages, \ak\ needs to be provided with a pattern that matches all of them. This thesis has shown how this pattern can be embedded into the operand network of the serial replication combinator, so that the programmer does not have to specify it explicitly within the \ak\ application code. However, the original approach to the output from the serial replication is quite complicated, so the thesis described a simple additional fixed point detection strategy. In order to suppress the growth of the replica chain, \ak\ introduces a reverse fixed point. In the thesis the formal definitions of both kinds of fixed point were given and analysed. The algorithms for the \ak\ compiler to detect them have been provided.
+
+
     \section{Future Work}
+The current version of the synchroniser language does not define flow inheritance in synchronisers, thus the next step in the synchroniser implementation is to decide how it should be done. The synchroniser code only needs to access the label-value pairs of the message it matches. Thus, the flow inheritance should be supported outside the synchroniser definition.
 
-%explain about pressure propagation and statistics
-%The long-term goal of the \ak\ project is to provide an environment for development of scalable concurrent applications that do not require manual tuning efforts. Though the adaptive self-regulation mechanism is not known to propose something for synchronisers, we try to review the possible strategies for the pressure propagation through synchroniser.
+The synchroniser that was presented matches only label-value pairs of a record. The MDL, which is the basis for the \ak\ type system, generates a much broader set of terms than the current version synchroniser can synchronise; however, whether or not the implementation of lower level synchronisation in synchronisers is useful for the real world applications still needs to be established.
 
+The fixed point detection algorithms given in the thesis should be implementated in the \ak\ compiler. The dynamic rewiring support for the serial replication pattern should be implemented in the \ak\ runtime system.
+
+The long-term goal of the \ak\ project is to provide an environment for development of scalable concurrent applications that do not require manual tuning. One approach to address automatic concurrency management is statistical learning. In a streaming network the time during which a particular box or synchroniser processes messages is distributed according to some distribution. On the other hand, processes translate the input distribution to the output distribution to some degree depending on their definition. Knowing these characteristics for both boxes and synchronisers, it could be possible to estimate the parallelisation factors for each box in order to optimise the throughput or the latency of the network.

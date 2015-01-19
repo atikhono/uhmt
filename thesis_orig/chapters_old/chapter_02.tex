@@ -1,4 +1,4 @@
-\chapter{\ak\ Synchroniser}\label{chap_impl}
+\chapter{\ak\ Synchroniser}
 In this chapter we describe the source language for an \ak\ synchroniser and its implementation. Prior to describing the language in details, we present a mathematical model of a synchroniser from \cite{astrakahn} and outline sources of non-determinism in synchronisers.
 
 The $aksync$ compiler is integrated into the current \ak\ runtime system prototype. It takes the source code of a synchroniser program, performs the syntactic and semantic analysis of it, builds a synchroniser object and generates the CAL passport of the synchroniser.
@@ -136,7 +136,7 @@ Once a transition is known to fire, optional actions may be performed before the
 
 This section gives an overview of the \ak\ synchroniser programming language. The formal grammar of the \ak\ synchroniser is provided in Appendix \ref{sync_syntax}.
 
-  \subsubsection*{Program structure}
+  \subsubsection{Program structure}
 A synchroniser program consists of a header followed by a body wrapped in braces. The begining of a synchroniser program is indicated by the keyword $synch$.
 
 The header contains the synchroniser's name and the channel signature. The name is an ASCII string that follows the C convention.
@@ -145,7 +145,7 @@ The body lists the state and store variable declarations and the states of the u
 
 
 % We removed macros from the language. The compiler must invoke a preprocessor to expand them.
-  \subsubsection*{Channel signature}
+  \subsubsection{Channel signature}
 The channel signature defines the input and output channels of the synchroniser and their bracketing depths. The synchroniser header (Fig. \ref{min_sync_head}) declares the synchroniser $min$ with two input channels that are connected to the ports $a$, $b$ and two output channels that are connected to the ports $c$, $d$. If the bracketing depths of the channels are not specified, they are assumed to be 0. Thus, the bracketing depth of the channel $a$ is 0.
 
 The input channel depth $-1$ indicates that the input channel is ignored in the synchroniser program. The output channel with the depth $-1$ must not have data sent to them.
@@ -168,7 +168,7 @@ The output channels of a synchroniser are guaranteed to have the bracketing dept
 
 
 %% The width of int type is declared explicitly to reduce the number of potential states of automata.
-  \subsubsection*{Variable declaration}
+  \subsubsection{Variable declaration}
 %% TODO! Add about state and store variables initialisation.
 %% state int(8) a, b=1, c=8; // assignes a=0 b=1 c=9
 %% enum (a,b,c) foo, bar=a;  // assignes foo=0 bar=a
@@ -202,7 +202,7 @@ A store variable declaration begins with the keyword $store$. Line 4 in Fig. \re
 All the state and store variables are global to all the states.
 
 
-  \subsubsection*{States and transitions}
+  \subsubsection{States and transitions}
 States and transitions of the synchroniser define which channels are read and in what order. Fig. \ref{zip_struc} presents the code of the binary zip synchroniser's state machine. Line 1 declares the start state of the synchroniser. The $on$ clause indicates the beginning of the transition list. In the start state the zip2 synchroniser acceptes messages from both input channels $a$ and $b$. State and store expressions associated with the transition and the destination state are specified in the braces.
 
 \begin{figure}[h!]
@@ -249,7 +249,7 @@ foo {
 \end{figure}
 
 
-  \subsubsection*{State expressions}
+  \subsubsection{State expressions}
 A state expression is a combination of integer constants, state variables and operators, which defines an integer value. The interpretation of a state expression follows the C rules of precedence and association. State expressions can be assigned to state variables. Under the assumption that the output channel has the infinite capacity a synthetic example in Fig. \ref{sync_state_exp} counts the number of messages received from channel $a$ between the arrivals of messages in channel $b$. Line 1 declares the 8-bit integer $count$ and initialises it with 0. When a message from $a$ is received the value of $count$ increases by 1 (see line 5).
 
 \begin{figure}[h!]
@@ -277,7 +277,7 @@ When a message from channel $b$ is received the value of $count$ is stored in th
 The variable $n$ does not have to be declared and is considered an alias for the integer expression. Temporary variables are available until the state machine of a synchroniser makes the next transition.
 
 
-  \subsubsection*{Triggering of a transition}
+  \subsubsection{Triggering of a transition}
 The channel name on its own stands for the availability predicate for the corresponding channel, i.e. the condition that a message of any kind is available. Whether a transition takes place depends on the channel status and optionally the content of the message.
 
 When a message is received on a channel, it can be matched with a pattern in order to extract parameters needed to select a specific transition. Line 3 of Fig. \ref{sync_trans} checks whether a message received from the input channel $a$ is a unique choice. Then the one and only variant is checked on whether it contains the label $x$. If it does, the value of $x$ is stored in a temporary variable $x$. The tail of the message, i.e. all label-value pairs except for the value labeled $x$, is stored in a temporary variable $t$. Both $x$ and $t$ are available until the state machine makes the next transition.
@@ -326,7 +326,7 @@ start {
 \end{figure}
 
 
-  \subsubsection*{Store expressions and sending messages}
+  \subsubsection{Store expressions and sending messages}
 %% TODO Probably fix it after writing about CAL terms.
 Store expression is a mechanism to combine data. In \ak\, data are typed. Types are CAL terms. The result of the store expression can be either saved in a store variable or sent down an output channel.
 
@@ -364,7 +364,7 @@ In order to achieve the lowest latency, an \ak\ synchroniser exploits a non-dete
 
 Once the transition has been taken and the associated actions have been executed, the synchroniser transitions to the destination state. In order to avoid transitioning to a state in which there are no ready input channels the synchroniser may be provided with a set of destinations to choose. In the synchroniser language this is expressed as a goto-clause with multiple destinations. The algorithm in Fig. \ref{fig:execod_alg} defines the ordering of the choices that a synchroniser makes during the execution.
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
@@ -446,12 +446,12 @@ The lexical and syntax analysers are implemented using PLY \cite{ply} - an imple
 
 
 \subsection{Lexical Analysis}
-  \subsubsection*{Lexical analyser}
+  \subsubsection{Lexical analyser}
 The lexical analyser reads the stream of characters making up the source program and groups the characters into lexemes. For each lexeme, the lexical analyser produces a token of the form $\langle name, \: value \rangle$, which it passes to the syntax analyser. For tokens that do not need the $value$, such as punctuation, reserved words and keywords, the second component is omitted. Those are given in Appendix \ref{sync_kw}.
 
 PLY implements the way in which traditional tools work. Specifically, the Python lex provides an external interface in the form of a \texttt{token()} function that returns the next valid token on the input stream. Token positional information, which is useful in the context of error handling, is managed by the Python yacc.
 
-  \subsubsection*{Preprocessor}
+  \subsubsection{Preprocessor}
 %%%
 %%% We removed macros from the language. The compiler must invoke a preprocessor to expand them.
 %%%
@@ -463,7 +463,7 @@ With the above implementation, configuration parameters do not have to be specif
 
 
 \subsection{Syntax Analysis}
-  \subsubsection*{Syntax alanyser}
+  \subsubsection{Syntax alanyser}
 The syntax analyser obtains a string of tokens from the lexical analyser and verifies that it can be generated by the grammar of the source language. The syntax analyser is expected to report syntax errors in an intelligible way and recover from common errors in order to continue processing of the remainder of the program. For well-formed programs, the syntax analyser constructs an intermediate representation of the program and passes it to the rest of the compiler for further processing. The $aksync$ implementation is based on the abstract syntax tree representation.
 
 The Python yacc generates a syntax-directed translator. Syntax-directed translation is done by attaching program fragments to productions in a grammar. The program fragment or so-called semantic action is executed when the production is used during syntax analysis. The combined result of these executions produces the intermediate representation of a program in the order induced by the syntax analysis. The Python yacc accepts source language syntax specification in context-free grammar form. The grammar for the synchroniser language is given in Appendix \ref{sync_syntax}.
@@ -477,7 +477,7 @@ The syntax error handling and recovery mechanism of PLY is similar to the one of
 %TODO: structure of the AST.
 %AST generator by Eli Bendersky with the reference.
 
-  \subsubsection*{Symbol table}
+  \subsubsection{Symbol table}
 Symbol tables are data structures used by compilers to hold information about identifiers coalesced from the program's source code. A semantic action puts information about identifier $x$ into the symbol table, when the declaration of $x$ is analysed, and uses it when necessary.
 
 The scope of a declaration is the portion of the program to which the declaration applies. In synchroniser code state and store variables are visible for all states and transitions. State expression aliases and pattern-matched variables are visible only within the current transition. We have implemented scopes using a chained symbol table approach described in \cite{dragonbook}. We set up a root symbol table for state and store variables and separate symbol tables for each transition. The tables are chained as illustrated in Fig. \ref{fig:symtab_chain}.
@@ -491,7 +491,7 @@ The scope of a declaration is the portion of the program to which the declaratio
 
 The symbol table implementation supports three operations: create new symbol table, put new entry in table and get entry for identifier from table. In the sequel, we refer to these operations as \emph{NewSymtab}(symtab), symtab.\emph{put}(\emph{ID, value}) and symtab.\emph{get}(\emph{ID}). The pseudo-code implementations of symtab.\emph{get} and symtab.\emph{put} are given in Fig. \ref{symtab_get} and Fig. \ref{symtab_put} respectively.
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
@@ -514,7 +514,7 @@ The symbol table implementation supports three operations: create new symbol tab
 
 The synchroniser language does not permit using of the reserved words (Appendix \ref{sync_kw}) as identifiers. This is checked before putting an identifier in the symbol table.
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
@@ -549,12 +549,13 @@ Static analysis includes:
 \item Type checking. The type rules of a language assure that an operator or function is applied to the right number and type of operands.
 \end{itemize}
 
-  \subsubsection*{Semantic checking}
+  \subsubsection{Semantic checking}
 In this section we describe the semantic checks that are not enforced by the grammar.
 
 The synchroniser language requires identifiers except for state expression aliases to be declared before they are used. Moreover, an identifier must be declared at most once in a scope. The channels, on which the transitions in the synchroniser are made, must be declared in the channel signature as well as the channels where messages are sent. In order to check those, we maintain three symbol tables for identifiers, input channels and output channels. The scheme given in Fig. \ref{synt_scheme} shows how the symbol tables are managed and used during the syntax analysis. The symbol tables are initialised before the syntax analyser runs, as shown in Fig. \ref{symtab_init}.
 
 The attribute \emph{type} is added to each entry in the symbol table. State variables are assigned type \emph{integer}. Non-integer variables, whose structure is unknown, are assigned a special type \emph{void}, which stands for a variable CAL term. A detailed information about the synchroniser language type system is provided in section \ref{type_check}.
+
 
 \begin{figure}[h!]
 \noindent\fbox{%
@@ -587,7 +588,7 @@ Production & Semantic Action\\
 
 ~~\tangled{|} \iangled{output} [\tangled{,} \iangled{output}]* \tangled{)} \tangled{\{} \iangled{decl}* \iangled{state}$^+$ \tangled{\}}
 } & \parbox{0.5\textwidth}{
-/* \emph{synch} is the abstract syntax tree of the source code.  */
+/* \emph{synch} holds the abstract syntax tree of the processed source code.  */
 }\\
 
 \hline
@@ -728,7 +729,7 @@ The synchroniser compiler checks if the transition diagram of a synchroniser is 
 
 A synchroniser program must have the state labeled \tangled{start}. The existence of this state is checked once the $StateSet$ is constructed.
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
@@ -775,7 +776,7 @@ The synchroniser language provides two types of state variable: an integer of th
 
 %The width  decreases the number of possible states of a synchroniser. At low level state variables are machine- and target language- depedent integers.
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 \centering
 \begin{tabular}{|c|c|}
 \hline
@@ -795,17 +796,19 @@ For a state expression that evaluates to an integer we can check if the computed
 
 %Check if the range condition is valid at least for assignments (int(1) x = 10 is not good, should issue a warning, check what would be assigned to x in C). For the state expressions that evaluate during the execution of the synchroniser it's probably ok to delegate the overflow checks to the C compiler.
 
+%The grammar for integer expression used in our implementation of a synchroniser compiler (Appendix \ref{int_exp_gr}) is a simplified version of the C grammar for arithmetic expression.
 
+%TODO fix!
     \paragraph{Tests}
 We have developed a test suite for the semantic analyser. It uses the standard python unit testing framework \emph{unittest}. The tests expand the abstract syntax tree into a nested list and compare the result with the expected value.
 
 
-  \subsubsection*{Type checking}\label{type_check}
+  \subsubsection{Type checking\label{type_check}}
 The design of the type checker is based on information about the syntactic constructs in the language, the notion of types and the rules for assigning types to language constucts. The type of a language construct is denoted by a type expression. Informally, a type expression is either a basic type or the application of an operator called a type constructor to other type expressions. A collection of rules for assigning type expressions to language constructs is called a type system.
 
 The communication protocol of the \ak\ runtime system prototype supports only choices. When a synchroniser reads a message from its input channel, the record that belongs to the variant specified in the synchroniser transition is instantiated\footnote{this means that store variables cannot keep multiple variants}. We take this into account in implementing the type system of the synchroniser language. Because the synchronisers can read values only of the fields that are known to be integer, the basic types in the synchroniser language are integer and CAL variable. Integer is the type of state variable. CAL variables are building blocks for the only constructed type in the synchroniser language -- a record. A record is constructed by the concatenation of two records. The pseudo-code of the record constructor $||$ is given in Fig. \ref{rec_construc}. The record constructor is obviously commutative and associative.
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
@@ -839,7 +842,7 @@ The case when a label-value pair labeled $l$ exists in both operand records $r_1
 We describe the type systems in terms of grammar productions and corresponding semantic actions. The type systems for state and store expressions is given in Fig. \ref{ts_int_exp} and Fig. \ref{ts_data_exp} respectively. The synthesized attribute \emph{type} for an expression \iangled{E} gives the type of the expression assigned by the type system for the expression generated by \iangled{E}. The type system for statements is given in Fig. \ref{ts_stmt}. It assures that the left hand side can be assigned to.
 
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 %\begin{sidewaystable}
 \def\arraystretch{2} 
 \begin{tabular*}{1\textwidth}{p{0.5\textwidth}|p{0.5\textwidth}}
@@ -904,7 +907,7 @@ tmp.\emph{type} = \iangled{data\_exp}.\emph{type}
 
 
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 %\begin{sidewaystable}
 \def\arraystretch{2} 
 \begin{tabular*}{1\textwidth}{p{0.5\textwidth}|p{0.5\textwidth}}
@@ -975,7 +978,7 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 \end{figure}
 
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 %\begin{sidewaystable}
 \def\arraystretch{2} 
 \begin{tabular*}{1\textwidth}{p{0.5\textwidth}|p{0.5\textwidth}}
@@ -1082,18 +1085,18 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 
 
 \subsection{Code Generation}
-  \subsubsection*{Synchroniser runtime code}
+  \subsubsection{Synchroniser runtime code}
 The compiler generates a data structure that is passed to the \ak\ runtime system for the interpretation.
 
 
-  \subsubsection*{Synchroniser passport}
+  \subsubsection{Synchroniser passport}
 Synchronisers rely on both TPL and CAL for their definition. The CAL aspects of a synchroniser are confined to the CAL terms for its input and output channels. Those terms are not straightforward since they have to be fairly generic to match the broadest possible formats of producer and consumer messages involved in the act of synchronisation. On the other hand, the synchroniser passport is produced solely on the basis of the synchroniser code, exclusively by program analysis; the programmer does not supply an explicit passport for this.
 
 The first thing that requires CAL is the input interface. As mentioned above, the communication protocol of the \ak\ runtime system prototype supports only choices. The use of a variant on a channel in any transition on that channel immediately associates the \emph{choice} term structure with it. For example, a channel $a$ that is tested on variants \textbf{?}\emph{v} and \textbf{?}\emph{w} in transitions has a term comparable with \textbf{(:} \tangled{v}:\emph{\$vterm}, \tangled{w}:\emph{\$wterm} $||$ \emph{\$tail} \textbf{:)}, where the variables \emph{\$vterm} and \emph{\$wterm} represent the terms for variants \emph{v} and \emph{w} and \emph{\$tail} represents the choice term that contains the rest of the variants. If a choice is known to carry a single variant, the variant is labeled \emph{uniq}. A transition that does not specify a variant label expects a unique message variant.
 
-The symbol table for a transition maintains a special entry \tangled{this}. It holds the term of the message accepted by the transition. The algorithm in Fig. \ref{input_term} walks the synchroniser transitions and constructs the CAL input term for the synchroniser\footnote{The algorithm relies on the abstract syntax tree structure (see Appendix. \ref{ast_app})}.
+The symbol table for a transition maintains a special entry \tangled{this}. It holds the term of the message accepted by the transition. The algorithm in Fig. \ref{input_term} walks the synchroniser transitions and constructs the CAL input term for the synchroniser.
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
@@ -1151,7 +1154,7 @@ Since a choice is in fact a collection of label-record pairs, the constructor $|
 
 Now consider the output interface. The algorithm in Fig. \ref{output_term} collects the dispatches for every output channel and combines them into the output term of every output channel.
 
-\begin{figure}%[h!]
+\begin{figure}[h!]
 \noindent\fbox{%
 \begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
 \begin{algorithmic}[1]
@@ -1206,6 +1209,6 @@ The function $type(id)$ performs the symbol table lookup and returns the \emph{t
 In this chapter we have presented the language for \ak\ synchronisers. We have developed the language compiler that generates the CAL passport of the synchroniser. The message format in \ak\ is based on the Message Definition Language (MDL) with the restriction that data on streams are organised as collections of alternative records of label-value pairs. A value in a record can have any structure that is allowed by the MDL. The synchroniser that we have presented matches only a top-level structure of a message. The MDL generates a much broader set of terms than the current version synchroniser can synchronise; however, it needs to be elaborated whether the implementation of lower level synchronisation in synchronisers is useful for the real world applications.
 
 The current version of the language does not define flow inheritance in synchronisers. The synchroniser \emph{code} only needs to access the label-value parts of the message it matches. Thus, the flow inheritance should be supported outside of the synchroniser definition and the question how it should be done is left open.
+%Decide how to do flow inheritance in synchronisers. This will be done outside of synchronisers. Need to somehow specify which fields are inherited and which are not. In synchroniser transitions we can pick fields of an accepted message, with ehich we want to do something in synchroniser. However, there may be many fields in the message and some of them do not need to be inherited. In theory we could pick all the fields that we want to inherit along with the fields we want to work with, and them concat them and send them to then output channel. But there may be too many to specify manually for eack transition in the synchroniser caused by the channel.
 
 The compiler we have implemented does not optimise the code deeply. We have only implemented an elimination of unused states. However, a broader set of dead code elimination optimisations can be implemented\footnote{E.g. a conditional transition can be eliminated if its condition always evaluates to \emph{false}}.
-
