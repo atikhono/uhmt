@@ -1144,7 +1144,7 @@ The symbol table for a transition maintains a special entry \tangled{this}. It h
 
 Since a choice is in fact a collection of label-record pairs, the constructor $||$ (Fig. \ref{rec_construc}) can be applied for choices. When \emph{InputTerm} contains a label-value pair (\tangled{v},\:$value$) and the label \tangled{v} occurs in another transition, the union $||$ of these two choices results in the following:
 \begin{IEEEeqnarray}{rCl}
-& union \: (\textbf{(:}\: \tangled{v}:\$vterm_1 \;|\; \$tail_1 \:\textbf{:)}, \; \textbf{(:}\: \tangled{v}:\$vterm_2 \;|\; \$tail_1 \:\textbf{:)})\nonumber\\
+& union \: (\textbf{(:}\: \tangled{v}:\$vterm_1 \;|\; \$tail_1 \:\textbf{:)}, \; \textbf{(:}\: \tangled{v}:\$vterm_2 \;|\; \$tail_2 \:\textbf{:)})\nonumber\\
 =& \textbf{(:}\: \tangled{v}:union \: (\$vterm_1,\:\$vterm_2) \;|\; (\$tail_1 \;||\; \$tail_2) \:\textbf{:)}\nonumber
 \end{IEEEeqnarray}
 
