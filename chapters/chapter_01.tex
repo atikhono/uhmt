@@ -1,7 +1,7 @@
 %Kahn's fixed-point semantics:
 %A network of continous functions is continous
 \chapter{Foundations and Related Work}\label{chap_found}
-In this chapter we provide relevant theoretical background in coordination programming and stream processing. We pick a recent component-system example from each field. Then, we descride the combined approaches to coordination programming and stream processing, implemented in \textsc{S-Net} and \ak\, and explain the concepts behind \ak\ in more detail. We sum up the chapter with a comparisson of the four components systems, including their approaches to synchronisation.
+In this chapter we provide relevant theoretical background in coordination programming and stream processing. We pick a recent component-system example from each field. Then, we describe the combined approaches to coordination programming and stream processing, implemented in \textsc{S-Net} and \ak\, and explain the concepts behind \ak\ in more detail. We sum up the chapter with a comparison of the four components systems, including their approaches to synchronisation.
 
 
 %Approaches to synchronisation.
@@ -21,13 +21,13 @@ Opposite to the data-driven coordination model, the control-driven coordination 
 \item \textbf{Lossy Sync} Same as \emph{Sync}, but data can be lost if the output is not ready to accept data
 \item \textbf{FIFO(n)} A channel of type \emph{FIFO(n)} gets data from the input, temporarily stores it in an internal buffer of size $n$, and propagates it to the output whenever it is ready to accept the data
 \item \textbf{Sync Drain} A channel of type \emph{Sync Drain} atomically gets data from both inputs and loses it
-\item \textbf{Filter(c)} A channel of type \emph{Filter(c)} atomically gets data from the input and propagates it to the output if the filter condition $c$ is satified. Otherwise, the data are lost.
+\item \textbf{Filter(c)} A channel of type \emph{Filter(c)} atomically gets data from the input and propagates it to the output if the filter condition $c$ is satisfied. Otherwise, the data are lost.
 \end{itemize}
 Channels are connected with \emph{nodes}. Nodes have fixed merger-replicator behaviour: the data of one of the incoming channels is propagated to all outgoing channels, without storing or altering it. If multiple incoming channels can provide data, the node makes a nondeterministic choice among them. A complex connector in \textsc{Reo} is represented as an undirected graph of channels and nodes. C. Baier et al. propose \emph{constraint automata} as an operational model for component connectors in \textsc{Reo} \cite{baier_ca}.
 
 
     \section{Stream Processing}
-A stream processing system is a system comprised of a collection of isolated processes that compute in parallel and communicate data solely via static channels. The processes are ususally divided into three classes: sources that create data for the system, filters that perform some computation, and sinks that pass data from the system. Stream processing systems are usually visualised as directed graphs.
+A stream processing system is a system comprised of a collection of isolated processes that compute in parallel and communicate data solely via static channels. The processes are usually divided into three classes: sources that create data for the system, filters that perform some computation, and sinks that pass data from the system. Stream processing systems are usually visualised as directed graphs.
 
 An overview of stream processing is given in the survey by R. Stephens \cite{stephens97}. Stephens identifies that the earliest type of stream processing systems is dataflow. In the first dataflow programming language \textsc{Lucid} \cite{lucid}, each variable is represented as an infinite stream of values. Computation is carried out by defining transformation functions that process such streams. Lucid is possibly the first language to introduce the idea of filter.
 
@@ -68,7 +68,7 @@ Data on streams are organised as variant records of label-value pairs. \textsc{S
 
 \ak\ provides a facility for stream synchronisation in the form of a special component called a \emph{synchroniser}. The behaviour of the synchroniser is not fixed; instead, it is defined in a dedicated language that is a part of \ak\ paradigm. An \ak\ box generally is not SISO. Typically it has a single input channel, however, the number of output channels, although statically known, is not restricted. Similar to \textsc{S-Net}, boxes are stateless, hence they do not synchronise data; this work is done by synchronisers.
 
-\ak\ structures streaming networks using a total of four combinators, namely: the serial connection, the parallel connection, the wrap-around connection and the serial replication. Network combinators may take either boxes or networks as their operands, hence the network construction is an inductive proccess. 
+\ak\ structures streaming networks using a total of four combinators, namely: the serial connection, the parallel connection, the wrap-around connection and the serial replication. Network combinators may take either boxes or networks as their operands, hence the network construction is an inductive process. 
 
 Note that \ak\ does not have the parallel replication combinator which exists in \textsc{S-Net}. Thanks to the statelessness of boxes, the parallel replication can be implemented with the serial replication combinator. The routing of messages is managed by an array of synchronisers that are indexed within the declared limits.
 
@@ -82,7 +82,7 @@ Segmentation marks can be thought of as brackets. \ak\ requires that a stream of
 \[
 \underbrace{)\ldots)}_k \underbrace{(\ldots(}_k\,,
 \]
-where $k \le d$, and $d$ is the number of opening brackets in the beginning of the stream. This combination consitutes the segmentation mark $\sigma_k$. The bracketing depth $d \ge 0$ is a static characteristic of a channel\footnote{Indeed, the bracketing depth of a channel that would carry the stream of message lists
+where $k \le d$, and $d$ is the number of opening brackets in the beginning of the stream. This combination constitutes the segmentation mark $\sigma_k$. The bracketing depth $d \ge 0$ is a static characteristic of a channel\footnote{Indeed, the bracketing depth of a channel that would carry the stream of message lists
 \[
 (((\;a\underbrace{)(}_{\sigma_1}b\underbrace{))((}_{\sigma_2}c\underbrace{)(}_{\sigma_1}d\;)))
 \]
@@ -102,7 +102,7 @@ A transductor has one input channel and one or more output channels and responds
 \item[Inductor]
 An inductor has one input channel and one or more output channels and responds to a single message from the input channel with a sequence of messages on each of its output channels. Before the input stream is passed to the inductor, each $\sigma_k$ in it with $k > 0$ is replaced by $\sigma_{k+1}$, and a $\sigma_1$ is inserted between every two consecutive data messages. Segmentation marks are bypassed from the input to all the output channels by the coordinator when encountered at the input of the inductor.
 
-\item[Reductor] A reductor implements the reduction operation for a list of input messages. The reductors can have more than one output channel with one of them reserved for the results of the reduction. \ak\ classifes reductors by the number of input channels and properties of the reduction operation they implement. There exist five classes of reductor:
+\item[Reductor] A reductor implements the reduction operation for a list of input messages. The reductors can have more than one output channel with one of them reserved for the results of the reduction. \ak\ classifies reductors by the number of input channels and properties of the reduction operation they implement. There exist five classes of reductor:
 
     \begin{description}
     \item[Dyadic ordered] A dyadic ordered reductor has two input channels. The first input channel is reserved for the initial value. The reduction operator is applied to the messages in the order that they arrive on the second input channel
@@ -121,11 +121,11 @@ Synchronisers are non-deterministic finite state machines for joining messages a
 
 A synchroniser can have any number of input and output channels. Unlike boxes, synchronisers maintain an internal state and generally accept messages from an input channel in certain states, while in another state the channel may be blocked until a state transition brings the synchroniser to a state in which messages from the channel are accepted.
 
-A synchroniser can also compute trivial extensions for messages. For example, it can append a labeled integer value to a message. It also detects segmantation marks in a an input stream and can change the segmentation of the stream by sending segmentation marks to the output channels.
+A synchroniser can also compute trivial extensions for messages. For example, it can append a labeled integer value to a message. It also detects segmentation marks in an input stream and can change the segmentation of the stream by sending segmentation marks to the output channels.
 
 The state transitions of a synchroniser can depend on the content of the current message but never on that of a stored one. In order for the synchroniser to read values from the current message, it is matched with a pattern specified within the triggering condition of the transition. In addition, the triggering condition may check the matched values if they are known to be integers. If the message was matched and the integer values satisfy the condition, then the transition fires.
 
-The act of sending a message to an output channel is associated with a transition. Once the transition is known to fire, the synchroniser computes the message extensitons, combines all the parts of the message together and sends it on to the output channel.
+The act of sending a message to an output channel is associated with a transition. Once the transition is known to fire, the synchroniser computes the message extensions, combines all the parts of the message together and sends it on to the output channel.
 
 \ak\ provides a dedicated language of synchronisers.
 %If a continous synchronisation is desired, the synchroniser must be programmed so that it looped around some state.
@@ -200,7 +200,7 @@ As the result of the refinement, \ak\ is presented as a paradigm with the follow
 
 
     \section{Summary}
-Earlier on we reviewed recent component systems based on coordination programming (\textsc{Reo}) and stream processing (\textsc{StreamIt, S-Net}), and described the approach to component coordination being developed within the \ak\ project. The stream processing based approaches \textsc{StreamIt}, \textsc{S-Net} and \ak\ impose structuring on networks with fixed sets of combinators, while the coordination language \textsc{Reo} only supports unstructured component connection. In \textsc{Reo}, the computational components are connected into a network with complex connectors that are constructed of channels typed with respect to their synchronisation properties. Just like the \textsc{Reo}'s approach to data synchronisation, \textsc{S-Net} achieves a near-complete separation of concerns between computation and communication. However, in \textsc{S-Net}, a computational component's interface is restricted to SISO. Addinionally, \textsc{S-Net} provides a stream synchronisation facility called synchrocell. \ak\ does not introduce the restriction for computational components. Instead, \ak\ provides a more complex stream synchronisation facility. Unlike the \textsc{Reo} connector or the \textsc{S-Net} synchrocell, the \ak\ synchroniser is able to process messages, e.g. read and change their content to some extent. With synchronisers, \ak\ achieves a separation of concerns between computation and communication. Similar to \textsc{S-Net}, the computational components in \textsc{StreamIt} are SISO. Moreover, \textsc{StreamIt} is based on the synchronous dataflow model, where neighbouring components communicate synchronously.
+Earlier on we reviewed recent component systems based on coordination programming (\textsc{Reo}) and stream processing (\textsc{StreamIt, S-Net}), and described the approach to component coordination being developed within the \ak\ project. The stream processing based approaches \textsc{StreamIt}, \textsc{S-Net} and \ak\ impose structuring on networks with fixed sets of combinators, while the coordination language \textsc{Reo} only supports unstructured component connection. In \textsc{Reo}, the computational components are connected into a network with complex connectors that are constructed of channels typed with respect to their synchronisation properties. Just like the \textsc{Reo}'s approach to data synchronisation, \textsc{S-Net} achieves a near-complete separation of concerns between computation and communication. However, in \textsc{S-Net}, a computational component's interface is restricted to SISO. Additionally, \textsc{S-Net} provides a stream synchronisation facility called synchrocell. \ak\ does not introduce the restriction for computational components. Instead, \ak\ provides a more complex stream synchronisation facility. Unlike the \textsc{Reo} connector or the \textsc{S-Net} synchrocell, the \ak\ synchroniser is able to process messages, e.g. read and change their content to some extent. With synchronisers, \ak\ achieves a separation of concerns between computation and communication. Similar to \textsc{S-Net}, the computational components in \textsc{StreamIt} are SISO. Moreover, \textsc{StreamIt} is based on the synchronous dataflow model, where neighbouring components communicate synchronously.
 
 In order to support dynamic reconfiguration of streaming networks, \textsc{S-Net} and \ak\ require computational components to have no state. A heuristic scheduler that utilises positive and negative demands of the stream communication was developed for \textsc{S-Net} in \cite{nga}. The ability to dynamically reconfigure a streaming network opens opportunities for parallelisation. The long-term goal of the \ak\ project is to provide a self-regulating concurrency mechanism based on communicational demand. \textsc{StreamIt} does not require the components to be stateless; it relies on the static scheduling of the synchronous data flow programs. Reo is clueless about the components it coordinates; it focuses on the components connection, rather then on the components themselves. In other words, the problem of automatic parallelisation is not set for both \textsc{StreamIt} and \textsc{Reo}.
 %

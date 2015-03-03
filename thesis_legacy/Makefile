@@ -31,7 +31,7 @@ show: cclean $(MAIN).pdf
 	open $(MAIN).pdf &
 
 clean:
-	rm -fr *.bbl *.blg *.aux *.log *.lof *.lot *.loa *.out *.toc *.dvi *~
+	rm -fr *.bbl *.blg *.aux *.log *.loc *.lof *.lot *.loa *.out *.toc *.dvi *~
 
 cclean: clean
 	rm -f $(MAIN).pdf

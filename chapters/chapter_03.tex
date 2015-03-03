@@ -1,11 +1,11 @@
 \chapter{Serial Replication in \ak\ }\label{chap_sr}
 %The serial replication combinator implements recursive computations and the loop construct with pipeline parallelism.
-In this chapter we explain the machinery behind the serial replication in \ak\ and the role of synchronisers in it. We introduce the concept of the forward fixed point for the replication pipeline and show how it is used to organise the output from the infinite chain of replicas. In order to supress the growth of the replica chain, we present the concept of the reverse fixed point and show how it is used to optimise some replicas at the head of the chain.
+In this chapter we explain the machinery behind the serial replication in \ak\ and the role of synchronisers in it. We introduce the concept of the forward fixed point for the replication pipeline and show how it is used to organise the output from the infinite chain of replicas. In order to suppress the growth of the replica chain, we present the concept of the reverse fixed point and show how it is used to optimise some replicas at the head of the chain.
 
 %First of all, the semantics of AstraKahn on the TPL is described in terms of structures put in place for the coordinator, i.e. a controlling agent, or indeed a group of agents, responsible for progress and communication of the KPN vertices.
 
     \section{\ak\ Approach to Serial Replication}
-The serial replication combinator creates a conceptually infinite number of copies of its operand network, and connects them in a chain. Replication is demand-driven: the replicas are created dynamically. A fresh replica is \emph{inactive}\footnote{More generally, we call a replica inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running}, hence it does not necessarily require significant resouces since \ak\ boxes are stateless and since synchronisers require no resouces in their start state\footnote{When a synchroniser transitions back to the start state, it flushes its store variables}. Indeed the cost of replication is only felt when the replicas are active, which is the case from the time that the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
+The serial replication combinator creates a conceptually infinite number of copies of its operand network, and connects them in a chain. Replication is demand-driven: the replicas are created dynamically. A fresh replica is \emph{inactive}\footnote{More generally, we call a replica inactive when all of its synchronisers are in their start states, none of its channels has messages in them and no box is running}, hence it does not necessarily require significant resources since \ak\ boxes are stateless and since synchronisers require no resources in their start state\footnote{When a synchroniser transitions back to the start state, it flushes its store variables}. Indeed the cost of replication is only felt when the replicas are active, which is the case from the time that the first message is received until all messages have left the replica and all its synchronisers have returned to their start states.
 
 In \textsc{S-Net}, the output from a replication pipeline is based on the record subtyping in the type system. The replication combinators in \textsc{S-Net} require the programmer to specify a termination pattern, so that each record that is a subtype of this pattern leaves the replication pipeline throught the output stream.
 
@@ -19,7 +19,65 @@ In \ak\, the output from the replication pipeline is defined using the concept o
 
 The number of iterations $n$ needed to reach the fixed point is not known in advance, meaning that in order to utilize the fixed point as shown in Fig. \ref{fig:fp}, \ak\ must be able to detect the fixed point message right at the time it is produced by the $n$-th replica or later. Therefore, similar to \textsc{S-Net}, \ak\ needs to be provided with a pattern that matches all the fixed point messages of the operand network. In \textsc{S-Net}, the serial replication combinator requires this pattern as one of its operands; by contrast, in \ak\ the pattern is required to be deduced from the operand network be compiler analysis.
 
-The chain of replicas grows as the computation progresses, however, in the example in Fig. \ref{fig:fp} the computation is carried out only by a single replica in the tail of the chain. The replicas in the head of the chain have processed the message and are not used anymore. In order to suppress the growth of the chain, \ak\ must detect such replicas and optimise the connection by removing them. Since \ak\ boxes are stateless, an operand network can have a state that is fully defined by the states of its synchronisers. A replica of the operand network can be removed from the chain safely iff the replica is in a state, in which it forwards any message without change, i.e. any message it receives is its fixed point. We will call such a state of the replica a reverse fixed point state.
+The chain of replicas grows as the computation progresses, however, in the example in Fig. \ref{fig:fp} the computation is carried out only by a single replica in the tail of the chain. The replicas in the head of the chain have processed the message and are not used anymore. In order to suppress the growth of the chain, \ak\ must detect such replicas and optimise the connection by removing them. Since \ak\ boxes are stateless, an operand network can have a state that is fully defined by the states of its synchronisers. A replica of the operand network can be removed from the chain safely if the replica is in a state, in which it forwards any message without change, i.e. any message it receives is its fixed point. We will call such a state of the replica a reverse fixed point state.
+
+
+    \subsection*{\added{Motivating Example}}
+
+A function that computes a total sum of integer values stored under label $x$ in incoming messages.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.8]{figs/chapter_04_fp_example.pdf}
+\caption{A motivating example for forward and reverse fixed points}
+\label{fig:fp_examp}
+\end{figure}
+
+
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.8]{figs/chapter_04_fp_example_b.pdf}
+\caption{Schematic box code for the motivating example (Fig. \ref{fig:fp_examp})}
+\label{fig:fp_examp_b}
+\end{figure}
+
+\begin{figure}[h!]
+\begin{lstlisting}[frame=single]
+synch S (x | a, b)
+{
+  store ma:a;
+  start {
+    on:
+      a.(x || t) & [x == 3] {
+        send this => b;
+      }
+      a.(x || t) {
+        set ma = x:[x];
+        goto s1;
+      }
+  }
+  s1 {
+    on:
+      a.(x || t) {
+        send ma || y:[x] => a;
+        goto rfp;
+      }
+  }
+  rfp {
+    on:
+      a {
+        send this => b;
+        goto rfp;
+      }
+  }
+}
+\end{lstlisting}
+\caption{The synchroniser S}
+\label{ffp:synch_s}
+\end{figure}
+
+
+
 
 In the remainder of the chapter we will give formal definitions of a fixed point message and a reverse fixed point state, and will provide algorithms for the \ak\ compiler to detect them. In the sequel, we will call a fixed point message a forward fixed point.
 
@@ -47,7 +105,7 @@ The condition $P$ may not be unique for each network, and when it is not, the fi
 \label{fig:ffp}
 \end{figure}
 
-Apart from all the paths that traverse boxes, the operand network $N$ has a unique path $[s_1, \: s_2, \: s_3]$ that traverses only synchronisers. The synchroniser $s_2$ has two transitions that loop around the start state and send on messages they accept unchanged with the firing conditions $p^{1}_2$ and $p^{2}_2$. A message $m$ is a fixed point for the synchroniser $s_2$ when it satisties any of these conditions, i.e. $p^{1}_2(m) \lor p^{2}_2(m)$ is true. The synchronisers $s_1$ and $s_3$ have fixed point conditions $p_1$ and $p_3$ respectively. Then the fixed point condition of the network $N$ is $p_1 \land (p^{1}_2 \lor p^{2}_2) \land p_3$.
+Apart from all the paths that traverse boxes, the operand network $N$ has a unique path $[s_1, \: s_2, \: s_3]$ that traverses only synchronisers. The synchroniser $s_2$ has two transitions that loop around the start state and send on messages they accept unchanged with the firing conditions $p^{1}_2$ and $p^{2}_2$. A message $m$ is a fixed point for the synchroniser $s_2$ when it satisfies any of these conditions, i.e. $p^{1}_2(m) \lor p^{2}_2(m)$ is true. The synchronisers $s_1$ and $s_3$ have fixed point conditions $p_1$ and $p_3$ respectively. Then the fixed point condition of the network $N$ is $p_1 \land (p^{1}_2 \lor p^{2}_2) \land p_3$.
 
 Definition \ref{ffp_def} requires the synchronisers that traverse the fixed point path to transition back to the start state after the fixed point message has been sent to the output channel. This restriction can be relaxed, however, in this case the programmer would have to maintain transitions that check the fixed point condition in every state of each synchroniser along the path.
 %or at least in a closed subset of states
@@ -89,7 +147,7 @@ synch $S^{(j)}$ ($x'^{(j-1)}$ | $x'^{(j)}$, $x'$)
 \label{ffp:synch_filt}
 \end{figure}
 
-The merger $M'$ gathers messages that do not satisty the fixed point condition from all synchronisers $S^{(j)}$ between two consecutive replicas of $N$ and forwards them to the input channel of the next replica. The merger $M$ gathers messages that satisfy the fixed point condition $P$ and forwards the messages to the output channel $x$ of the serial replication network $N^{*}$.
+The merger $M'$ gathers messages that do not satisfy the fixed point condition from all synchronisers $S^{(j)}$ between two consecutive replicas of $N$ and forwards them to the input channel of the next replica. The merger $M$ gathers messages that satisfy the fixed point condition $P$ and forwards the messages to the output channel $x$ of the serial replication network $N^{*}$.
 
 %An FPS is a form of replication wiring whereby an infinite chain of replicas is created, connected in series. The connection is denoted as A* for any operand network A and can be thought of as the equivalent of $A^{*} = A'..A'..A'.. \dots$ where $A'$, called the streamlining of the vertex A, is a network that contains A and provides some additional wiring to ensure that each output channel of A? matches an input channel and vice versa. We will dwell on the streamlining procedure a little further down, and at this point only remark that if all output channels of A match its input channels bijectively, A' = A.
 
@@ -306,7 +364,7 @@ The fixed point detection algorithm runs only on acyclic networks. The wrap-arou
     \subsection{Discussion}
 The approach we have presented relies on the ability of synchronisers to encode some checks of the message content and perform different actions depending on the result of a check. As the analysis in previous sections shows, the construction of an operand network with a complex fixed point condition can be quite complicated. In order to avoid having to construct complicated operand networks, we provide an additional fixed point detection strategy that relies on a special port wiring primitive $P$ that transmits messages immediately from one port to another without storing them. The programmer now has to make sure that the fixed point messages are detected within the operand network\footnote{It can be done in a box} and sent to $P$. The messages cascade through all the active replicas via a chain of $P$ wires and leave the replication network when they encounter an inactive replica. The example in Fig. \ref{fig:ffp_new} demonstrates how the approach works.
 
-The operand network $A$ in Fig. \ref{fig:ffp_new} has a single input port $x$ and two output ports. The output port $x$ is intended for the messages that proceed to the the next replica of $A$ in the chain, and the output port $x'$ is a auxiliary port for the messages that are supposed to leave the replication pipeline. The serial replication network $A^{*}$ has a single input and a single output port both named $x$. During the compilation, the operand network $A$ is encapsulated into the special network $N$ it as shown in Fig. \ref{fig:ffp_new}. The network $N$ inherits all the ports from $A$ and adds the corresponding input port $x'$. The input and output ports $x'$ of $N$ are connected with the wiring primitive $P$. The output and the input ports $x'$ of the consequent replicas of $N$ are connected with the wiring primitive $P$ as well.
+The operand network $A$ in Fig. \ref{fig:ffp_new} has a single input port $x$ and two output ports. The output port $x$ is intended for the messages that proceed to the next replica of $A$ in the chain, and the output port $x'$ is a auxiliary port for the messages that are supposed to leave the replication pipeline. The serial replication network $A^{*}$ has a single input and a single output port both named $x$. During the compilation, the operand network $A$ is encapsulated into the special network $N$ it as shown in Fig. \ref{fig:ffp_new}. The network $N$ inherits all the ports from $A$ and adds the corresponding input port $x'$. The input and output ports $x'$ of $N$ are connected with the wiring primitive $P$. The output and the input ports $x'$ of the consequent replicas of $N$ are connected with the wiring primitive $P$ as well.
 \begin{figure}[h!]
 \centering
 \includegraphics[scale=0.8]{figs/chapter_04_ffp_new.pdf}

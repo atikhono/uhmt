@@ -137,7 +137,7 @@ Once a transition is known to fire, optional actions may be performed before the
 This section gives an overview of the \ak\ synchroniser programming language. The formal grammar of the \ak\ synchroniser is provided in Appendix \ref{sync_syntax}.
 
   \subsubsection*{Program structure}
-A synchroniser program consists of a header followed by a body wrapped in braces. The begining of a synchroniser program is indicated by the keyword $synch$.
+A synchroniser program consists of a header followed by a body wrapped in braces. The beginning of a synchroniser program is indicated by the keyword $synch$.
 
 The header contains the synchroniser's name and the channel signature. The name is an ASCII string that follows the C convention.
 
@@ -172,16 +172,16 @@ The output channels of a synchroniser are guaranteed to have the bracketing dept
 %% TODO! Add about state and store variables initialisation.
 %% state int(8) a, b=1, c=8; // assignes a=0 b=1 c=9
 %% enum (a,b,c) foo, bar=a;  // assignes foo=0 bar=a
-The start of a state variables declaration is marked by the keyword $state$. A state variable may be either an unsigned integer of some size or a C-style enumeration. State and store variable names are user-defined indentifiers. A user-defined identifier is an ASCII string that follows the C convention.
+The start of a state variables declaration is marked by the keyword $state$. A state variable may be either an unsigned integer of some size or a C-style enumeration. State and store variable names are user-defined identifiers. A user-defined identifier is an ASCII string that follows the C convention.
 
 Line 1 in Fig. \ref{sync_statevar} declares state variables $a$, $b$, $c$ of size 4. Thus, all three variables are declared to have integer values in the range $[0; 15]$. Generally, a state variable of size $n$ has integer values in the range $[0; 2^{n}-1]$. State variable $c$ is initialised with an integer value 0.
 
-The state variable $foo$ that is declared on the line 2 in Fig. \ref{sync_statevar} can only be assigned the values $d$, $e$ and $f$ specified in the enumeration. The enumeration values are integer constants. If they are not specified explicitly, they are assigned consequtive positive integers starting with 0.
+The state variable $foo$ that is declared on the line 2 in Fig. \ref{sync_statevar} can only be assigned the values $d$, $e$ and $f$ specified in the enumeration. The enumeration values are integer constants. If they are not specified explicitly, they are assigned consecutive positive integers starting with 0.
 %The width of the $int$ type is $\lceil \log_{2}{n} \rceil + 1$, where $n$ is the number of values in the enumeration.
 Thus, the variable $foo$ has integer values $d=0$, $e=1$ and $f=2$. % of the width $\lceil \log_{2}{3} \rceil + 1 = 3$. If the values are specified explicitly, the width is determined as $\lceil \log_{2}{(m+1)} \rceil + 1$, where $m$ is the biggest value in the enumeration. For the variable $bar$ declared in line 3 of Fig. \ref{sync_statevar} $m=4$ and the width is $\lceil \log_{2}{(5)} \rceil + 1 = 4$.
 
 
-The values can be specifed explicity (see line 3 in Fig. \ref{sync_statevar})
+The values can be specified explicitly (see line 3 in Fig. \ref{sync_statevar})
 
 Integer state variables and enum values can be mixed freely in state expressions. Enum values are interpreted as integer constants.%read-only integer state variables. % constant integers!
 
@@ -203,7 +203,7 @@ All the state and store variables are global to all the states.
 
 
   \subsubsection*{States and transitions}
-States and transitions of the synchroniser define which channels are read and in what order. Fig. \ref{zip_struc} presents the code of the binary zip synchroniser's state machine. Line 1 declares the start state of the synchroniser. The $on$ clause indicates the beginning of the transition list. In the start state the zip2 synchroniser acceptes messages from both input channels $a$ and $b$. State and store expressions associated with the transition and the destination state are specified in the braces.
+States and transitions of the synchroniser define which channels are read and in what order. Fig. \ref{zip_struc} presents the code of the binary zip synchroniser's state machine. Line 1 declares the start state of the synchroniser. The $on$ clause indicates the beginning of the transition list. In the start state the zip2 synchroniser accepts messages from both input channels $a$ and $b$. State and store expressions associated with the transition and the destination state are specified in the braces.
 
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
@@ -226,10 +226,10 @@ s2 {
 \label{zip_struc}
 \end{figure}
 
-When the zip2 synchroniser is in the start state and it receives a message from channel $a$, the underlying state machine transitions to state $s1$. In this state the synchroniser can only receive messages from channel $b$ since there's no transition triggered by channel $a$ and defined in this state. When the message on channel $b$ is received, the state machine transitions to the start state. Lines 10-13 define similar behaviour in state $s2$.
+When the zip2 synchroniser is in the start state and it receives a message from channel $a$, the underlying state machine transitions to state $s1$. In this state the synchroniser can only receive messages from channel $b$ since there is no transition triggered by channel $a$ and defined in this state. When the message on channel $b$ is received, the state machine transitions to the start state. Lines 10-13 define similar behaviour in state $s2$.
 
 %% Change 'scopes'. 'Blocks' probably
-The synchroniser language supports top-down prioritised transition scopes. They are marked by the $elseon$ keyword. A synchroniser in state $foo$ in Fig. \ref{sync_scope} acceptes messages from channels connected to the ports $a$, $b$, $c$ and $d$. When no destination state is specified for a transition, a synchroniser transitions to the current state. If all channels are ready at the same time in state $foo$, the synchroniser processes messages from either channel $a$ or $b$ first. When all messages from channels $a$ and $b$ are processed the synchroniser receives messages from channel $c$. If there're no messages in channels $a$, $b$ and $c$ the synchroniser receives messages from channel $d$.
+The synchroniser language supports top-down prioritised transition scopes. They are marked by the $elseon$ keyword. A synchroniser in state $foo$ in Fig. \ref{sync_scope} accepts messages from channels connected to the ports $a$, $b$, $c$ and $d$. When no destination state is specified for a transition, a synchroniser transitions to the current state. If all channels are ready at the same time in state $foo$, the synchroniser processes messages from either channel $a$ or $b$ first. When all messages from channels $a$ and $b$ are processed the synchroniser receives messages from channel $c$. If there are no messages in channels $a$, $b$ and $c$ the synchroniser receives messages from channel $d$.
 
 \begin{figure}[h!]
 \lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
@@ -463,12 +463,12 @@ With the above implementation, configuration parameters do not have to be specif
 
 
 \subsection{Syntax Analysis}
-  \subsubsection*{Syntax alanyser}
+  \subsubsection*{Syntax analyser}
 The syntax analyser obtains a string of tokens from the lexical analyser and verifies that it can be generated by the grammar of the source language. The syntax analyser is expected to report syntax errors in an intelligible way and recover from common errors in order to continue processing of the remainder of the program. For well-formed programs, the syntax analyser constructs an intermediate representation of the program and passes it to the rest of the compiler for further processing. The $aksync$ implementation is based on the abstract syntax tree representation.
 
 The Python yacc generates a syntax-directed translator. Syntax-directed translation is done by attaching program fragments to productions in a grammar. The program fragment or so-called semantic action is executed when the production is used during syntax analysis. The combined result of these executions produces the intermediate representation of a program in the order induced by the syntax analysis. The Python yacc accepts source language syntax specification in context-free grammar form. The grammar for the synchroniser language is given in Appendix \ref{sync_syntax}.
 
-The syntax error handling and recovery mechanism of PLY is similar to the one of Unix's yacc. During syntax analysis when a syntax error is detected the analyser switches to recovery mode in order to continue futher analysis to detect the remaining errors. In our implementation we do not use recovery mode. Instead, we focus on reporting an error in the best possible way. We augment the grammar for the language with productions that generate erroneous constructs. The Python yacc provides a special token \texttt{error} that acts as a wildcard for any erroneous input. An analyser constructed from a grammar augmented by these error productions is useful for detecting anticipated errors.
+The syntax error handling and recovery mechanism of PLY is similar to the one of Unix's yacc. During syntax analysis when a syntax error is detected the analyser switches to recovery mode in order to continue further analysis to detect the remaining errors. In our implementation we do not use recovery mode. Instead, we focus on reporting an error in the best possible way. We augment the grammar for the language with productions that generate erroneous constructs. The Python yacc provides a special token \texttt{error} that acts as a wildcard for any erroneous input. An analyser constructed from a grammar augmented by these error productions is useful for detecting anticipated errors.
 
 %This includes supporting LALR(1) parsing as well as providing extensive input validation, error reporting, and diagnostics.
 
@@ -801,7 +801,7 @@ We have developed a test suite for the semantic analyser. It uses the standard p
 
 
   \subsubsection*{Type checking}\label{type_check}
-The design of the type checker is based on information about the syntactic constructs in the language, the notion of types and the rules for assigning types to language constucts. The type of a language construct is denoted by a type expression. Informally, a type expression is either a basic type or the application of an operator called a type constructor to other type expressions. A collection of rules for assigning type expressions to language constructs is called a type system.
+The design of the type checker is based on information about the syntactic constructs in the language, the notion of types and the rules for assigning types to language constructs. The type of a language construct is denoted by a type expression. Informally, a type expression is either a basic type or the application of an operator called a type constructor to other type expressions. A collection of rules for assigning type expressions to language constructs is called a type system.
 
 The communication protocol of the \ak\ runtime system prototype supports only choices. When a synchroniser reads a message from its input channel, the record that belongs to the variant specified in the synchroniser transition is instantiated\footnote{this means that store variables cannot keep multiple variants}. We take this into account in implementing the type system of the synchroniser language. Because the synchronisers can read values only of the fields that are known to be integer, the basic types in the synchroniser language are integer and CAL variable. Integer is the type of state variable. CAL variables are building blocks for the only constructed type in the synchroniser language -- a record. A record is constructed by the concatenation of two records. The pseudo-code of the record constructor $||$ is given in Fig. \ref{rec_construc}. The record constructor is obviously commutative and associative.
 
