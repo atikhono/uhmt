@@ -17,14 +17,16 @@ In \ak\, the output from the replication pipeline is defined using the concept o
 \label{fig:fp}
 \end{figure}
 
-The number of iterations $n$ needed to reach the fixed point is not known in advance, meaning that in order to utilize the fixed point as shown in Fig. \ref{fig:fp}, \ak\ must be able to detect the fixed point message right at the time it is produced by the $n$-th replica or later. Therefore, similar to \textsc{S-Net}, \ak\ needs to be provided with a pattern that matches all the fixed point messages of the operand network. In \textsc{S-Net}, the serial replication combinator requires this pattern as one of its operands; by contrast, in \ak\ the pattern is required to be deduced from the operand network be compiler analysis.
+The number of iterations $n$ needed to reach the fixed point is not known in advance, meaning that in order to utilize the fixed point as shown in Fig. \ref{fig:fp}, \ak\ must be able to detect the fixed point message right at the time it is produced by the $n$-th replica or later. Therefore, similar to \textsc{S-Net}, \ak\ needs to be provided with a pattern that matches all the fixed point messages of the operand network. In \textsc{S-Net}, the serial replication combinator requires this pattern as one of its operands; by contrast, in \ak\ the pattern is required to be deduced from the operand network by compiler analysis.
 
 The chain of replicas grows as the computation progresses, however, in the example in Fig. \ref{fig:fp} the computation is carried out only by a single replica in the tail of the chain. The replicas in the head of the chain have processed the message and are not used anymore. In order to suppress the growth of the chain, \ak\ must detect such replicas and optimise the connection by removing them. Since \ak\ boxes are stateless, an operand network can have a state that is fully defined by the states of its synchronisers. A replica of the operand network can be removed from the chain safely if the replica is in a state, in which it forwards any message without change, i.e. any message it receives is its fixed point. We will call such a state of the replica a reverse fixed point state.
+
+In the remainder of the chapter we will give formal definitions of a fixed point message and a reverse fixed point state, and will provide algorithms for the \ak\ compiler to detect them. In the sequel, we will call a fixed point message a forward fixed point.
 
 
     \subsection*{\added{Motivating Example}}
 
-A function that computes a total sum of integer values stored under label $x$ in incoming messages.
+The serial replication network $f^{*}$ in Fig. \ref{fig:fp_examp} computes a total sum of integer values that are stored under label $x$ in incoming messages while the sum is less than some integer value $n$. The network has one input and one output channel $x$. Although the synchronisation can be done by variants, for the sake of simplicity we consider that the input message has a unique variant and, thus, the message format of the operand network $f$ is (: \textbf{uniq}: \{\textbf{x}:\emph{Int}\} :). In order to compute a sum, the value stored under label $x$ has to be extracted out of two input messages, so the network has to preserve a state by keeping the message that was received first. Once the second message is received, the network can proceed to a stateless computation and finally send the result on to the next replica of $f$.
 
 \begin{figure}[h!]
 \centering
@@ -33,13 +35,7 @@ A function that computes a total sum of integer values stored under label $x$ in
 \label{fig:fp_examp}
 \end{figure}
 
-
-\begin{figure}[h!]
-\centering
-\includegraphics[scale=0.8]{figs/chapter_04_fp_example_b.pdf}
-\caption{Schematic box code for the motivating example (Fig. \ref{fig:fp_examp})}
-\label{fig:fp_examp_b}
-\end{figure}
+The state management in $f$ is implemented by synchroniser $S$ listed in Fig. \ref{ffp:synch_s}. The synchroniser has one input channel $x$, which is also the input channel of $f$, and two output channels $a$ and $b$. Channel $a$ is connected to a box ($B$) that performs the summation, and channel $b$ merges with the output channel of $B$ into the output channel of $f$. The synchroniser declares a store variable ($ma$) for keeping the first summand. In the start state the synchroniser checks the integer value stored under label $x$ in the received message. If that value is greater than $n$, the message is sent on to the output channel $b$ and then to the next replica of $f$. Otherwise, the label value pair \textbf{x}:\emph{value} is saved to the store variable and synchroniser $S$ transitions to state $s1$. In state $s1$ the synchroniser extracts the integer value from the received message and forms an output message of format (: \textbf{uniq}: \{\textbf{x}:\emph{Int}, \textbf{y}:\emph{Int}\} :) using the contents of the store variable and the extracted value. Then the message is sent on to $B$ and the synchroniser transitions to state $rfp$.
 
 \begin{figure}[h!]
 \begin{lstlisting}[frame=single]
@@ -48,10 +44,10 @@ synch S (x | a, b)
   store ma:a;
   start {
     on:
-      a.(x || t) & [x == 3] {
+      a.(x || t) & [x >= n] {
         send this => b;
       }
-      a.(x || t) {
+      a.(x || t) & [x < n] {
         set ma = x:[x];
         goto s1;
       }
@@ -76,15 +72,22 @@ synch S (x | a, b)
 \label{ffp:synch_s}
 \end{figure}
 
+Box $B$ sums up the values stored under labels $x$ and $y$ of the received message and forms an output message (: \textbf{uniq}: \{\textbf{x}:\emph{Int}\} :) carrying the sum of the two values as shown in Fig. \ref{fig:fp_examp_b}. The message is sent on to the output channel of $B$ and consequently to the output channel of $f$.
 
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.8]{figs/chapter_04_fp_example_b.pdf}
+\caption{Schematic box code for the motivating example (Fig. \ref{fig:fp_examp})}
+\label{fig:fp_examp_b}
+\end{figure}
 
-
-In the remainder of the chapter we will give formal definitions of a fixed point message and a reverse fixed point state, and will provide algorithms for the \ak\ compiler to detect them. In the sequel, we will call a fixed point message a forward fixed point.
+In state $rfp$ synchroniser $S$ transmits any message it receives on its input channel without change and then transitions back to this state. When $S$ stays in state $rfp$, the whole replica of $f$ acts in the same way. Such replicas can be removed from the wiring in order to unlock the reserved resources. The removal of these replicas is necessary because the number of replicas needed for the computation is not known in advance. When the total sum is greater than $n$ and the summation is finished, the next summation is initiated in $f^{*}$ with the arrival of a new message. If this summation uses less replicas than the previous one, the extra replicas should be noted and removed to release the resources. The behaviour that is coded in state $rfp$ of synchroniser $S$ allows the \ak\ runtime to detect unused replicas and remove them.
+% continue about the forward fixed point
 
 
     \section{Forward Fixed Point}
 %We will now explain how the pattern to match the fixed point messages can be encoded within the operand network.
-Once the computation in a serial replication network has reached the fixed point, newly created replicas are known to transmit fixed point messages without change. \ak\ does not analyse boxes\footnote{Except for the CAL passport generation}, so it can determine about the operand network behaviour only from its synchronisers. Thus, in order for the operand network to be analysable by \ak\, it must contain a path that does not traverse boxes and which may traverse synchronisers. Because a newly created replica is inactive, and hence the synchronisers in it are in their start states, the start states of the synchronisers that belong to the path must have a special transition that sends the message on to the next synchroniser along the path. Since transitions can be conditional on the message content, the fixed point pattern, or rather the fixed point condition, can be present in these special transitions.
+Once the computation in a serial replication network has reached the fixed point, newly created replicas are known to transmit fixed point messages without change. \ak\ does not analyse boxes\footnote{Except for the \replaced{communication}{CAL} passport generation}, so it can determine about the operand network behaviour only from its synchronisers. Thus, in order for the operand network to be analysable by \ak\, it must contain a path that does not traverse boxes and which may traverse synchronisers. Because a newly created replica is inactive, and hence the synchronisers in it are in their start states, the start states of the synchronisers that belong to the path must have a special transition that sends the message on to the next synchroniser along the path. Since transitions can be conditional on the message content, the fixed point pattern, or rather the fixed point condition, can be present in these special transitions.
 
 %1) synchronisers approach (only detects integer fields like S-Net)
 The existence of a forward fixed point requires the operand network to have some topological properties that are formally defined as follows. Consider a network $N$ that has an input and an output channel, both named $x$.
@@ -210,9 +213,9 @@ Note that there exists no other transition on the channel from the start state w
 
     \State $out\_port\gets get\_port$($send$)
     \If{$cond \in CondDict$($out\_port$)}
-      \State $CondDict$($out\_port$)$\gets CondDict$($out\_port$) \texttt{..} $cond$
+      \State $CondDict$($out\_port$)$\gets CondDict$($out\_port$)\replaced{.Append}{ \texttt{..} }($cond$)
     \Else
-      \State $CondDict\gets CondDict$ \texttt{..} ($out\_port$, [$cond$])
+      \State $CondDict\gets CondDict$\replaced{.Append}{ \texttt{..} }($out\_port$, [$cond$])
     \EndIf
 
   \EndFor
@@ -306,7 +309,7 @@ The fixed point detection algorithm runs only on acyclic networks. The wrap-arou
 
     \State $Lists\gets empty\_list$
 
-    \State $cond\_list\gets cond\_list$ \textbf{..} $start\_cond$ %add check if cond already exists in cond_list
+    \State $cond\_list\gets cond\_list$\replaced{.Append}{ \textbf{..} }($start\_cond$) %add check if cond already exists in cond_list
 
     \For{\textbf{each} \emph{succ\_node in succ\_nodes}($start$)}
       \State $out\_port\gets get\_label$($edge$($start, succ\_node$))
@@ -318,7 +321,7 @@ The fixed point detection algorithm runs only on acyclic networks. The wrap-arou
         \State $NewLists\gets detect\_ffp$($graph, out\_port, succ\_node, end, cond\_list$)
 
         \For{\emph{new\_list in NewLists}}
-          \State $Lists\gets Lists$ \textbf{..} $new\_list$\Comment{\emph{the fixed point path branches if $|Lists|>1$ }}
+          \State $Lists\gets Lists$\replaced{.Append}{ \textbf{..} }($new\_list$)\Comment{\emph{the fixed point path branches if $|Lists|>1$ }}
         \EndFor
 
       \EndIf
@@ -347,7 +350,7 @@ The fixed point detection algorithm runs only on acyclic networks. The wrap-arou
     \State $Lists\gets detect\_ffp$($graph, x, start, end$) %it can be empty_list as well if the network does not have a fixed point, then the path is rejected
     \If{$start = end$}
       
-      \State \textbf{return} $cond\_list$ \textbf{..} $Lists$
+      \State \textbf{return} $cond\_list$\replaced{.Append}{ \textbf{..} }($Lists$)
 
     \EndIf
     \State \textbf{return} $Lists$
@@ -512,7 +515,7 @@ The algorithm in Fig. \ref{fig:rfp_extract} checks if a reverse fixed point exis
       \If{$out \notin StateDict$}
         \State $StateDict$($out$)$\gets state$
       \Else
-        \State $StateDict$($out$)$\gets StateDict$($out$) \textbf{..} $state$
+        \State $StateDict$($out$)$\gets StateDict$($out$)\replaced{.Append}{ \textbf{..} }$state$
       \EndIf
     \EndFor
   \EndFor

@@ -1,0 +1,104 @@
+<?xml version="1.1" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+    xmlns:latexdraw="http://latexdraw.sourceforge.net/namespaces/latexdraw"
+    version="1.1" baseProfile="full">
+    <g>
+        <g latexdraw:type="circle" id="id891705492">
+            <circle cx="440.0" cy="60.0" r="19.0"
+                latexdraw:borderPos="outer" stroke-width="2.0"
+                stroke="black" fill="none"/>
+        </g>
+        <g latexdraw:type="circle" id="id199273212">
+            <circle cx="360.0" cy="180.0" r="19.0"
+                latexdraw:borderPos="outer" stroke-width="2.0"
+                stroke="black" fill="none"/>
+        </g>
+        <g latexdraw:type="circle" id="id1165362609">
+            <circle cx="520.0" cy="180.0" r="19.0"
+                latexdraw:borderPos="outer" stroke-width="2.0"
+                stroke="black" fill="none"/>
+        </g>
+        <g latexdraw:type="text" id="id1390473174" fill="black" latexdraw:position="bl">
+            <text x="400.0" y="40.0"><![CDATA[$s_0$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id1675827371" fill="black" latexdraw:position="bl">
+            <text x="540.0" y="220.0"><![CDATA[$s_1$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id1484163004" fill="black" latexdraw:position="bl">
+            <text x="320.0" y="220.0"><![CDATA[$s_2$]]></text>
+        </g>
+        <g latexdraw:type="bezierCurve" id="id1305048323">
+            <path d="M 460.0 60.0 C 500.0 80.0 520.0 120.0 520.0 160.0 "
+                stroke-width="2.0" stroke="black" fill="none"
+                latexdraw:rotationAngle="0.0" marker-end="url(#arrow1-1305048323)"/>
+        </g>
+        <g latexdraw:type="bezierCurve" id="id1776760084">
+            <path
+                d="M 500.0 180.0 C 460.0 200.0 420.0 200.0 380.0 180.0 "
+                stroke-width="2.0" stroke="black" fill="none"
+                latexdraw:rotationAngle="0.0" marker-end="url(#arrow1-1776760084)"/>
+        </g>
+        <g latexdraw:type="bezierCurve" id="id1096132039">
+            <path d="M 360.0 160.0 C 360.0 120.0 380.0 80.0 420.0 60.0 "
+                stroke-width="2.0" stroke="black" fill="none"
+                latexdraw:rotationAngle="0.0" marker-end="url(#arrow1-1096132039)"/>
+        </g>
+        <g latexdraw:type="text" id="id1067071153" fill="black" latexdraw:position="bl">
+            <text x="520.0" y="100.0"><![CDATA[$a \times true, \; \mu_0$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id551899284" fill="black" latexdraw:position="bl">
+            <text x="400.0" y="220.0"><![CDATA[$a \times true, \; \mu_1$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id204348399" fill="black" latexdraw:position="bl">
+            <text x="260.0" y="100.0"><![CDATA[$a \times true, \; \mu_2$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id891328559" fill="black" latexdraw:position="bl">
+            <text x="540.0" y="120.0"><![CDATA[$\Pi \: (s_0, \; c) = 0$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id342943802" fill="black" latexdraw:position="bl">
+            <text x="400.0" y="240.0"><![CDATA[$\Pi \: (s_1, \; c) = 0$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id370415055" fill="black" latexdraw:position="bl">
+            <text x="240.0" y="120.0"><![CDATA[$\Pi \: (s_2, \; c) = \mu_2$]]></text>
+        </g>
+    </g>
+    <defs>
+        <marker overflow="visible" orient="auto" id="arrow1-1305048323">
+            <path
+                d="M 0.0 0.0 L -4.652083333333334 1.6614583333333335 L -4.652083333333334 0.0 L -4.652083333333334 -1.6614583333333335 z "
+                latexdraw:arrSizeNum="2.0" fill="black"/>
+        </marker>
+        <marker overflow="visible" orient="auto" id="arrow1-1776760084">
+            <path
+                d="M 0.0 0.0 L -4.652083333333334 1.6614583333333335 L -4.652083333333334 0.0 L -4.652083333333334 -1.6614583333333335 z "
+                latexdraw:arrSizeNum="2.0" fill="black"/>
+        </marker>
+        <marker overflow="visible" orient="auto" id="arrow1-1096132039">
+            <path
+                d="M 0.0 0.0 L -4.652083333333334 1.6614583333333335 L -4.652083333333334 0.0 L -4.652083333333334 -1.6614583333333335 z "
+                latexdraw:arrSizeNum="2.0" fill="black"/>
+        </marker>
+    </defs>
+    <metadata>
+        <latexdraw:metadata>
+            <latexdraw:latexIncludes><![CDATA[\usepackage{amssymb}
+]]></latexdraw:latexIncludes>
+            <latexdraw:displayXScale>true</latexdraw:displayXScale>
+            <latexdraw:displayYScale>true</latexdraw:displayYScale>
+            <latexdraw:unit>CM</latexdraw:unit>
+            <latexdraw:zoom>1.0</latexdraw:zoom>
+            <latexdraw:magneticGridStyle>CUSTOMISED</latexdraw:magneticGridStyle>
+            <latexdraw:gridGap>20</latexdraw:gridGap>
+            <latexdraw:magneticGrid>true</latexdraw:magneticGrid>
+            <latexdraw:version>3.3.1</latexdraw:version>
+            <latexdraw:size>
+                <latexdraw:width>1280</latexdraw:width>
+                <latexdraw:height>728</latexdraw:height>
+            </latexdraw:size>
+            <latexdraw:position>
+                <latexdraw:x>0.0</latexdraw:x>
+                <latexdraw:y>38.0</latexdraw:y>
+            </latexdraw:position>
+        </latexdraw:metadata>
+    </metadata>
+</svg>

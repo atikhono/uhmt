@@ -1,0 +1,112 @@
+<?xml version="1.1" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+    xmlns:latexdraw="http://latexdraw.sourceforge.net/namespaces/latexdraw"
+    version="1.1" baseProfile="full">
+    <g>
+        <g latexdraw:type="circle" id="id123604420">
+            <circle cx="440.0" cy="60.0" r="19.0"
+                latexdraw:borderPos="outer" stroke-width="2.0"
+                stroke="black" fill="none"/>
+        </g>
+        <g latexdraw:type="circle" id="id24736736">
+            <circle cx="440.0" cy="160.0" r="19.0"
+                latexdraw:borderPos="outer" stroke-width="2.0"
+                stroke="black" fill="none"/>
+        </g>
+        <g latexdraw:type="circle" id="id1158183959">
+            <circle cx="440.0" cy="320.0" r="19.0"
+                latexdraw:borderPos="outer" stroke-width="2.0"
+                stroke="black" fill="none"/>
+        </g>
+        <g latexdraw:type="text" id="id1260514447" fill="black" latexdraw:position="bl">
+            <text x="400.0" y="80.0"><![CDATA[$s_0$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id603198849" fill="black" latexdraw:position="bl">
+            <text x="400.0" y="180.0"><![CDATA[$s_1$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id876095427" fill="black" latexdraw:position="bl">
+            <text x="400.0" y="340.0"><![CDATA[$s_k$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id1438648185" fill="black" latexdraw:position="bl">
+            <text x="400.0" y="120.0"><![CDATA[$a_0, \; \mu_0$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id367392865" fill="black" latexdraw:position="bl">
+            <text x="400.0" y="220.0"><![CDATA[$a_1, \; \mu_1$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id1807495917" fill="black" latexdraw:position="bl">
+            <text x="400.0" y="380.0"><![CDATA[$a_k, \; \mu_k$]]></text>
+        </g>
+        <g latexdraw:type="bezierCurve" id="id280206557">
+            <path
+                d="M 440.0 80.0 C 460.0 100.0 460.0 120.0 440.0 140.0 "
+                stroke-width="2.0" stroke="black" fill="none"
+                latexdraw:rotationAngle="0.0" marker-end="url(#arrow1-280206557)"/>
+        </g>
+        <g latexdraw:type="bezierCurve" id="id1569793443">
+            <path
+                d="M 440.0 180.0 C 460.0 200.0 460.0 220.0 440.0 240.0 "
+                stroke-width="2.0" stroke="black" fill="none"
+                latexdraw:rotationAngle="0.0" marker-end="url(#arrow1-1569793443)"/>
+        </g>
+        <g latexdraw:type="text" id="id596282179" fill="black" latexdraw:position="bl">
+            <text x="440.0" y="280.0"><![CDATA[$\vdots$]]></text>
+        </g>
+        <g latexdraw:type="bezierCurve" id="id1555885551">
+            <path
+                d="M 440.0 340.0 C 460.0 360.0 460.0 380.0 440.0 400.0 "
+                stroke-width="2.0" stroke="black" fill="none"
+                latexdraw:rotationAngle="0.0" marker-end="url(#arrow1-1555885551)"/>
+        </g>
+        <g latexdraw:type="text" id="id133040482" fill="black" latexdraw:position="bl">
+            <text x="440.0" y="440.0"><![CDATA[$\vdots$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id1580077068" fill="black" latexdraw:position="bl">
+            <text x="480.0" y="120.0"><![CDATA[$\Pi \: (s_0, \; \omega_m) = \psi_{\sqcap} \: \{ \mu_0 \: | \: \rho_{00}^{m} = 0 \} = 0$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id1332426158" fill="black" latexdraw:position="bl">
+            <text x="480.0" y="220.0"><![CDATA[$\Pi \: (s_1, \; \omega_m) = \psi_{\sqcap} \: \{ \mu_0 \: | \: \rho_{10}^{m} = 0, \; \mu_1 \: | \: \rho_{11}^{m}=0 \} = 0$]]></text>
+        </g>
+        <g latexdraw:type="text" id="id1476216659" fill="black" latexdraw:position="bl">
+            <text x="480.0" y="380.0"><![CDATA[$\Pi \: (s_k, \: \omega_m) = \psi_{\sqcap} \: \{ \mu_0 \: | \: \rho_{k\:0}^{m}=0, \; \dots, \; \mu_{k-1} \: | \: \rho_{k\:k-1}^{m}=0, \; \mu_k \: | \: \rho_{k\:k}^{m}=1 \} = \mu_k$]]></text>
+        </g>
+    </g>
+    <defs>
+        <marker overflow="visible" orient="auto" id="arrow1-280206557">
+            <path
+                d="M 0.0 0.0 L -4.652083333333334 1.6614583333333335 L -4.652083333333334 0.0 L -4.652083333333334 -1.6614583333333335 z "
+                latexdraw:arrSizeNum="2.0" fill="black"/>
+        </marker>
+        <marker overflow="visible" orient="auto" id="arrow1-1569793443">
+            <path
+                d="M 0.0 0.0 L -4.652083333333334 1.6614583333333335 L -4.652083333333334 0.0 L -4.652083333333334 -1.6614583333333335 z "
+                latexdraw:arrSizeNum="2.0" fill="black"/>
+        </marker>
+        <marker overflow="visible" orient="auto" id="arrow1-1555885551">
+            <path
+                d="M 0.0 0.0 L -4.652083333333334 1.6614583333333335 L -4.652083333333334 0.0 L -4.652083333333334 -1.6614583333333335 z "
+                latexdraw:arrSizeNum="2.0" fill="black"/>
+        </marker>
+    </defs>
+    <metadata>
+        <latexdraw:metadata>
+            <latexdraw:latexIncludes><![CDATA[\usepackage{amssymb}
+]]></latexdraw:latexIncludes>
+            <latexdraw:displayXScale>true</latexdraw:displayXScale>
+            <latexdraw:displayYScale>true</latexdraw:displayYScale>
+            <latexdraw:unit>CM</latexdraw:unit>
+            <latexdraw:zoom>1.0</latexdraw:zoom>
+            <latexdraw:magneticGridStyle>CUSTOMISED</latexdraw:magneticGridStyle>
+            <latexdraw:gridGap>20</latexdraw:gridGap>
+            <latexdraw:magneticGrid>true</latexdraw:magneticGrid>
+            <latexdraw:version>3.3.1</latexdraw:version>
+            <latexdraw:size>
+                <latexdraw:width>1280</latexdraw:width>
+                <latexdraw:height>728</latexdraw:height>
+            </latexdraw:size>
+            <latexdraw:position>
+                <latexdraw:x>0.0</latexdraw:x>
+                <latexdraw:y>38.0</latexdraw:y>
+            </latexdraw:position>
+        </latexdraw:metadata>
+    </metadata>
+</svg>

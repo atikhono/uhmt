@@ -120,8 +120,7 @@ Punctuation & braces, brackets, parantheses, the comma, the dot, the semicolon, 
 
 
     \section{Abstract Syntax Tree of the Synchroniser} \label{ast_app}
-The structure of the abstract syntax tree used in the synchroniser compiler is described in Fig. \ref{ast_struc}.
-Each node is a Node subclass that lists the attributes and child nodes of the class: \iangled{name}* - a child node, \iangled{name}** - a sequence of child nodes and \iangled{name} - an attribute.
+The $aksync$ compiler uses the abstract syntax tree (AST) code representation. The AST nodes represent significant programming constructs of the synchroniser language. In our implementation we use the AST generator by E. Bendersky (TODO: include a ref). The generator configuration file (Fig. \ref{ast_struc}) describes the structure of the AST nodes. Each node lists the attributes and the child nodes. A single star (*) and two stars (**) depict a single child node and a sequence of nodes of the same type respectively. A string depicts an attribute.
 
 \begin{figure}%[h!]
 \scriptsize
@@ -200,7 +199,7 @@ NUMBER: [value]
 IntExp: [exp]
 
 \end{lstlisting}
-\caption{The abstract syntax tree of a synchroniser}
+\caption{The generator configuration file of the synchroniser AST nodes. Child node types are provided in comments (marked with dashes).}
 \label{ast_struc}
 \end{figure}
 
