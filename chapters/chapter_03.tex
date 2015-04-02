@@ -21,10 +21,9 @@ The number of iterations $n$ needed to reach the fixed point is not known in adv
 
 The chain of replicas grows as the computation progresses, however, in the example in Fig. \ref{fig:fp} the computation is carried out only by a single replica in the tail of the chain. The replicas in the head of the chain have processed the message and are not used anymore. In order to suppress the growth of the chain, \ak\ must detect such replicas and optimise the connection by removing them. Since \ak\ boxes are stateless, an operand network can have a state that is fully defined by the states of its synchronisers. A replica of the operand network can be removed from the chain safely if the replica is in a state, in which it forwards any message without change, i.e. any message it receives is its fixed point. We will call such a state of the replica a reverse fixed point state.
 
-In the remainder of the chapter we will give formal definitions of a fixed point message and a reverse fixed point state, and will provide algorithms for the \ak\ compiler to detect them. In the sequel, we will call a fixed point message a forward fixed point.
-
 
     \subsection*{\added{Motivating Example}}
+In this section we demonstrate the concept of fixed points by a simple example.
 
 The serial replication network $f^{*}$ in Fig. \ref{fig:fp_examp} computes a total sum of integer values that are stored under label $x$ in incoming messages while the sum is less than some integer value $n$. The network has one input and one output channel $x$. Although the synchronisation can be done by variants, for the sake of simplicity we consider that the input message has a unique variant and, thus, the message format of the operand network $f$ is (: \textbf{uniq}: \{\textbf{x}:\emph{Int}\} :). In order to compute a sum, the value stored under label $x$ has to be extracted out of two input messages, so the network has to preserve a state by keeping the message that was received first. Once the second message is received, the network can proceed to a stateless computation and finally send the result on to the next replica of $f$.
 
@@ -35,13 +34,14 @@ The serial replication network $f^{*}$ in Fig. \ref{fig:fp_examp} computes a tot
 \label{fig:fp_examp}
 \end{figure}
 
-The state management in $f$ is implemented by synchroniser $S$ listed in Fig. \ref{ffp:synch_s}. The synchroniser has one input channel $x$, which is also the input channel of $f$, and two output channels $a$ and $b$. Channel $a$ is connected to a box ($B$) that performs the summation, and channel $b$ merges with the output channel of $B$ into the output channel of $f$. The synchroniser declares a store variable ($ma$) for keeping the first summand. In the start state the synchroniser checks the integer value stored under label $x$ in the received message. If that value is greater than $n$, the message is sent on to the output channel $b$ and then to the next replica of $f$. Otherwise, the label value pair \textbf{x}:\emph{value} is saved to the store variable and synchroniser $S$ transitions to state $s1$. In state $s1$ the synchroniser extracts the integer value from the received message and forms an output message of format (: \textbf{uniq}: \{\textbf{x}:\emph{Int}, \textbf{y}:\emph{Int}\} :) using the contents of the store variable and the extracted value. Then the message is sent on to $B$ and the synchroniser transitions to state $rfp$.
+The state management in $f$ is implemented by synchroniser $S$ listed in Fig. \ref{ffp:synch_s}. The synchroniser has one input channel $x$, which is also the input channel of $f$, and two output channels $a$ and $b$. Channel $a$ is connected to a box ($B$) that performs the summation, and channel $b$ merges with the output channel of $B$ into the output channel of $f$. The synchroniser declares a store variable ($ma$) for keeping the first summand. In the start state the synchroniser checks the integer value stored under label $x$ in the received message. If that value is greater than $n$, the message is sent on to the output channel $b$ and then to the next replica of $f$. Otherwise, the label-value pair \textbf{x}:\emph{value} is saved to the store variable and synchroniser $S$ transitions to state $s1$. In state $s1$ the synchroniser extracts the integer value from the received message and forms an output message of format (: \textbf{uniq}: \{\textbf{x}:\emph{Int}, \textbf{y}:\emph{Int}\} :) using the contents of the store variable and the extracted value. Then the message is sent on to $B$ and the synchroniser transitions to state $rfp$ (\textbf{r}everse \textbf{f}ixed \textbf{p}oint state).
 
 \begin{figure}[h!]
+\lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
 \begin{lstlisting}[frame=single]
 synch S (x | a, b)
 {
-  store ma:a;
+  store ma:x;
   start {
     on:
       a.(x || t) & [x >= n] {
@@ -68,7 +68,7 @@ synch S (x | a, b)
   }
 }
 \end{lstlisting}
-\caption{The synchroniser S}
+\caption{Synchroniser S in Fig. \ref{fig:fp_examp}}
 \label{ffp:synch_s}
 \end{figure}
 
@@ -77,12 +77,16 @@ Box $B$ sums up the values stored under labels $x$ and $y$ of the received messa
 \begin{figure}[h!]
 \centering
 \includegraphics[scale=0.8]{figs/chapter_04_fp_example_b.pdf}
-\caption{Schematic box code for the motivating example (Fig. \ref{fig:fp_examp})}
+\caption{Schematic box code for the motivating example in Fig. \ref{fig:fp_examp}}
 \label{fig:fp_examp_b}
 \end{figure}
 
 In state $rfp$ synchroniser $S$ transmits any message it receives on its input channel without change and then transitions back to this state. When $S$ stays in state $rfp$, the whole replica of $f$ acts in the same way. Such replicas can be removed from the wiring in order to unlock the reserved resources. The removal of these replicas is necessary because the number of replicas needed for the computation is not known in advance. When the total sum is greater than $n$ and the summation is finished, the next summation is initiated in $f^{*}$ with the arrival of a new message. If this summation uses less replicas than the previous one, the extra replicas should be noted and removed to release the resources. The behaviour that is coded in state $rfp$ of synchroniser $S$ allows the \ak\ runtime to detect unused replicas and remove them.
+
 % continue about the forward fixed point
+The transition in line 6 of Fig. \ref{ffp:synch_s} checks if the interim result of the summation is greater than $n$. If the condition is satisfied, the received message is sent on to the next replica of $f$. Synchroniser $S$ in that replica receives the message and the same transition is activated resulting in the message being sent on to the next replica. In this way the message that carries the interim result greater than $n$ cascades through the infinite chain of replicas without change. Thus, the message is the fixed point of the serial replication network $f^{*}$. Generally, a fixed point message of $f^{*}$ is detected by testing the condition $(x \: || \:  t) \: \& \: x \ge n$ on the message, and this test is encoded in the transition in line 6 of $S$ (Fig. \ref{ffp:synch_s}). In order to detect fixed point messages, program analysis extracts the condition from the synchroniser source code. Once the fixed point condition is known, \ak\ is able to detect fixed point messages on runtime.
+
+In the remainder of the chapter we will give formal definitions of a fixed point message and a reverse fixed point state, and will provide algorithms for the \ak\ compiler to detect them. In the sequel, we will call a fixed point message a forward fixed point.
 
 
     \section{Forward Fixed Point}
