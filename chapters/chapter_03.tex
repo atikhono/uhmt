@@ -23,7 +23,7 @@ The chain of replicas grows as the computation progresses, however, in the examp
 
 
     \subsection*{\added{Motivating Example}}
-In this section we demonstrate the concept of fixed points by a simple example.
+In this section we demonstrate the concept of fixed point by a simple example.
 
 The serial replication network $f^{*}$ in Fig. \ref{fig:fp_examp} computes a total sum of integer values that are stored under label $x$ in incoming messages while the sum is less than some integer value $n$. The network has one input and one output channel $x$. Although the synchronisation can be done by variants, for the sake of simplicity we consider that the input message has a unique variant and, thus, the message format of the operand network $f$ is (: \textbf{uniq}: \{\textbf{x}:\emph{Int}\} :). In order to compute a sum, the value stored under label $x$ has to be extracted out of two input messages, so the network has to preserve a state by keeping the message that was received first. Once the second message is received, the network can proceed to a stateless computation and finally send the result on to the next replica of $f$.
 
