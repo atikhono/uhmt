@@ -11,7 +11,7 @@ The $aksync$ compiler is integrated into the current \ak\ runtime system prototy
 \end{equation}
 where $\Phi = (A, \; S, \; T)$ is a nondeterministic state machine with the alphabet of events $A \subseteq C \times P$, where $C$ denotes the set of input channels and $P$ the set of the predicates on channel messages. An event $(c, \; p) \in A$ represents the reception of message\added{ $\mu$} on channel $c$ that satisfies the predicate $p$. The set of abstract states in $\Phi$ is denoted as $S\;$\replaced{$ = \{s_0, \dots, s_k, \dots, s_n\}$, $k \leq n$,}{$\supseteq \{s_{0}\}$} with the start state $s_{0}$, and the transition matrix as $T \: : \: A \times S \to S$.
 
-The path functional $\Pi \: (s_k, \; \omega_m) \in \Pi$\replaced{, where $\Omega$ is the set of output channels,}{$ \: : \: S \times \Omega \to V^{(*)}$} defines the output to channel $\omega_m \in \Omega$ of the synchroniser \replaced{in state $s_k \in S$}{and $V$ is the set of message values, $V^{(*)}$ denotes a set of all sequences from $V$}. The functional $\Pi \: (s_k, \; \omega_m)$ is based on the retrospective sequence of transitions from the most recent visit to the start state $s_{0}$ to $s_{k}$:
+The path functional $\Pi \: (S, \; \Omega)$\replaced{, where $\Omega$ is the set of output channels,}{$ \: : \: S \times \Omega \to V^{(*)}$} defines the output of the synchroniser\deleted{, where $V$ is the set of message values, $V^{(*)}$ denotes a set of all sequences from $V$}.\added{ The function $\Pi \: (s_k, \; \omega_m) \in \Pi$ defines the output to channel $\omega_m \in \Omega$ of the synchroniser in state $s_k \in S$.} In state $s_k$ the functional is based on the retrospective sequence of transitions from the most recent visit to the start state $s_{0}$ to $s_{k}$:
 \begin{equation}
 (s_{0}, a_{0}), \: (s_{1}, a_{1}),... \: (s_{k}, a_{k}),\\\nonumber
 \end{equation}
@@ -146,7 +146,7 @@ In a given state $s_k$ for each output channel $\omega_{m}$ we note all $\rho_{k
 %  \end{itemize}
   \end{enumerate}
 
-So far we have given a formal definition of the synchroniser. Along with it we have introduced two important concepts for the synchroniser that are considered as a part of the synchroniser language. First is a message storage mechanism we call a store variable. Second is a mechanism for defining large regular transition matrices, which we call a state variable.
+So far we have given a formal definition of the synchroniser. Along with it we have introduced two important concepts for the synchroniser that are considered as a part of the synchroniser language. First is a message storage mechanism we call a store variable. Second is a mechanism for defining large regular transition matrices, which we call a state variable.\added{ In the next section we describe the programming language of synchronisers.} We shall note that the language allows some operations on store variables\footnote{E.g. merging two store variables into another one, appending a message extension that was computer by the synchroniser into a store variable, etc.} that the presented mathematical model cannot describe.\added{ The model should be fixed in accordance with the synchroniser language in the future.}
 
 
 \section{The Language of \ak\ Synchronisers}
@@ -1101,10 +1101,11 @@ tmp = Symtab.\emph{get}(\iangled{ID})
 
 \subsection{Code Generation}
   \subsubsection*{Synchroniser runtime code}
-The compiler generates \replaced{an abstract syntax tree (AST)}{a data structure} that is passed to the \ak\ runtime system for the interpretation. \added{An example of the AST for the counter synchroniser (Fig. \ref{fig:counter}) is shown in Fig. \ref{sync_ast}. A detailed description of the AST structure can be found in Appendix \ref{ast_app}.}
+The compiler generates \replaced{an abstract syntax tree (AST)}{a data structure} that is passed to the \ak\ runtime system for the interpretation. \added{An example of the AST for the counter synchroniser in Fig. \ref{sync_ast} is shown in Fig. \ref{sync_ast}. A detailed description of the AST structure can be found in Appendix \ref{ast_app}.}
 
 % TODO draw AST!
 \begin{figure}[h!]
+\lstset{numbers=left, numberstyle=\small, stepnumber=1, numbersep=8pt}
 \begin{lstlisting}[frame=single]
 synch counter (a | c)
 {
@@ -1121,8 +1122,15 @@ synch counter (a | c)
   }
 }
 \end{lstlisting}
-\caption{(a) Synchroniser code}
+\caption{The counter synchroniser code}
 \label{sync_ast}
+\end{figure}
+
+\begin{figure}[here]
+\centering
+\includegraphics[scale=0.8]{figs/chapter_02_runtime_struc.pdf}
+\caption{The AST generated for the counter synchroniser in Fig. \ref{sync_ast}. The AST is drawn only for the transition in lines 6-8. The AST generated for the transition in lines 9-12 is similar}
+\label{fig:runtime_struc}
 \end{figure}
 
 

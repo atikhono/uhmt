@@ -52,12 +52,40 @@ A \textsc{StreamIt} program is a hierarchical composition of these constructs.
 Thanks to the single-input and single-output restriction, a filter does not need to synchronise data on multiple input channels and to split result between output channels.
 
 
-    \section{S-Net}
-\textsc{S-Net} \cite{snet_intro} is a declarative coordination language based on stream processing. It defines the behaviour of stateless asynchronous components (boxes) that interact with each other in a streaming network. Boxes are written in conventional languages that are subject to contract with \text{S-Net}. They execute fully asynchronously, i.e. a box may consume data as soon as it is available from the input stream. Moreover, boxes are SISO, therefore \textsc{S-Net} achieves a near-complete separation of concerns between communication and computation.
+    \section{\textsc{S-Net}}
+\textsc{S-Net} \cite{snet_intro}, \cite{ceng_snet} is a declarative coordination language based on stream processing. It defines the behaviour of stateless asynchronous components (\emph{boxes}) that interact with each other in a streaming network. Boxes are written in conventional languages that are subject to contract with \textsc{S-Net}. They execute fully asynchronously, i.e. a box may consume data as soon as it is available from the input stream. Moreover, boxes are SISO, therefore \textsc{S-Net} achieves a near-complete separation of concerns between communication and computation.
 
-Streaming networks are expressed in a hierarchical manner using a fixed set of five combinators, viz. serial composition, parallel composition, serial replication, parallel replication and feedback loop. Three of the five combinators have non-deterministic versions that permit arbitrary reordering of input streams.
+Data on streams are organised as variant records of label-value pairs. \textsc{S-Net} provides a special facility, called \emph{synchrocell}, that merges one or more records into a single one. A synchrocell maintains an internal state in order to keep incoming records which match one of the patterns until all patterns have been matched. Then the records are merged into a single one and sent to the output stream.\deleted{ A synchrocell provides storage for one record of each pattern, and records with an already matched pattern are forwarded directly to the output stream. After sending the result of the merging on, the synchrocell serves as an identity function, forwarding all incoming records to the output. In order for the synchrocell to merge continuously, a serial replication network combinator must be applied to it.}
 
-Data on streams are organised as variant records of label-value pairs. \textsc{S-Net} provides a special facility, called \emph{synchrocell}, that merges one or more records into a single one. A synchrocell maintains an internal state in order to keep incoming records which match one of the patterns until all patterns have been matched. Then the records are merged into a single one and sent to the output stream. A synchrocell provides storage for one record of each pattern, and records with an already matched pattern are forwarded directly to the output stream. After sending the result of the merging on, the synchrocell serves as an identity function, forwarding all incoming records to the output. In order for the synchrocell to merge continuously, a serial replication network combinator must be applied to it.
+Streaming networks are expressed in a hierarchical manner using a fixed set of five combinators, viz. serial composition, parallel composition, serial replication, parallel replication and feedback loop.\added{ Network combinators are unary or binary operators that take either atomic components, e.g. boxes or synchrocells, or networks as their operands and construct a SISO network; hence, network construction is inductive.} Three of the five combinators have non-deterministic versions that permit arbitrary reordering of input streams.
+
+
+    \subsection*{The type system of \textsc{S-Net}}
+The type system of \textsc{S-Net} is based on non-recursive variant records with record subtyping. A type is \textsc{S-Net} is a non-empty set of anonymous record variants, and a record is a possibly non-empty set of record entries. Record entries are either \emph{fields} or \emph{tags}. A field consists of a label associated with an opaque value at runtime. A tag is a plain integer used for controlling the flow of records through a network. Record subtyping in \textsc{S-Net} is based on the understanding that a subtype is more specific than its supertype. Informally, a type is a subtype of another type if it has additional record entries in the variants or additional variants.
+
+%flow inheritance
+A box or network in \textsc{S-Net} accepts records of a certain type; thus, records upon entry to a certain box or network are up-coerced to its input type. In order to avoid the loss of record entries that are not manipulated by the box, \textsc{S-Net} employs a so-called flow inheritance mechanism. Any field or tag of an incoming record that is not explicitly named in the input type of a box or network bypasses the box or network and is added to any outgoing record created in response, unless that record already contains a field or tag with the same label.
+
+
+    \subsection*{Components}
+        \begin{itemize}
+        \item \textbf{Boxes}
+
+Boxes are the atomic building blocks of streaming network in \textsc{S-Net}. User-defined boxes can be specified in any conventional programming language that has an interface with \textsc{S-Net}. Generally, a user-defined box may produce a variable number of output records in response to a single input record, which is up to the box implementation.
+
+\textsc{S-Net} provides so-called built-in filter boxes (or \emph{filters}), which allow various housekeeping operation that do not require knowledge of field values. Those operations include, but not limited to, elimination of fields and tags from records, copying fields and tags, adding tags, and splitting records.
+
+        \item \textbf{Synchrocells}
+
+\textsc{S-Net} provides a built-in component called \emph{synchrocell} for the purpose of the joining of multiple records appearing in some order on a single input stream. Syntactically, a synchrocell consists of one or more patterns that match incoming records. A match happens when the type of a record is a subtype of the type pattern. The synchrocell provides storage for exactly one record of each pattern, and records with an already matched pattern are forwarded directly to the output stream. Once all the patterns have been matched and a merged record has been sent on to the output stream, the synchrocell serves as an identity box, i.e. it forwards all incoming records to the output.
+
+The paper \cite{ess_sync} shows that in conjunction with other \textsc{S-Net} features, the simplistic design allows the implementation of essential synchronisation features making the synchrocell an efficient synchronisation facility for asynchronous data flow computing in the style of \textsc{S-Net}. For example, continuous synchronisation, which is a common kind of synchronisation in streaming networks, can be implemented by applying a serial replication combinator to a synchroncell. Also, the paper \cite{ess_sync} demonstrates the modelling of a stateful computation using the property of synchrocell to become an identity once it has performed joining.
+
+        \end{itemize}
+
+
+    \subsection*{Network Composition}
+\textsc{S-Net} networks are constructed hierarchically using 
 
 
     \section{Summary}
@@ -72,7 +100,7 @@ In order to support dynamic reconfiguration of streaming networks, \textsc{S-Net
 
 
 \chapter{\ak\ }
-In this chapter we present the concepts of a new coordination language \ak\. \ak\ is an attempt to provide a component system with automatic concurrency management. \ak\ defines the coordination behaviour of fully asynchronous components (boxes) and their orderly interconnection via stream-carrying bounded FIFO channels. In \ak\, data on streams are organised as sequences of messages. Each message conforms to one or more statically known formats.
+In this chapter we present the concepts of a new coordination language \ak\ . \ak\ is an attempt to provide a component system with automatic concurrency management. \ak\ defines the coordination behaviour of fully asynchronous components (boxes) and their orderly interconnection via stream-carrying bounded FIFO channels. In \ak\, data on streams are organised as sequences of messages. Each message conforms to one or more statically known formats.
 
 \ak\ provides a facility for stream synchronisation in the form of a special component called a \emph{synchroniser}. The behaviour of the synchroniser is not fixed; instead, it is defined in a dedicated language that is a part of \ak\ paradigm. An \ak\ box generally is not SISO. Typically it has a single input channel, however, the number of output channels, although statically known, is not restricted. Similar to \textsc{S-Net}, boxes are stateless, hence they do not synchronise data; this work is done by synchronisers.
 
@@ -163,7 +191,7 @@ The act of sending a message to an output channel is associated with a transitio
 
 
 \section{Network Composition}
-The construction of streaming networks in \ak\ is hierarchical: components are wired into a subnetwork, which in turn can act as a component in a larger network, etc. In order to wire the components, \ak\ provides a set of wiring patterns sufficient to achieve arbitrary wiring. Each pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result.
+The construction of streaming networks in \ak\ is hierarchical: components are wired into a subnetwork, which in turn can act as a component in a larger network, etc. In order to wire the components, \ak\ provides a set of wiring patterns sufficient to achieve arbitrary wiring \cite{astrakahn}. Each pattern identifies input/output channels of the operand(s) with one another and with the input/output channels of the result.
 
 Three patterns are static, applicable to one or two operands:
 \begin{description}
@@ -179,30 +207,30 @@ The fourth pattern -- \textbf{serial replication} -- replicates the single opera
 
 
 
-\section{Structure of \ak\ }
-\ak\ is motivated by a KPN, which is a theoretical model and its properties are only available under an interpretation with unlimited resources. The intention of \ak\ is to refine and structure KPNs in order to provide a component system with an automatic resource and concurrency management.
-
-%What properties of KPNs do \ak\ inherit? What are the differences?
-\ak\ provides the following refinements to KPNs:
-\begin{itemize}
-\item \emph{Explicit management of state in the framework of coordination program} gives rise to more usable parallelism. Computational components are stateless and the coordination logic is expressed in the network wiring and synchronisers
-
-\item \emph{Automatic resource and concurrency management} provides a parallelisation mechanism based on communication demand
-
-\item \emph{Separation into independent layers communicating by means of interfaces} addresses the standard engineering agenda of abstraction, encapsulation and hierarchical development.
-\end{itemize}
-
-As the result of the refinement, \ak\ is presented as a paradigm with the following layers:
-\begin{itemize}
-\item A Topology and Progress Layer (TPL) that defines:
-    \begin{itemize}
-\item[-] Classes of boxes, their algebraic properties and their effects on channel segmentation
-\item[-] The language of synchronisers
-\item[-] The wiring patterns and the subnetwork encapsulation facility
-\item[-] The automatic resource and concurrency management strategy
-    \end{itemize}
-
-\item A Constraint Aggregation Layer (CAL) that ensures type safety all over the network given the data constraints supplied by each component
-
-\item A Data Instrumentation Layer (DIL) that manages data migration and concurrent access to objects in memory.
-\end{itemize}
+%\section{Structure of \ak\ }
+%\ak\ is motivated by a KPN, which is a theoretical model and its properties are only available under an interpretation with unlimited resources. The intention of \ak\ is to refine and structure KPNs in order to provide a component system with an automatic resource and concurrency management.
+%
+%%What properties of KPNs do \ak\ inherit? What are the differences?
+%\ak\ provides the following refinements to KPNs:
+%\begin{itemize}
+%\item \emph{Explicit management of state in the framework of coordination program} gives rise to more usable parallelism. Computational components are stateless and the coordination logic is expressed in the network wiring and synchronisers
+%
+%\item \emph{Automatic resource and concurrency management} provides a parallelisation mechanism based on communication demand
+%
+%\item \emph{Separation into independent layers communicating by means of interfaces} addresses the standard engineering agenda of abstraction, encapsulation and hierarchical development.
+%\end{itemize}
+%
+%As the result of the refinement, \ak\ is presented as a paradigm with the following layers:
+%\begin{itemize}
+%\item A Topology and Progress Layer (TPL) that defines:
+%    \begin{itemize}
+%\item[-] Classes of boxes, their algebraic properties and their effects on channel segmentation
+%\item[-] The language of synchronisers
+%\item[-] The wiring patterns and the subnetwork encapsulation facility
+%\item[-] The automatic resource and concurrency management strategy
+%    \end{itemize}
+%
+%\item A Constraint Aggregation Layer (CAL) that ensures type safety all over the network given the data constraints supplied by each component
+%
+%\item A Data Instrumentation Layer (DIL) that manages data migration and concurrent access to objects in memory.
+%\end{itemize}
