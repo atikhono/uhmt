@@ -71,21 +71,38 @@ A box or network in \textsc{S-Net} accepts records of a certain type; thus, reco
         \begin{itemize}
         \item \textbf{Boxes}
 
-Boxes are the atomic building blocks of streaming network in \textsc{S-Net}. User-defined boxes can be specified in any conventional programming language that has an interface with \textsc{S-Net}. Generally, a user-defined box may produce a variable number of output records in response to a single input record, which is up to the box implementation.
+Boxes are the atomic building blocks of streaming networks in \textsc{S-Net}. User-defined boxes can be specified in any conventional programming language that has an interface with \textsc{S-Net}. Generally, a user-defined box may produce a variable number of output records in response to a single input record, which is up to the box implementation.
 
-\textsc{S-Net} provides so-called built-in filter boxes (or \emph{filters}), which allow various housekeeping operation that do not require knowledge of field values. Those operations include, but not limited to, elimination of fields and tags from records, copying fields and tags, adding tags, and splitting records.
+\textsc{S-Net} provides so-called built-in filter boxes (or \emph{filters}), which allow various housekeeping operations that do not require knowledge of field values. Those operations include, but not limited to, elimination of fields and tags from records, copying fields and tags, adding tags, and splitting records.
 
         \item \textbf{Synchrocells}
 
-\textsc{S-Net} provides a built-in component called \emph{synchrocell} for the purpose of the joining of multiple records appearing in some order on a single input stream. Syntactically, a synchrocell consists of one or more patterns that match incoming records. A match happens when the type of a record is a subtype of the type pattern. The synchrocell provides storage for exactly one record of each pattern, and records with an already matched pattern are forwarded directly to the output stream. Once all the patterns have been matched and a merged record has been sent on to the output stream, the synchrocell serves as an identity box, i.e. it forwards all incoming records to the output.
+\textsc{S-Net} provides a built-in component called \emph{synchrocell} for the purpose of joining of multiple records appearing in some order on a single input stream. Syntactically, a synchrocell consists of one or more patterns that match incoming records. A match happens when the type of a record is a subtype of the type pattern. The synchrocell provides storage for exactly one record of each pattern, and records with an already matched pattern are forwarded directly to the output stream. Once all the patterns have been matched and a merged record has been sent on to the output stream, the synchrocell serves as an identity box, i.e. it forwards all incoming records to the output stream.
 
-The paper \cite{ess_sync} shows that in conjunction with other \textsc{S-Net} features, the simplistic design allows the implementation of essential synchronisation features making the synchrocell an efficient synchronisation facility for asynchronous data flow computing in the style of \textsc{S-Net}. For example, continuous synchronisation, which is a common kind of synchronisation in streaming networks, can be implemented by applying a serial replication combinator to a synchroncell. Also, the paper \cite{ess_sync} demonstrates the modelling of a stateful computation using the property of synchrocell to become an identity once it has performed joining.
+The paper \cite{ess_sync} shows that in conjunction with other \textsc{S-Net} features, the simplistic synchrocell design allows the implementation of essential synchronisation features making the synchrocell an efficient synchronisation facility for asynchronous data flow computing in the style of \textsc{S-Net}. For example, continuous synchronisation, which is a common kind of synchronisation in streaming networks, can be implemented by applying a serial replication combinator to a synchroncell. Also, the paper (\cite{ess_sync}) demonstrates modelling of a stateful computation using the property of synchrocell to become an identity once it has performed joining.
 
         \end{itemize}
 
 
     \subsection*{Network Composition}
-\textsc{S-Net} networks are constructed hierarchically using 
+Network composition in \textsc{S-Net} is an inductive process with boxes as base cases. \textsc{S-Net} networks are constructed hierarchically using a set of five network combinators. Network combinators are either unary or binary, and they create compound networks that have a single input and a single output stream. Routing decisions are made at split points of a network and are based upon the type of the subnetworks and the type of the actual record.
+
+    \begin{description}
+    \item[Serial composition] applies to two operands. It connects the output stream of the first operand to the input stream of the second operand. The input stream of the first operand and the output stream of the secord operand become those of the combined network.
+
+    \item[Parallel composition] applies to two operands and combines them in parallel. An incoming record is sent to exactly one operand depending on its own type and the type of records accepted by either of the operands. The output streams of the operands are merged into a single stream, which becomes the output stream of the combined network.
+
+    \item[Serial replication] applies to two operands. It creates infinitely many copies of its first operand, which is a network, and connects them by serial composition. The second operand is a type pattern, such that each record that is a subtype of this type pattern leaves the replication pipeline through the output stream.
+
+    \item[Indexed parallel replication] applies to two operands. Similar to serial replication, it creates infinitely many replicas of the first operand, which is a network, and connects them by parallel composition. The second operand is a tag. Each incoming record must have this tag and is sent to the replica with the tag value in the record.
+
+    \item[Feedback loop] applies to two operands. The first operand is a network and the second operand is a type pattern. Records which are input to the feedback loop network enter the operand network unconditionally. All output records of the operand network that are a subtype of the type pattern are fed back to the input of the feedback loop network. All other output records leave the feedback loop network.
+
+    \end{description}
+
+Serial and parallel replication network are demand-driven, hence the replicas are created dynamically on runtime.
+
+All combinators except for the serial composition (and the feedback loop) have non-deterministic and deterministic variants. Deterministic variants of combinators preserve the ordering of records in the output stream, while non-deterministic variants are allowed to completely reorder it.
 
 
     \section{Summary}
