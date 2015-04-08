@@ -120,7 +120,7 @@ Punctuation & braces, brackets, parantheses, the comma, the dot, the semicolon, 
 
 
     \section{Abstract Syntax Tree of the Synchroniser} \label{ast_app}
-The $aksync$ compiler uses the abstract syntax tree (AST) code representation. The AST nodes represent significant programming constructs of the synchroniser language. In our implementation we use the AST generator by E. Bendersky (TODO: include a ref). The generator configuration file (Fig. \ref{ast_struc}) describes the structure of the AST nodes. Each node lists the attributes and the child nodes. A single star (*) and two stars (**) depict a single child node and a sequence of nodes of the same type respectively. A string depicts an attribute.
+The $aksync$ compiler uses the abstract syntax tree (AST) code representation. The AST nodes represent significant programming constructs of the synchroniser language. In our implementation we use the AST generator by E. Bendersky \cite{pycparser}. The generator configuration file (Fig. \ref{ast_struc}) describes the structure of the AST nodes. Each node lists the attributes and the child nodes. A single star (*) and two stars (**) depict a single child node and a sequence of nodes of the same type respectively. A string depicts an attribute.
 
 \begin{figure}%[h!]
 \scriptsize
