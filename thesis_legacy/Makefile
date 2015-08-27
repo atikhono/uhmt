@@ -1,16 +1,11 @@
-#
-# Makefile for report
-#
-
-MAIN  = Thesis
-FIGURES = $(patsubst %.eps,%.pdf,$(wildcard ./figures/*.eps))
+MAIN = Thesis
 
 .PHONY: all clean cclean
 
-all: $(MAIN).pdf
+all: cclean $(MAIN).pdf
 
 
-$(MAIN).pdf:  $(MAIN).tex  $(MAIN).bib $(FIGURES)
+$(MAIN).pdf: $(MAIN).tex $(MAIN).bib
 	pdflatex -file-line-error -shell-escape $(MAIN)
 	bibtex   $(MAIN)
 	pdflatex -file-line-error $(MAIN)
@@ -20,15 +15,6 @@ $(MAIN).pdf:  $(MAIN).tex  $(MAIN).bib $(FIGURES)
 	    pdflatex -file-line-error $(MAIN);\
 	  done
 	make clean
-
-
-
-%.pdf: %.eps
-	epstopdf $<
-
-
-show: cclean $(MAIN).pdf
-	open $(MAIN).pdf &
 
 clean:
 	rm -fr *.bbl *.blg *.aux *.log *.loc *.lof *.lot *.loa *.soc *.out *.toc *.dvi *~

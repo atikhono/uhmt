@@ -1,37 +1,23 @@
-#
-# Makefile for report
-#
-
-MAIN  = report
-FIGURES = $(patsubst %.eps,%.pdf,$(wildcard ./figures/*.eps))
+MAIN = report
 
 .PHONY: all clean cclean
 
-all: $(MAIN).pdf
+all: cclean $(MAIN).pdf
 
 
-$(MAIN).pdf:  $(MAIN).tex $(MAIN).bib $(FIGURES)
-	pdflatex $(MAIN)
+$(MAIN).pdf: $(MAIN).tex $(MAIN).bib
+	pdflatex -file-line-error -shell-escape $(MAIN)
 	bibtex   $(MAIN)
-	pdflatex $(MAIN)
+	pdflatex -file-line-error $(MAIN)
 	@while ( grep "Rerun to get cross-references"\
 	  $(MAIN).log > /dev/null ); do\
 	    echo '** Re-running LaTeX **';\
-	    pdflatex $(MAIN);\
+	    pdflatex -file-line-error $(MAIN);\
 	  done
 	make clean
 
-
-
-%.pdf: %.eps
-	epstopdf $<
-
-
-show: $(MAIN).pdf
-	open $(MAIN).pdf &
-
 clean:
-	rm -fr *.bbl *.blg *.aux *.log *.lof *.lot *.loa *.out *.toc *.dvi *~
+	rm -fr *.bbl *.blg *.aux *.log *.loc *.lof *.lot *.loa *.soc *.out *.toc *.dvi *~
 
 cclean: clean
 	rm -f $(MAIN).pdf
