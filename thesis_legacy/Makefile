@@ -2,7 +2,7 @@
 # Makefile for report
 #
 
-MAIN  = report
+MAIN  = Thesis
 FIGURES = $(patsubst %.eps,%.pdf,$(wildcard ./figures/*.eps))
 
 .PHONY: all clean cclean
@@ -31,7 +31,7 @@ show: cclean $(MAIN).pdf
 	open $(MAIN).pdf &
 
 clean:
-	rm -fr *.bbl *.blg *.aux *.log *.loc *.lof *.lot *.loa *.out *.toc *.dvi *~
+	rm -fr *.bbl *.blg *.aux *.log *.loc *.lof *.lot *.loa *.soc *.out *.toc *.dvi *~
 
 cclean: clean
 	rm -f $(MAIN).pdf

@@ -47,6 +47,7 @@
 
 % Inkscape generated tex uses color.sty
 \usepackage{color}
+\graphicspath{{figs_old/}}
 \graphicspath{{figs/}}
 % Make inkscape regenerate image if .svg file is newer
 % than .pdf
@@ -76,6 +77,9 @@
 \usepackage[nounderscore]{syntax}
 \usepackage{listings}
 
+% Amendments
+\usepackage[final]{changes}
+
 % Authentic AstraKahn label
 \def\ak{{\textsf{A\kern-1.5pts\kern-1ptt\kern-1ptr\kern-1.8pta}}\kern-2pt{\it K\kern-2ptahn}}
 
@@ -94,7 +98,7 @@
 
 
 % Chapters.
-\input{chapters_old/introduction.tex}
+\input{chapters/introduction.tex}
 \input{chapters/chapter_01.tex}
 \input{chapters/chapter_02.tex}
 \input{chapters/chapter_03.tex}
@@ -102,7 +106,7 @@
 \input{chapters/conclusion.tex}
 
 \bibliographystyle{unsrt}
-\bibliography{report}
+\bibliography{Thesis}
 
 
 \begin{appendices}
